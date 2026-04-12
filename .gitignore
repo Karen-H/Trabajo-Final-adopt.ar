@@ -1,0 +1,42 @@
+# =============================================
+# Backend - Java / Maven
+# =============================================
+backend/target/
+backend/.mvn/
+backend/*.iml
+backend/.idea/
+backend/.classpath
+backend/.project
+backend/.settings/
+backend/mvnw
+backend/mvnw.cmd
+
+# =============================================
+# Frontend - Node / Vite
+# =============================================
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# =============================================
+# Docker
+# =============================================
+*.env.local
+
+# =============================================
+# IDEs
+# =============================================
+.idea/
+*.iml
+.vscode/
+*.suo
+*.user
+*.swp
+*.DS_Store
+Thumbs.db
+
+# =============================================
+# Logs
+# =============================================
+*.log
+logs/
