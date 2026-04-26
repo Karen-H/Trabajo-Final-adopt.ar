@@ -1,5 +1,6 @@
 package com.adoptar.dto.response;
 
+import com.adoptar.enums.UserProfile;
 import com.adoptar.enums.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,4 +17,5 @@ public class AuthResponse {
     private String apellido;
     private String email;
     private UserRole role;
+    private UserProfile activeProfile;
 }

@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,5 +34,11 @@ public class UserController {
         } catch (EmailAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
+    }
+
+    @PutMapping("/profile/switch")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<UserProfileResponse> switchProfile(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(userService.switchProfile(user));
     }
 }

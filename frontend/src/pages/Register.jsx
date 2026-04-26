@@ -28,6 +28,8 @@ function Register() {
       const res = await register(data)
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('nombre', res.data.nombre)
+      localStorage.setItem('role', res.data.role)
+      localStorage.setItem('activeProfile', res.data.activeProfile)
       navigate('/')
     } catch (err) {
       const status = err.response?.status

@@ -7,3 +7,7 @@ export function getProfile() {
 export function updateProfile(data) {
   return api.put('/user/profile', data)
 }
+
+export function switchProfile() {
+  return api.put('/user/profile/switch')
+}

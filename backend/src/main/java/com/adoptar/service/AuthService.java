@@ -67,6 +67,7 @@ public class AuthService {
                 .apellido(user.getApellido())
                 .email(user.getEmail())
                 .role(user.getRole())
+                .activeProfile(user.getActiveProfile())
                 .build();
     }
 }

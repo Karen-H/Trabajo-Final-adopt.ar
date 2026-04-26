@@ -3,6 +3,7 @@ package com.adoptar.service;
 import com.adoptar.dto.request.UpdateProfileRequest;
 import com.adoptar.dto.response.UserProfileResponse;
 import com.adoptar.entity.User;
+import com.adoptar.enums.UserProfile;
 import com.adoptar.exception.EmailAlreadyExistsException;
 import com.adoptar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +25,19 @@ public class UserService {
                 .tel(user.getTel())
                 .organizacion(user.getOrganizacion())
                 .role(user.getRole())
+                .activeProfile(user.getActiveProfile())
                 .createdAt(user.getCreatedAt())
                 .build();
+    }
+
+    public UserProfileResponse switchProfile(User user) {
+        if (user.getActiveProfile() == UserProfile.ADOPTANTE) {
+            user.setActiveProfile(UserProfile.RESCATISTA);
+        } else {
+            user.setActiveProfile(UserProfile.ADOPTANTE);
+        }
+        userRepository.save(user);
+        return getProfile(user);
     }
 
     public UserProfileResponse updateProfile(User user, UpdateProfileRequest request) {

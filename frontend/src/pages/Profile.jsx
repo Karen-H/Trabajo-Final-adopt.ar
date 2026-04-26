@@ -85,6 +85,9 @@ function Profile() {
         <p><strong>Nombre:</strong> {perfil.nombre} {perfil.apellido}</p>
         <p><strong>DNI:</strong> {perfil.dni}</p>
         <p><strong>Rol:</strong> {perfil.role}</p>
+        {perfil.role === 'USER' && (
+          <p><strong>Perfil activo:</strong> {perfil.activeProfile}</p>
+        )}
         <p><strong>Miembro desde:</strong> {new Date(perfil.createdAt).toLocaleDateString('es-AR')}</p>
       </div>
 
