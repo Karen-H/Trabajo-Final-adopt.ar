@@ -34,7 +34,7 @@ function Register() {
     } catch (err) {
       const status = err.response?.status
       if (status === 409) {
-        setError('Ya existe una cuenta con ese email o DNI.')
+        setError('Ya existe una cuenta con ese email, DNI o teléfono.')
       } else if (status === 400) {
 
         const violations = err.response?.data?.errors || err.response?.data

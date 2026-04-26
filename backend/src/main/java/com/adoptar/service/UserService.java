@@ -5,6 +5,7 @@ import com.adoptar.dto.response.UserProfileResponse;
 import com.adoptar.entity.User;
 import com.adoptar.enums.UserProfile;
 import com.adoptar.exception.EmailAlreadyExistsException;
+import com.adoptar.exception.TelAlreadyExistsException;
 import com.adoptar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -49,7 +50,11 @@ public class UserService {
             user.setEmail(request.getEmail());
         }
 
-        if (request.getTel() != null && !request.getTel().isBlank()) {
+        if (request.getTel() != null && !request.getTel().isBlank()
+                && !request.getTel().equals(user.getTel())) {
+            if (userRepository.existsByTel(request.getTel())) {
+                throw new TelAlreadyExistsException("Ya existe una cuenta con ese teléfono");
+            }
             user.setTel(request.getTel());
         }
 

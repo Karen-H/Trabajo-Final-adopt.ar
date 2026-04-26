@@ -48,7 +48,7 @@ function Profile() {
     } catch (err) {
       const status = err.response?.status
       if (status === 409) {
-        setError('Ya existe una cuenta con ese email.')
+        setError('Ya existe una cuenta con ese email o teléfono.')
       } else if (status === 400) {
         const violations = err.response?.data?.errors || err.response?.data
         if (Array.isArray(violations) && violations.length > 0) {

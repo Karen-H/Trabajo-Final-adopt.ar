@@ -4,6 +4,7 @@ import com.adoptar.dto.request.UpdateProfileRequest;
 import com.adoptar.dto.response.UserProfileResponse;
 import com.adoptar.entity.User;
 import com.adoptar.exception.EmailAlreadyExistsException;
+import com.adoptar.exception.TelAlreadyExistsException;
 import com.adoptar.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,7 @@ public class UserController {
             @Valid @RequestBody UpdateProfileRequest request) {
         try {
             return ResponseEntity.ok(userService.updateProfile(user, request));
-        } catch (EmailAlreadyExistsException e) {
+        } catch (EmailAlreadyExistsException | TelAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
     }
