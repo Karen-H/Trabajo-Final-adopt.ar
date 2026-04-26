@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Profile from './pages/Profile'
 import './App.css'
 
 function Home() {
@@ -16,7 +17,11 @@ function Home() {
       )}
       <p>Plataforma de adopcion de mascotas</p>
       {nombre ? (
-        <button onClick={() => { localStorage.clear(); window.location.reload() }}>Cerrar sesión</button>
+        <>
+          <Link to="/perfil">Mi perfil</Link>
+          {' | '}
+          <button onClick={() => { localStorage.clear(); window.location.reload() }}>Cerrar sesión</button>
+        </>
       ) : (
         <>
           <Link to="/login">Iniciar sesión</Link>
@@ -34,6 +39,7 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/perfil" element={<Profile />} />
     </Routes>
   )
 }
