@@ -4,6 +4,14 @@ COPY pom.xml .
 RUN mvn dependency:go-offline -B
 COPY src ./src
 RUN mvn clean package -DskipTests -B
+
+FROM maven:3.9.7-eclipse-temurin-17 AS test
+WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+COPY src ./src
+RUN mvn test -B
+
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar

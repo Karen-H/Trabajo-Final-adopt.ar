@@ -18,6 +18,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -98,7 +99,7 @@ public class AnimalServiceTests {
     }
 
     @Test
-    public void testCrearAnimal_ok_guardaAnimalYFoto() {
+    public void testCrearAnimal_ok_guardaAnimalYFoto() throws IOException {
         Animal animalGuardado = Animal.builder()
                 .id(1L)
                 .nombre("Firulais")
@@ -113,10 +114,16 @@ public class AnimalServiceTests {
                 .fotos(new ArrayList<>())
                 .build();
 
+        // usamos un mock de MultipartFile para evitar escritura en disco
+        MultipartFile fotoMock = mock(MultipartFile.class);
+        when(fotoMock.getContentType()).thenReturn("image/jpeg");
+        when(fotoMock.getOriginalFilename()).thenReturn("foto.jpg");
+        doNothing().when(fotoMock).transferTo(any(java.nio.file.Path.class));
+
         when(animalRepository.save(any(Animal.class))).thenReturn(animalGuardado);
         when(animalFotoRepository.save(any(AnimalFoto.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        AnimalResponse response = animalService.crearAnimal(rescatista, request, List.of(fotoValida()));
+        AnimalResponse response = animalService.crearAnimal(rescatista, request, List.of(fotoMock));
 
         assertNotNull(response);
         assertEquals("Firulais", response.getNombre());
