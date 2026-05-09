@@ -220,6 +220,90 @@ public class AnimalServiceTests {
         assertThrows(IllegalArgumentException.class, () -> animalService.cambiarEstado(1L, rescatista, EstadoAnimal.ADOPTADO));
     }
 
+    @Test
+    public void testAgregarFotos_ok() throws IOException {
+        Animal animal = Animal.builder()
+                .id(1L)
+                .nombre("Firulais")
+                .sexo(SexoAnimal.MACHO)
+                .edad(RangoEdad.JOVEN)
+                .tipo(TipoAnimal.PERRO)
+                .tipoAdopcion(TipoAdopcion.PERMANENTE)
+                .estado(EstadoAnimal.EN_ADOPCION)
+                .provincia("Buenos Aires")
+                .ciudad("La Plata")
+                .rescatista(rescatista)
+                .rechazado(false)
+                .fotos(new ArrayList<>())
+                .build();
+
+        MultipartFile fotoMock = mock(MultipartFile.class);
+        when(fotoMock.getContentType()).thenReturn("image/jpeg");
+        when(fotoMock.getOriginalFilename()).thenReturn("nueva.jpg");
+        doNothing().when(fotoMock).transferTo(any(java.nio.file.Path.class));
+
+        when(animalRepository.findById(1L)).thenReturn(Optional.of(animal));
+        when(animalFotoRepository.save(any(AnimalFoto.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        AnimalResponse response = animalService.agregarFotos(1L, rescatista, List.of(fotoMock));
+
+        assertNotNull(response);
+        assertEquals(1, animal.getFotos().size());
+        verify(animalFotoRepository, times(1)).save(any(AnimalFoto.class));
+    }
+
+    @Test
+    public void testAgregarFotos_animalRechazado_lanzaExcepcion() {
+        Animal animal = Animal.builder()
+                .id(1L)
+                .nombre("Firulais")
+                .sexo(SexoAnimal.MACHO)
+                .edad(RangoEdad.JOVEN)
+                .tipo(TipoAnimal.PERRO)
+                .tipoAdopcion(TipoAdopcion.PERMANENTE)
+                .estado(EstadoAnimal.EN_ADOPCION)
+                .provincia("Buenos Aires")
+                .ciudad("La Plata")
+                .rescatista(rescatista)
+                .rechazado(true)
+                .fotos(new ArrayList<>())
+                .build();
+
+        when(animalRepository.findById(1L)).thenReturn(Optional.of(animal));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> animalService.agregarFotos(1L, rescatista, List.of(fotoValida())));
+    }
+
+    @Test
+    public void testAgregarFotos_superaLimite_lanzaExcepcion() {
+        Animal animal = Animal.builder()
+                .id(1L)
+                .nombre("Firulais")
+                .sexo(SexoAnimal.MACHO)
+                .edad(RangoEdad.JOVEN)
+                .tipo(TipoAnimal.PERRO)
+                .tipoAdopcion(TipoAdopcion.PERMANENTE)
+                .estado(EstadoAnimal.EN_ADOPCION)
+                .provincia("Buenos Aires")
+                .ciudad("La Plata")
+                .rescatista(rescatista)
+                .rechazado(false)
+                .fotos(new ArrayList<>(List.of(
+                        AnimalFoto.builder().id(1L).nombreArchivo("a.jpg").build(),
+                        AnimalFoto.builder().id(2L).nombreArchivo("b.jpg").build(),
+                        AnimalFoto.builder().id(3L).nombreArchivo("c.jpg").build(),
+                        AnimalFoto.builder().id(4L).nombreArchivo("d.jpg").build()
+                )))
+                .build();
+
+        when(animalRepository.findById(1L)).thenReturn(Optional.of(animal));
+
+        // al intentar agregar 2 fotos con 4 existentes supera el limite de 5
+        assertThrows(IllegalArgumentException.class,
+                () -> animalService.agregarFotos(1L, rescatista, List.of(fotoValida(), fotoValida())));
+    }
+
     private MockMultipartFile fotoValida() {
         return new MockMultipartFile("fotos", "foto.jpg", "image/jpeg", new byte[]{1, 2, 3});
     }
