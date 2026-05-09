@@ -122,6 +122,7 @@ public class AnimalService {
                         .id(f.getId())
                         .url("/uploads/" + f.getNombreArchivo())
                         .estado(f.getEstado())
+                        .motivoRechazo(f.getMotivoRechazo())
                         .build())
                 .toList();
         return AnimalResponse.builder()
@@ -140,6 +141,9 @@ public class AnimalService {
                 .ciudad(animal.getCiudad())
                 .rescatistaNombre(animal.getRescatista().getNombre() + " " + animal.getRescatista().getApellido())
                 .fotos(fotos)
+                .aprobado(animal.isAprobado())
+                .rechazado(animal.isRechazado())
+                .motivoRechazo(animal.getMotivoRechazo())
                 .creadoEn(animal.getCreadoEn())
                 .build();
     }

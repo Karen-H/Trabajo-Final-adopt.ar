@@ -13,4 +13,5 @@ public class FotoResponse {
     private Long id;
     private String url;
     private EstadoFoto estado;
+    private String motivoRechazo;
 }
