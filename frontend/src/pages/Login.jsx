@@ -18,6 +18,8 @@ function Login() {
       const res = await login(form.email, form.pass)
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('nombre', res.data.nombre)
+      localStorage.setItem('role', res.data.role)
+      localStorage.setItem('activeProfile', res.data.activeProfile)
       navigate('/')
     } catch (err) {
       if (err.response?.status === 401) {

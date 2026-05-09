@@ -31,4 +31,8 @@ public class RegisterRequest {
     private String pass;
 
     private String organizacion;
+
+    private String provincia;
+
+    private String ciudad;
 }

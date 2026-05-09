@@ -5,6 +5,7 @@ import com.adoptar.dto.request.RegisterRequest;
 import com.adoptar.dto.response.AuthResponse;
 import com.adoptar.exception.DocumentoAlreadyExistsException;
 import com.adoptar.exception.EmailAlreadyExistsException;
+import com.adoptar.exception.TelAlreadyExistsException;
 import com.adoptar.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
-        } catch (EmailAlreadyExistsException | DocumentoAlreadyExistsException e) {
+        } catch (EmailAlreadyExistsException | DocumentoAlreadyExistsException | TelAlreadyExistsException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
     }

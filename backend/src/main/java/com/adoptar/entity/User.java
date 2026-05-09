@@ -1,5 +1,6 @@
 package com.adoptar.entity;
 
+import com.adoptar.enums.UserProfile;
 import com.adoptar.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
@@ -36,7 +37,7 @@ public class User implements UserDetails {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String tel;
 
     @Column(nullable = false)
@@ -45,10 +46,22 @@ public class User implements UserDetails {
     @Column
     private String organizacion;
 
+    @Column
+    private String provincia;
+
+    @Column
+    private String ciudad;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
     private UserRole role = UserRole.USER;
+
+    // solo aplica cuando role == USER
+    @Enumerated(EnumType.STRING)
+    @Column
+    @Builder.Default
+    private UserProfile activeProfile = UserProfile.ADOPTANTE;
 
     @Column(nullable = false, updatable = false)
     @Builder.Default

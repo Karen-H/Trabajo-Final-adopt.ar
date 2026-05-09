@@ -3,7 +3,9 @@ package com.adoptar.service;
 import com.adoptar.dto.request.UpdateProfileRequest;
 import com.adoptar.dto.response.UserProfileResponse;
 import com.adoptar.entity.User;
+import com.adoptar.enums.UserProfile;
 import com.adoptar.exception.EmailAlreadyExistsException;
+import com.adoptar.exception.TelAlreadyExistsException;
 import com.adoptar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,9 +25,22 @@ public class UserService {
                 .email(user.getEmail())
                 .tel(user.getTel())
                 .organizacion(user.getOrganizacion())
+                .provincia(user.getProvincia())
+                .ciudad(user.getCiudad())
                 .role(user.getRole())
+                .activeProfile(user.getActiveProfile())
                 .createdAt(user.getCreatedAt())
                 .build();
+    }
+
+    public UserProfileResponse switchProfile(User user) {
+        if (user.getActiveProfile() == UserProfile.ADOPTANTE) {
+            user.setActiveProfile(UserProfile.RESCATISTA);
+        } else {
+            user.setActiveProfile(UserProfile.ADOPTANTE);
+        }
+        userRepository.save(user);
+        return getProfile(user);
     }
 
     public UserProfileResponse updateProfile(User user, UpdateProfileRequest request) {
@@ -37,12 +52,24 @@ public class UserService {
             user.setEmail(request.getEmail());
         }
 
-        if (request.getTel() != null && !request.getTel().isBlank()) {
+        if (request.getTel() != null && !request.getTel().isBlank()
+                && !request.getTel().equals(user.getTel())) {
+            if (userRepository.existsByTel(request.getTel())) {
+                throw new TelAlreadyExistsException("Ya existe una cuenta con ese teléfono");
+            }
             user.setTel(request.getTel());
         }
 
         if (request.getOrganizacion() != null) {
             user.setOrganizacion(request.getOrganizacion().isBlank() ? null : request.getOrganizacion());
+        }
+
+        if (request.getProvincia() != null) {
+            user.setProvincia(request.getProvincia().isBlank() ? null : request.getProvincia());
+        }
+
+        if (request.getCiudad() != null) {
+            user.setCiudad(request.getCiudad().isBlank() ? null : request.getCiudad());
         }
 
         userRepository.save(user);

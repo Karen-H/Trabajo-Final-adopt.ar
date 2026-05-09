@@ -6,6 +6,7 @@ import com.adoptar.dto.response.AuthResponse;
 import com.adoptar.entity.User;
 import com.adoptar.exception.EmailAlreadyExistsException;
 import com.adoptar.exception.DocumentoAlreadyExistsException;
+import com.adoptar.exception.TelAlreadyExistsException;
 import com.adoptar.repository.UserRepository;
 import com.adoptar.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,9 @@ public class AuthService {
         if (userRepository.existsByDni(request.getDni())) {
             throw new DocumentoAlreadyExistsException("Ya existe una cuenta con ese documento");
         }
+        if (userRepository.existsByTel(request.getTel())) {
+            throw new TelAlreadyExistsException("Ya existe una cuenta con ese teléfono");
+        }
 
         User user = User.builder()
                 .nombre(request.getNombre())
@@ -39,6 +43,8 @@ public class AuthService {
                 .tel(request.getTel())
                 .pass(passwordEncoder.encode(request.getPass()))
                 .organizacion(request.getOrganizacion())
+                .provincia(request.getProvincia())
+                .ciudad(request.getCiudad())
                 .build();
 
         userRepository.save(user);
@@ -67,6 +73,9 @@ public class AuthService {
                 .apellido(user.getApellido())
                 .email(user.getEmail())
                 .role(user.getRole())
+                .activeProfile(user.getActiveProfile())
+                .provincia(user.getProvincia())
+                .ciudad(user.getCiudad())
                 .build();
     }
 }
