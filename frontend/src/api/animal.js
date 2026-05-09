@@ -13,3 +13,9 @@ export function getMisAnimales() {
 export function cambiarEstadoAnimal(id, estado) {
   return api.put(`/animales/${id}/estado`, null, { params: { estado } })
 }
+
+export function agregarFotosAnimal(id, formData) {
+  return api.post(`/animales/${id}/fotos`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
