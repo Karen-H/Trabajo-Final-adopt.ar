@@ -14,4 +14,8 @@ public class UpdateProfileRequest {
     private String tel;
 
     private String organizacion;
+
+    private String provincia;
+
+    private String ciudad;
 }

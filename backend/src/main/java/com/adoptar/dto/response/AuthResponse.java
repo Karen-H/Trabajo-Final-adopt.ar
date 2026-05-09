@@ -18,4 +18,6 @@ public class AuthResponse {
     private String email;
     private UserRole role;
     private UserProfile activeProfile;
+    private String provincia;
+    private String ciudad;
 }

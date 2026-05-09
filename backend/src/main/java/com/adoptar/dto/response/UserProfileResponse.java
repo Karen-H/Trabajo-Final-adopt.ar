@@ -20,6 +20,8 @@ public class UserProfileResponse {
     private String email;
     private String tel;
     private String organizacion;
+    private String provincia;
+    private String ciudad;
     private UserRole role;
     private UserProfile activeProfile;
     private LocalDateTime createdAt;

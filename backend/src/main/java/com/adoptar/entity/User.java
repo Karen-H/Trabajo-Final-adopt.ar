@@ -46,6 +46,12 @@ public class User implements UserDetails {
     @Column
     private String organizacion;
 
+    @Column
+    private String provincia;
+
+    @Column
+    private String ciudad;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default

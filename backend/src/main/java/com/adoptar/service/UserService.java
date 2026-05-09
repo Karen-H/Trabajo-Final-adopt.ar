@@ -25,6 +25,8 @@ public class UserService {
                 .email(user.getEmail())
                 .tel(user.getTel())
                 .organizacion(user.getOrganizacion())
+                .provincia(user.getProvincia())
+                .ciudad(user.getCiudad())
                 .role(user.getRole())
                 .activeProfile(user.getActiveProfile())
                 .createdAt(user.getCreatedAt())
@@ -60,6 +62,14 @@ public class UserService {
 
         if (request.getOrganizacion() != null) {
             user.setOrganizacion(request.getOrganizacion().isBlank() ? null : request.getOrganizacion());
+        }
+
+        if (request.getProvincia() != null) {
+            user.setProvincia(request.getProvincia().isBlank() ? null : request.getProvincia());
+        }
+
+        if (request.getCiudad() != null) {
+            user.setCiudad(request.getCiudad().isBlank() ? null : request.getCiudad());
         }
 
         userRepository.save(user);

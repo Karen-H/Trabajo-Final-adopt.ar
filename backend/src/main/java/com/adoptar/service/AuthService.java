@@ -43,6 +43,8 @@ public class AuthService {
                 .tel(request.getTel())
                 .pass(passwordEncoder.encode(request.getPass()))
                 .organizacion(request.getOrganizacion())
+                .provincia(request.getProvincia())
+                .ciudad(request.getCiudad())
                 .build();
 
         userRepository.save(user);
@@ -72,6 +74,8 @@ public class AuthService {
                 .email(user.getEmail())
                 .role(user.getRole())
                 .activeProfile(user.getActiveProfile())
+                .provincia(user.getProvincia())
+                .ciudad(user.getCiudad())
                 .build();
     }
 }
