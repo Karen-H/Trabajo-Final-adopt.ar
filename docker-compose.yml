@@ -32,8 +32,11 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: adoptar_pass
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      UPLOADS_PATH: /app/uploads
     ports:
       - "8080:8080"
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -50,6 +53,7 @@ services:
     depends_on:
       - backend
 
-# Volumen persistente para PostgreSQL
+# Volumenes persistentes
 volumes:
   postgres_data:
+  uploads_data:
