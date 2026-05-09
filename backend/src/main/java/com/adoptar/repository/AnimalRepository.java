@@ -9,4 +9,7 @@ import java.util.List;
 public interface AnimalRepository extends JpaRepository<Animal, Long> {
 
     List<Animal> findByRescatista(User rescatista);
+
+    // animales nuevos que el admin todavía no reviewó
+    List<Animal> findByAprobadoFalseAndRechazadoFalse();
 }
