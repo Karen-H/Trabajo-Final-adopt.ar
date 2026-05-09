@@ -108,8 +108,6 @@ public class AnimalServiceTests {
                 .tipo(TipoAnimal.PERRO)
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
                 .rescatista(rescatista)
                 .fotos(new ArrayList<>())
                 .build();
@@ -142,8 +140,6 @@ public class AnimalServiceTests {
                 .tipo(TipoAnimal.GATO)
                 .tipoAdopcion(TipoAdopcion.TRANSITO)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
                 .rescatista(rescatista)
                 .fotos(new ArrayList<>())
                 .build();
@@ -175,8 +171,6 @@ public class AnimalServiceTests {
                 .tipo(TipoAnimal.PERRO)
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
                 .rescatista(rescatista)
                 .fotos(new ArrayList<>())
                 .build();
@@ -209,8 +203,6 @@ public class AnimalServiceTests {
                 .tipo(TipoAnimal.PERRO)
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
                 .rescatista(otroRescatista)
                 .fotos(new ArrayList<>())
                 .build();
@@ -230,8 +222,6 @@ public class AnimalServiceTests {
                 .tipo(TipoAnimal.PERRO)
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
                 .rescatista(rescatista)
                 .rechazado(false)
                 .fotos(new ArrayList<>())
@@ -262,8 +252,6 @@ public class AnimalServiceTests {
                 .tipo(TipoAnimal.PERRO)
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
                 .rescatista(rescatista)
                 .rechazado(true)
                 .fotos(new ArrayList<>())
@@ -285,8 +273,6 @@ public class AnimalServiceTests {
                 .tipo(TipoAnimal.PERRO)
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
                 .rescatista(rescatista)
                 .rechazado(false)
                 .fotos(new ArrayList<>(List.of(

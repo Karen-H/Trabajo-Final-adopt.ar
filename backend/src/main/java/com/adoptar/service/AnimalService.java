@@ -70,8 +70,6 @@ public class AnimalService {
                 .amigableConPerros(request.isAmigableConPerros())
                 .amigableConNinos(request.isAmigableConNinos())
                 .descripcion(request.getDescripcion())
-                .provincia(rescatista.getProvincia())
-                .ciudad(rescatista.getCiudad())
                 .rescatista(rescatista)
                 .build();
 
@@ -179,8 +177,8 @@ public class AnimalService {
                 .amigableConPerros(animal.isAmigableConPerros())
                 .amigableConNinos(animal.isAmigableConNinos())
                 .descripcion(animal.getDescripcion())
-                .provincia(animal.getProvincia())
-                .ciudad(animal.getCiudad())
+                .provincia(animal.getRescatista().getProvincia())
+                .ciudad(animal.getRescatista().getCiudad())
                 .rescatistaNombre(animal.getRescatista().getNombre() + " " + animal.getRescatista().getApellido())
                 .fotos(fotos)
                 .aprobado(animal.isAprobado())

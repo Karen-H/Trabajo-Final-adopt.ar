@@ -70,13 +70,6 @@ public class Animal {
     @Column(columnDefinition = "TEXT")
     private String motivoRechazo;
 
-    // provincia y ciudad se copian del rescatista al momento de publicar
-    @Column(nullable = false)
-    private String provincia;
-
-    @Column(nullable = false)
-    private String ciudad;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rescatista_id", nullable = false)
     private User rescatista;

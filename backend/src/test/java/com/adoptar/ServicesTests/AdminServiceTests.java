@@ -71,8 +71,6 @@ public class AdminServiceTests {
                 .tipo(TipoAnimal.PERRO)
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
                 .rescatista(rescatista)
                 .aprobado(false)
                 .rechazado(false)
