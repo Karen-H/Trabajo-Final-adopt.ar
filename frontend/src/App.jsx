@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { Routes, Route, useParams } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
+import MisAnimales from './pages/MisAnimales'
+import AgregarAnimal from './pages/AgregarAnimal'
 import { switchProfile } from './api/user'
 import './App.css'
 
 const MENU_ADOPTANTE = ['menu_adoptante1', 'menu_adoptante2', 'menu_adoptante3']
-const MENU_RESCATISTA = ['menu_rescatista1', 'menu_rescatista2', 'menu_rescatista3']
 const MENU_ADMIN = ['menu_admin1', 'menu_admin2', 'menu_admin3']
 
 function Home() {
@@ -25,12 +26,6 @@ function Home() {
     } catch {
       alert('No se pudo cambiar el perfil.')
     }
-  }
-
-  function getMenu() {
-    if (role === 'ADMIN') return MENU_ADMIN
-    if (activeProfile === 'RESCATISTA') return MENU_RESCATISTA
-    return MENU_ADOPTANTE
   }
 
   return (
@@ -51,9 +46,20 @@ function Home() {
           )}
 
           <nav>
-            {getMenu().map(item => (
-              <div key={item}><Link to={`/menu/${item}`}>{item}</Link></div>
-            ))}
+            {activeProfile === 'RESCATISTA' ? (
+              <>
+                <div><Link to="/mis-animales">Mis animales</Link></div>
+                <div><Link to="/agregar-animal">Publicar animal</Link></div>
+              </>
+            ) : role === 'ADMIN' ? (
+              MENU_ADMIN.map(item => (
+                <div key={item}><Link to={`/menu/${item}`}>{item}</Link></div>
+              ))
+            ) : (
+              MENU_ADOPTANTE.map(item => (
+                <div key={item}><Link to={`/menu/${item}`}>{item}</Link></div>
+              ))
+            )}
           </nav>
 
           <br />
@@ -74,21 +80,6 @@ function Home() {
   )
 }
 
-function MenuPage() {
-  const { nombre } = useParams()
-  if (!localStorage.getItem('token')) {
-    window.location.href = '/login'
-    return null
-  }
-  return (
-    <div>
-      <h2>{nombre}</h2>
-      <p>Contenido de {nombre}</p>
-      <Link to="/">Volver</Link>
-    </div>
-  )
-}
-
 function App() {
   return (
     <Routes>
@@ -96,7 +87,8 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/perfil" element={<Profile />} />
-      <Route path="/menu/:nombre" element={<MenuPage />} />
+      <Route path="/mis-animales" element={<MisAnimales />} />
+      <Route path="/agregar-animal" element={<AgregarAnimal />} />
     </Routes>
   )
 }
