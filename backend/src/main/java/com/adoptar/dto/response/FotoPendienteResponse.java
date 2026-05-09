@@ -1,6 +1,5 @@
 package com.adoptar.dto.response;
 
-import com.adoptar.enums.EstadoFoto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -8,10 +7,12 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor
-public class FotoResponse {
+public class FotoPendienteResponse {
 
     private Long id;
     private String url;
-    private EstadoFoto estado;
-    private String motivoRechazo;
+    private Long animalId;
+    private String animalNombre;
+    private String animalTipo;
+    private String rescatistaNombre;
 }

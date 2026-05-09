@@ -57,6 +57,19 @@ public class Animal {
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 
+    // false hasta que el admin lo apruebe
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean aprobado = false;
+
+    // true si el admin lo rechazó
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean rechazado = false;
+
+    @Column(columnDefinition = "TEXT")
+    private String motivoRechazo;
+
     // provincia y ciudad se copian del rescatista al momento de publicar
     @Column(nullable = false)
     private String provincia;

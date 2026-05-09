@@ -28,5 +28,8 @@ public class AnimalResponse {
     private String ciudad;
     private String rescatistaNombre;
     private List<FotoResponse> fotos;
+    private boolean aprobado;
+    private boolean rechazado;
+    private String motivoRechazo;
     private LocalDateTime creadoEn;
 }

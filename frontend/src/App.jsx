@@ -6,11 +6,11 @@ import Register from './pages/Register'
 import Profile from './pages/Profile'
 import MisAnimales from './pages/MisAnimales'
 import AgregarAnimal from './pages/AgregarAnimal'
+import AdminPanel from './pages/AdminPanel'
 import { switchProfile } from './api/user'
 import './App.css'
 
 const MENU_ADOPTANTE = ['menu_adoptante1', 'menu_adoptante2', 'menu_adoptante3']
-const MENU_ADMIN = ['menu_admin1', 'menu_admin2', 'menu_admin3']
 
 function Home() {
   const nombre = localStorage.getItem('nombre')
@@ -52,9 +52,7 @@ function Home() {
                 <div><Link to="/agregar-animal">Publicar animal</Link></div>
               </>
             ) : role === 'ADMIN' ? (
-              MENU_ADMIN.map(item => (
-                <div key={item}><Link to={`/menu/${item}`}>{item}</Link></div>
-              ))
+              <div><Link to="/admin">Panel de administracion</Link></div>
             ) : (
               MENU_ADOPTANTE.map(item => (
                 <div key={item}><Link to={`/menu/${item}`}>{item}</Link></div>
@@ -89,6 +87,7 @@ function App() {
       <Route path="/perfil" element={<Profile />} />
       <Route path="/mis-animales" element={<MisAnimales />} />
       <Route path="/agregar-animal" element={<AgregarAnimal />} />
+      <Route path="/admin" element={<AdminPanel />} />
     </Routes>
   )
 }

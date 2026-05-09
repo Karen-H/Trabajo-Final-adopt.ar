@@ -61,4 +61,19 @@ public class AnimalController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @PostMapping(value = "/{id}/fotos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> agregarFotos(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id,
+            @RequestParam("fotos") List<MultipartFile> fotos) {
+        if (user.getActiveProfile() != UserProfile.RESCATISTA) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        try {
+            return ResponseEntity.ok(animalService.agregarFotos(id, user, fotos));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

@@ -116,12 +116,55 @@ public class AnimalService {
         return toResponse(animal);
     }
 
+    @Transactional
+    public AnimalResponse agregarFotos(Long animalId, User rescatista, List<MultipartFile> fotosNuevas) {
+        Animal animal = animalRepository.findById(animalId)
+                .orElseThrow(() -> new IllegalArgumentException("Animal no encontrado"));
+        if (!animal.getRescatista().getId().equals(rescatista.getId())) {
+            throw new IllegalArgumentException("No tenés permiso para modificar este animal");
+        }
+        if (animal.isRechazado()) {
+            throw new IllegalArgumentException("No podés agregar fotos a un animal rechazado");
+        }
+        if (fotosNuevas == null || fotosNuevas.isEmpty()) {
+            throw new IllegalArgumentException("Debés subir al menos una foto");
+        }
+        if (animal.getFotos().size() + fotosNuevas.size() > 5) {
+            throw new IllegalArgumentException("No podés tener más de 5 fotos por animal");
+        }
+        for (MultipartFile foto : fotosNuevas) {
+            String contentType = foto.getContentType();
+            if (contentType == null || !TIPOS_IMAGEN.contains(contentType)) {
+                throw new IllegalArgumentException("Solo se aceptan imágenes (jpg, png, webp, gif)");
+            }
+        }
+
+        for (MultipartFile foto : fotosNuevas) {
+            String extension = getExtension(foto.getOriginalFilename());
+            String nombreArchivo = UUID.randomUUID() + extension;
+            try {
+                foto.transferTo(Paths.get(uploadsPath).resolve(nombreArchivo));
+            } catch (IOException e) {
+                throw new RuntimeException("Error al guardar la foto", e);
+            }
+            AnimalFoto animalFoto = AnimalFoto.builder()
+                    .animal(animal)
+                    .nombreArchivo(nombreArchivo)
+                    .build();
+            animalFotoRepository.save(animalFoto);
+            animal.getFotos().add(animalFoto);
+        }
+
+        return toResponse(animal);
+    }
+
     private AnimalResponse toResponse(Animal animal) {
         List<FotoResponse> fotos = animal.getFotos().stream()
                 .map(f -> FotoResponse.builder()
                         .id(f.getId())
                         .url("/uploads/" + f.getNombreArchivo())
                         .estado(f.getEstado())
+                        .motivoRechazo(f.getMotivoRechazo())
                         .build())
                 .toList();
         return AnimalResponse.builder()
@@ -140,6 +183,9 @@ public class AnimalService {
                 .ciudad(animal.getCiudad())
                 .rescatistaNombre(animal.getRescatista().getNombre() + " " + animal.getRescatista().getApellido())
                 .fotos(fotos)
+                .aprobado(animal.isAprobado())
+                .rechazado(animal.isRechazado())
+                .motivoRechazo(animal.getMotivoRechazo())
                 .creadoEn(animal.getCreadoEn())
                 .build();
     }

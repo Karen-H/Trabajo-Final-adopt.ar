@@ -28,4 +28,8 @@ public class AnimalFoto {
     @Column(nullable = false)
     @Builder.Default
     private EstadoFoto estado = EstadoFoto.PENDIENTE;
+
+    // motivo si la foto fue rechazada
+    @Column(columnDefinition = "TEXT")
+    private String motivoRechazo;
 }
