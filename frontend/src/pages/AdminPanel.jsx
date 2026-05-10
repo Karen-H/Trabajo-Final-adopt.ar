@@ -13,6 +13,71 @@ const ETIQUETA_EDAD = {
   ADULTO: 'Adulto (2-7 años)',
   SENIOR: 'Senior (7+ años)',
 }
+const ETIQUETA_ESTADO = { PERDIDO: 'Perdido', ENCONTRADO: 'Encontrado' }
+
+function AccionesAnimal({ id, motivoAnimal, setMotivoAnimal, onAprobar, onRechazar }) {
+  return (
+    <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <button onClick={() => onAprobar(id)}>Aprobar</button>
+      <input
+        type="text"
+        placeholder="Motivo de rechazo"
+        value={motivoAnimal[id] || ''}
+        onChange={e => setMotivoAnimal(prev => ({ ...prev, [id]: e.target.value }))}
+        style={{ width: 280 }}
+      />
+      <button onClick={() => onRechazar(id)}>Rechazar</button>
+    </div>
+  )
+}
+
+function CardAdopcion({ animal, motivoAnimal, setMotivoAnimal, onAprobar, onRechazar }) {
+  return (
+    <div style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
+      <h4>{animal.nombre} ({ETIQUETA_TIPO[animal.tipo]})</h4>
+      <p>
+        {ETIQUETA_SEXO[animal.sexo]}
+        {animal.edad ? ` · ${ETIQUETA_EDAD[animal.edad]}` : ''}
+        {animal.tipoAdopcion ? ` · Adopcion ${animal.tipoAdopcion === 'PERMANENTE' ? 'permanente' : 'en transito'}` : ''}
+      </p>
+      <p>{animal.ciudad}, {animal.provincia}</p>
+      <p>
+        Amigable con:{' '}
+        {[
+          animal.amigableConGatos && 'gatos',
+          animal.amigableConPerros && 'perros',
+          animal.amigableConNinos && 'ninos',
+        ].filter(Boolean).join(', ') || 'no especificado'}
+      </p>
+      {animal.descripcion && <p>{animal.descripcion}</p>}
+      <p>Publicado por: {animal.rescatistaNombre}</p>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
+        {animal.fotos.map(foto => (
+          <img key={foto.id} src={foto.url} alt="foto" style={{ width: 150, height: 150, objectFit: 'cover' }} />
+        ))}
+      </div>
+      <AccionesAnimal id={animal.id} motivoAnimal={motivoAnimal} setMotivoAnimal={setMotivoAnimal} onAprobar={onAprobar} onRechazar={onRechazar} />
+    </div>
+  )
+}
+
+function CardReporte({ animal, motivoAnimal, setMotivoAnimal, onAprobar, onRechazar }) {
+  return (
+    <div style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
+      <h4>{ETIQUETA_TIPO[animal.tipo]} {ETIQUETA_ESTADO[animal.estado] ? `(${ETIQUETA_ESTADO[animal.estado]})` : ''}</h4>
+      {animal.direccion && <p>Visto en: {animal.direccion}</p>}
+      <p>En posesion del publicador: {animal.enPosesionDelPublicador ? 'Si' : 'No'}</p>
+      {animal.descripcion && <p>{animal.descripcion}</p>}
+      <p>Publicado por: {animal.rescatistaNombre}</p>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
+        {animal.fotos.map(foto => (
+          <img key={foto.id} src={foto.url} alt="foto" style={{ width: 150, height: 150, objectFit: 'cover' }} />
+        ))}
+      </div>
+      <AccionesAnimal id={animal.id} motivoAnimal={motivoAnimal} setMotivoAnimal={setMotivoAnimal} onAprobar={onAprobar} onRechazar={onRechazar} />
+    </div>
+  )
+}
 
 function AdminPanel() {
   const navigate = useNavigate()
@@ -58,7 +123,7 @@ function AdminPanel() {
     setError('')
     const motivo = motivoAnimal[id]
     if (!motivo || !motivo.trim()) {
-      setError('Ingresá un motivo de rechazo antes de rechazar.')
+      setError('Ingresa un motivo de rechazo antes de rechazar.')
       return
     }
     try {
@@ -83,7 +148,7 @@ function AdminPanel() {
     setError('')
     const motivo = motivoFoto[id]
     if (!motivo || !motivo.trim()) {
-      setError('Ingresá un motivo de rechazo antes de rechazar.')
+      setError('Ingresa un motivo de rechazo antes de rechazar.')
       return
     }
     try {
@@ -94,9 +159,16 @@ function AdminPanel() {
     }
   }
 
+  const adopcionesPendientes = animales.filter(a => a.categoria === 'ADOPCION')
+  const reportesPendientes = animales.filter(a => a.categoria === 'PERDIDO_ENCONTRADO')
+
+  // fotos separadas por categoria del animal
+  const fotosAdopcion = fotos.filter(f => f.animalCategoria === 'ADOPCION')
+  const fotosReporte = fotos.filter(f => f.animalCategoria === 'PERDIDO_ENCONTRADO')
+
   return (
     <div>
-      <h2>Panel de administración</h2>
+      <h2>Panel de administracion</h2>
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
@@ -114,94 +186,96 @@ function AdminPanel() {
 
       {tab === 'animales' && (
         <div>
-          {animales.length === 0 ? (
-            <p>No hay animales pendientes de aprobación.</p>
-          ) : (
-            animales.map(animal => (
-              <div key={animal.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
-                <h3>{animal.nombre} — {ETIQUETA_TIPO[animal.tipo]}</h3>
-                <p>
-                  {ETIQUETA_SEXO[animal.sexo]}
-                  {' · '}
-                  {ETIQUETA_EDAD[animal.edad]}
-                  {' · '}
-                  Adopción {animal.tipoAdopcion === 'PERMANENTE' ? 'permanente' : 'en tránsito'}
-                </p>
-                <p>{animal.ciudad}, {animal.provincia}</p>
-                <p>
-                  Amigable con:{' '}
-                  {[
-                    animal.amigableConGatos && 'gatos',
-                    animal.amigableConPerros && 'perros',
-                    animal.amigableConNinos && 'niños',
-                  ].filter(Boolean).join(', ') || 'ninguna especie indicada'}
-                </p>
-                {animal.descripcion && <p>{animal.descripcion}</p>}
-                <p>Rescatista: {animal.rescatistaNombre}</p>
+          {animales.length === 0 && <p>No hay animales pendientes de aprobacion.</p>}
 
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
-                  {animal.fotos.map(foto => (
-                    <img
-                      key={foto.id}
-                      src={foto.url}
-                      alt={animal.nombre}
-                      style={{ width: 150, height: 150, objectFit: 'cover' }}
-                    />
-                  ))}
-                </div>
+          {adopcionesPendientes.length > 0 && (
+            <div>
+              <h3>En adopcion ({adopcionesPendientes.length})</h3>
+              {adopcionesPendientes.map(animal => (
+                <CardAdopcion
+                  key={animal.id}
+                  animal={animal}
+                  motivoAnimal={motivoAnimal}
+                  setMotivoAnimal={setMotivoAnimal}
+                  onAprobar={handleAprobarAnimal}
+                  onRechazar={handleRechazarAnimal}
+                />
+              ))}
+            </div>
+          )}
 
-                <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <button onClick={() => handleAprobarAnimal(animal.id)}>Aprobar</button>
-                  <input
-                    type="text"
-                    placeholder="Motivo de rechazo"
-                    value={motivoAnimal[animal.id] || ''}
-                    onChange={e => setMotivoAnimal(prev => ({ ...prev, [animal.id]: e.target.value }))}
-                    style={{ width: 280 }}
-                  />
-                  <button onClick={() => handleRechazarAnimal(animal.id)}>Rechazar</button>
-                </div>
-              </div>
-            ))
+          {reportesPendientes.length > 0 && (
+            <div>
+              <h3>Perdidos / encontrados ({reportesPendientes.length})</h3>
+              {reportesPendientes.map(animal => (
+                <CardReporte
+                  key={animal.id}
+                  animal={animal}
+                  motivoAnimal={motivoAnimal}
+                  setMotivoAnimal={setMotivoAnimal}
+                  onAprobar={handleAprobarAnimal}
+                  onRechazar={handleRechazarAnimal}
+                />
+              ))}
+            </div>
           )}
         </div>
       )}
 
       {tab === 'fotos' && (
         <div>
-          {fotos.length === 0 ? (
-            <p>No hay fotos pendientes de aprobación.</p>
-          ) : (
-            fotos.map(foto => (
-              <div
-                key={foto.id}
-                style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}
-              >
-                <img
-                  src={foto.url}
-                  alt={foto.animalNombre}
-                  style={{ width: 150, height: 150, objectFit: 'cover', flexShrink: 0 }}
-                />
-                <div>
-                  <p>
-                    <strong>{foto.animalNombre}</strong>
-                    {' '}({ETIQUETA_TIPO[foto.animalTipo]})
-                  </p>
-                  <p>Rescatista: {foto.rescatistaNombre}</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <button onClick={() => handleAprobarFoto(foto.id)}>Aprobar</button>
-                    <input
-                      type="text"
-                      placeholder="Motivo de rechazo"
-                      value={motivoFoto[foto.id] || ''}
-                      onChange={e => setMotivoFoto(prev => ({ ...prev, [foto.id]: e.target.value }))}
-                      style={{ width: 250 }}
-                    />
-                    <button onClick={() => handleRechazarFoto(foto.id)}>Rechazar</button>
+          {fotos.length === 0 && <p>No hay fotos pendientes de aprobacion.</p>}
+
+          {fotosAdopcion.length > 0 && (
+            <div>
+              <h3>Fotos de animales en adopcion ({fotosAdopcion.length})</h3>
+              {fotosAdopcion.map(foto => (
+                <div key={foto.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                  <img src={foto.url} alt="foto" style={{ width: 150, height: 150, objectFit: 'cover', flexShrink: 0 }} />
+                  <div>
+                    <p><strong>{foto.animalNombre}</strong> ({ETIQUETA_TIPO[foto.animalTipo]})</p>
+                    <p>Publicado por: {foto.rescatistaNombre}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <button onClick={() => handleAprobarFoto(foto.id)}>Aprobar</button>
+                      <input
+                        type="text"
+                        placeholder="Motivo de rechazo"
+                        value={motivoFoto[foto.id] || ''}
+                        onChange={e => setMotivoFoto(prev => ({ ...prev, [foto.id]: e.target.value }))}
+                        style={{ width: 250 }}
+                      />
+                      <button onClick={() => handleRechazarFoto(foto.id)}>Rechazar</button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
+          )}
+
+          {fotosReporte.length > 0 && (
+            <div>
+              <h3>Fotos de reportes de perdidos / encontrados ({fotosReporte.length})</h3>
+              {fotosReporte.map(foto => (
+                <div key={foto.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                  <img src={foto.url} alt="foto" style={{ width: 150, height: 150, objectFit: 'cover', flexShrink: 0 }} />
+                  <div>
+                    <p><strong>{ETIQUETA_TIPO[foto.animalTipo]}</strong> ({foto.animalEstado ? ETIQUETA_ESTADO[foto.animalEstado] : ''})</p>
+                    <p>Publicado por: {foto.rescatistaNombre}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <button onClick={() => handleAprobarFoto(foto.id)}>Aprobar</button>
+                      <input
+                        type="text"
+                        placeholder="Motivo de rechazo"
+                        value={motivoFoto[foto.id] || ''}
+                        onChange={e => setMotivoFoto(prev => ({ ...prev, [foto.id]: e.target.value }))}
+                        style={{ width: 250 }}
+                      />
+                      <button onClick={() => handleRechazarFoto(foto.id)}>Rechazar</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

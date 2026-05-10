@@ -1,6 +1,6 @@
 package com.adoptar.service;
 
-import com.adoptar.dto.request.AnimalRequest;
+import com.adoptar.dto.request.ReporteRequest;
 import com.adoptar.dto.response.AnimalResponse;
 import com.adoptar.dto.response.FotoResponse;
 import com.adoptar.entity.Animal;
@@ -9,13 +9,9 @@ import com.adoptar.entity.User;
 import com.adoptar.enums.CategoriaAnimal;
 import com.adoptar.enums.EstadoAnimal;
 import com.adoptar.enums.EstadoFoto;
-import com.adoptar.enums.RangoEdad;
-import com.adoptar.enums.SexoAnimal;
-import com.adoptar.enums.TipoAdopcion;
-import com.adoptar.enums.TipoAnimal;
+import com.adoptar.enums.UserRole;
 import com.adoptar.repository.AnimalFotoRepository;
 import com.adoptar.repository.AnimalRepository;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
@@ -31,7 +26,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class AnimalService {
+public class ReporteService {
 
     private final AnimalRepository animalRepository;
     private final AnimalFotoRepository animalFotoRepository;
@@ -43,124 +38,102 @@ public class AnimalService {
         "image/jpeg", "image/png", "image/webp", "image/gif"
     );
 
-    @PostConstruct
-    public void init() throws IOException {
-        Files.createDirectories(Paths.get(uploadsPath));
-    }
-
     @Transactional
-    public AnimalResponse crearAnimal(User publicador, AnimalRequest request, List<MultipartFile> fotos) {
-        if (publicador.getProvincia() == null || publicador.getCiudad() == null) {
-            throw new IllegalArgumentException("Debes configurar tu provincia y ciudad en el perfil antes de publicar un animal");
+    public AnimalResponse crearReporte(User publicador, ReporteRequest request, List<MultipartFile> fotos) {
+        if (request.getEstadoInicial() != EstadoAnimal.PERDIDO && request.getEstadoInicial() != EstadoAnimal.ENCONTRADO) {
+            throw new IllegalArgumentException("El estado inicial debe ser PERDIDO o ENCONTRADO");
         }
         if (fotos == null || fotos.isEmpty()) {
-            throw new IllegalArgumentException("Debes subir al menos una foto");
+            throw new IllegalArgumentException("Debés subir al menos una foto");
         }
         if (fotos.size() > 5) {
-            throw new IllegalArgumentException("No podes subir mas de 5 fotos");
+            throw new IllegalArgumentException("No podés subir más de 5 fotos");
         }
         for (MultipartFile foto : fotos) {
             String contentType = foto.getContentType();
             if (contentType == null || !TIPOS_IMAGEN.contains(contentType)) {
-                throw new IllegalArgumentException("Solo se aceptan imagenes (jpg, png, webp, gif)");
+                throw new IllegalArgumentException("Solo se aceptan imágenes (jpg, png, webp, gif)");
             }
         }
 
+        boolean esAdmin = publicador.getRole() == UserRole.ADMIN;
+
         Animal animal = Animal.builder()
-                .categoria(CategoriaAnimal.ADOPCION)
-                .nombre(request.getNombre())
-                .sexo(request.getSexo())
-                .edad(request.getEdad())
+                .categoria(CategoriaAnimal.PERDIDO_ENCONTRADO)
                 .tipo(request.getTipo())
-                .tipoAdopcion(request.getTipoAdopcion())
-                .estado(EstadoAnimal.EN_ADOPCION)
-                .amigableConGatos(request.isAmigableConGatos())
-                .amigableConPerros(request.isAmigableConPerros())
-                .amigableConNinos(request.isAmigableConNinos())
+                .estado(request.getEstadoInicial())
+                .direccion(request.getDireccion())
+                .latitud(request.getLatitud())
+                .longitud(request.getLongitud())
+                .enPosesionDelPublicador(request.getEnPosesionDelPublicador())
                 .descripcion(request.getDescripcion())
                 .publicador(publicador)
                 .build();
 
+        if (esAdmin) {
+            animal.setAprobado(true);
+        }
+
         animalRepository.save(animal);
         guardarFotos(animal, fotos);
+
+        // si es admin, aprobar las fotos automaticamente
+        if (esAdmin) {
+            animal.getFotos().forEach(f -> f.setEstado(EstadoFoto.APROBADA));
+        }
+
         return toResponse(animal);
     }
 
     @Transactional(readOnly = true)
-    public List<AnimalResponse> getMisAnimales(User publicador) {
-        return animalRepository.findByPublicador(publicador)
-                .stream()
-                .filter(a -> a.getCategoria() == CategoriaAnimal.ADOPCION)
-                .map(this::toResponse)
-                .toList();
-    }
-
-    @Transactional
-    public AnimalResponse cambiarEstado(Long animalId, User publicador, EstadoAnimal estado) {
-        Animal animal = animalRepository.findById(animalId)
-                .orElseThrow(() -> new IllegalArgumentException("Animal no encontrado"));
-        if (!animal.getPublicador().getId().equals(publicador.getId())) {
-            throw new IllegalArgumentException("No tenes permiso para modificar este animal");
-        }
-        if (animal.getCategoria() != CategoriaAnimal.ADOPCION) {
-            throw new IllegalArgumentException("Usa el endpoint de reportes para modificar este animal");
-        }
-        if (estado != EstadoAnimal.EN_ADOPCION && estado != EstadoAnimal.ADOPTADO) {
-            throw new IllegalArgumentException("Estado no valido para un animal en adopcion");
-        }
-        animal.setEstado(estado);
-        animalRepository.save(animal);
-        return toResponse(animal);
-    }
-
-    @Transactional
-    public AnimalResponse agregarFotos(Long animalId, User publicador, List<MultipartFile> fotosNuevas) {
-        Animal animal = animalRepository.findById(animalId)
-                .orElseThrow(() -> new IllegalArgumentException("Animal no encontrado"));
-        if (!animal.getPublicador().getId().equals(publicador.getId())) {
-            throw new IllegalArgumentException("No tenes permiso para modificar este animal");
-        }
-        if (animal.isRechazado()) {
-            throw new IllegalArgumentException("No podes agregar fotos a un animal rechazado");
-        }
-        if (fotosNuevas == null || fotosNuevas.isEmpty()) {
-            throw new IllegalArgumentException("Debes subir al menos una foto");
-        }
-        if (animal.getFotos().size() + fotosNuevas.size() > 5) {
-            throw new IllegalArgumentException("No podes tener mas de 5 fotos por animal");
-        }
-        for (MultipartFile foto : fotosNuevas) {
-            String contentType = foto.getContentType();
-            if (contentType == null || !TIPOS_IMAGEN.contains(contentType)) {
-                throw new IllegalArgumentException("Solo se aceptan imagenes (jpg, png, webp, gif)");
-            }
-        }
-        guardarFotos(animal, fotosNuevas);
-        return toResponse(animal);
-    }
-
-    @Transactional(readOnly = true)
-    public List<AnimalResponse> buscarAnimales(TipoAnimal tipo, SexoAnimal sexo, RangoEdad edad,
-                                               TipoAdopcion tipoAdopcion, String provincia) {
-        return animalRepository.buscarAdopcionAprobados(tipo, sexo, edad, tipoAdopcion, provincia)
+    public List<AnimalResponse> getPerdidos() {
+        return animalRepository.findByCategoriaAndAprobadoTrueAndEstado(
+                CategoriaAnimal.PERDIDO_ENCONTRADO, EstadoAnimal.PERDIDO)
                 .stream()
                 .map(this::toPublicResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public AnimalResponse getAnimalById(Long id) {
-        Animal animal = animalRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Animal no encontrado"));
-        if (!animal.isAprobado() || animal.getCategoria() != CategoriaAnimal.ADOPCION) {
-            throw new IllegalArgumentException("Animal no encontrado");
-        }
-        return toPublicResponse(animal);
+    public List<AnimalResponse> getEncontrados() {
+        return animalRepository.findByCategoriaAndAprobadoTrueAndEstado(
+                CategoriaAnimal.PERDIDO_ENCONTRADO, EstadoAnimal.ENCONTRADO)
+                .stream()
+                .map(this::toPublicResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
+    public List<AnimalResponse> getMisReportes(User publicador) {
+        return animalRepository.findByPublicador(publicador)
+                .stream()
+                .filter(a -> a.getCategoria() == CategoriaAnimal.PERDIDO_ENCONTRADO)
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public AnimalResponse resolver(Long id, User publicador) {
+        Animal animal = animalRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Reporte no encontrado"));
+        if (!animal.getPublicador().getId().equals(publicador.getId())) {
+            throw new IllegalArgumentException("No tenés permiso para modificar este reporte");
+        }
+        if (animal.getCategoria() != CategoriaAnimal.PERDIDO_ENCONTRADO) {
+            throw new IllegalArgumentException("Este endpoint es solo para reportes");
+        }
+        if (animal.getEstado() == EstadoAnimal.RESUELTO) {
+            throw new IllegalArgumentException("Este reporte ya está resuelto");
+        }
+        animal.setEstado(EstadoAnimal.RESUELTO);
+        animalRepository.save(animal);
+        return toResponse(animal);
+    }
+
+    // fotos pendientes de aprobación (solo perdido/encontrado)
+    @Transactional(readOnly = true)
     public List<Animal> getPendientesAdmin() {
-        return animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.ADOPCION);
+        return animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.PERDIDO_ENCONTRADO);
     }
 
     private void guardarFotos(Animal animal, List<MultipartFile> fotos) {
@@ -193,15 +166,8 @@ public class AnimalService {
         return AnimalResponse.builder()
                 .id(animal.getId())
                 .categoria(animal.getCategoria())
-                .nombre(animal.getNombre())
-                .sexo(animal.getSexo())
-                .edad(animal.getEdad())
                 .tipo(animal.getTipo())
-                .tipoAdopcion(animal.getTipoAdopcion())
                 .estado(animal.getEstado())
-                .amigableConGatos(animal.getAmigableConGatos())
-                .amigableConPerros(animal.getAmigableConPerros())
-                .amigableConNinos(animal.getAmigableConNinos())
                 .descripcion(animal.getDescripcion())
                 .direccion(animal.getDireccion())
                 .latitud(animal.getLatitud())
@@ -218,6 +184,7 @@ public class AnimalService {
                 .build();
     }
 
+    // solo fotos aprobadas, para vista pública
     private AnimalResponse toPublicResponse(Animal animal) {
         List<FotoResponse> fotos = animal.getFotos().stream()
                 .filter(f -> f.getEstado() == EstadoFoto.APROBADA)
@@ -229,16 +196,14 @@ public class AnimalService {
                 .toList();
         return AnimalResponse.builder()
                 .id(animal.getId())
-                .nombre(animal.getNombre())
-                .sexo(animal.getSexo())
-                .edad(animal.getEdad())
+                .categoria(animal.getCategoria())
                 .tipo(animal.getTipo())
-                .tipoAdopcion(animal.getTipoAdopcion())
                 .estado(animal.getEstado())
-                .amigableConGatos(animal.getAmigableConGatos())
-                .amigableConPerros(animal.getAmigableConPerros())
-                .amigableConNinos(animal.getAmigableConNinos())
                 .descripcion(animal.getDescripcion())
+                .direccion(animal.getDireccion())
+                .latitud(animal.getLatitud())
+                .longitud(animal.getLongitud())
+                .enPosesionDelPublicador(animal.getEnPosesionDelPublicador())
                 .provincia(animal.getPublicador().getProvincia())
                 .ciudad(animal.getPublicador().getCiudad())
                 .rescatistaNombre(animal.getPublicador().getNombre() + " " + animal.getPublicador().getApellido())

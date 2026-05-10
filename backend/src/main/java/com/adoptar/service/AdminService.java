@@ -5,6 +5,7 @@ import com.adoptar.dto.response.FotoPendienteResponse;
 import com.adoptar.dto.response.FotoResponse;
 import com.adoptar.entity.Animal;
 import com.adoptar.entity.AnimalFoto;
+import com.adoptar.enums.CategoriaAnimal;
 import com.adoptar.enums.EstadoFoto;
 import com.adoptar.repository.AnimalFotoRepository;
 import com.adoptar.repository.AnimalRepository;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -23,8 +25,10 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public List<AnimalResponse> getAnimalesPendientes() {
-        return animalRepository.findByAprobadoFalseAndRechazadoFalse()
-                .stream()
+        List<Animal> pendientes = new ArrayList<>();
+        pendientes.addAll(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.ADOPCION));
+        pendientes.addAll(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.PERDIDO_ENCONTRADO));
+        return pendientes.stream()
                 .map(this::toAnimalResponse)
                 .toList();
     }
@@ -107,19 +111,22 @@ public class AdminService {
                 .toList();
         return AnimalResponse.builder()
                 .id(animal.getId())
+                .categoria(animal.getCategoria())
                 .nombre(animal.getNombre())
                 .sexo(animal.getSexo())
                 .edad(animal.getEdad())
                 .tipo(animal.getTipo())
                 .tipoAdopcion(animal.getTipoAdopcion())
                 .estado(animal.getEstado())
-                .amigableConGatos(animal.isAmigableConGatos())
-                .amigableConPerros(animal.isAmigableConPerros())
-                .amigableConNinos(animal.isAmigableConNinos())
+                .amigableConGatos(animal.getAmigableConGatos())
+                .amigableConPerros(animal.getAmigableConPerros())
+                .amigableConNinos(animal.getAmigableConNinos())
                 .descripcion(animal.getDescripcion())
-                .provincia(animal.getRescatista().getProvincia())
-                .ciudad(animal.getRescatista().getCiudad())
-                .rescatistaNombre(animal.getRescatista().getNombre() + " " + animal.getRescatista().getApellido())
+                .direccion(animal.getDireccion())
+                .enPosesionDelPublicador(animal.getEnPosesionDelPublicador())
+                .provincia(animal.getPublicador().getProvincia())
+                .ciudad(animal.getPublicador().getCiudad())
+                .rescatistaNombre(animal.getPublicador().getNombre() + " " + animal.getPublicador().getApellido())
                 .fotos(fotos)
                 .aprobado(animal.isAprobado())
                 .rechazado(animal.isRechazado())
@@ -135,7 +142,9 @@ public class AdminService {
                 .animalId(foto.getAnimal().getId())
                 .animalNombre(foto.getAnimal().getNombre())
                 .animalTipo(foto.getAnimal().getTipo().name())
-                .rescatistaNombre(foto.getAnimal().getRescatista().getNombre() + " " + foto.getAnimal().getRescatista().getApellido())
+                .animalCategoria(foto.getAnimal().getCategoria().name())
+                .animalEstado(foto.getAnimal().getEstado().name())
+                .rescatistaNombre(foto.getAnimal().getPublicador().getNombre() + " " + foto.getAnimal().getPublicador().getApellido())
                 .build();
     }
 

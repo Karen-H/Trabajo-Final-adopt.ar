@@ -14,5 +14,7 @@ public class FotoPendienteResponse {
     private Long animalId;
     private String animalNombre;
     private String animalTipo;
+    private String animalCategoria;
+    private String animalEstado;
     private String rescatistaNombre;
 }

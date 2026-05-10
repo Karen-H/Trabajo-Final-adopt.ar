@@ -4,5 +4,6 @@ public enum EstadoAnimal {
     EN_ADOPCION,
     ADOPTADO,
     PERDIDO,
-    ENCONTRADO
+    ENCONTRADO,
+    RESUELTO
 }

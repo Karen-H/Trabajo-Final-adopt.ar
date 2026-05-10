@@ -7,6 +7,7 @@ import com.adoptar.entity.Animal;
 import com.adoptar.entity.AnimalFoto;
 import com.adoptar.entity.User;
 import com.adoptar.enums.*;
+import com.adoptar.enums.CategoriaAnimal;
 import com.adoptar.repository.AnimalFotoRepository;
 import com.adoptar.repository.AnimalRepository;
 import com.adoptar.service.AdminService;
@@ -65,13 +66,14 @@ public class AdminServiceTests {
 
         animalPendiente = Animal.builder()
                 .id(1L)
+                .categoria(CategoriaAnimal.ADOPCION)
                 .nombre("Firulais")
                 .sexo(SexoAnimal.MACHO)
                 .edad(RangoEdad.JOVEN)
                 .tipo(TipoAnimal.PERRO)
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .rescatista(rescatista)
+                .publicador(rescatista)
                 .aprobado(false)
                 .rechazado(false)
                 .fotos(new ArrayList<>(List.of(fotoPendiente)))
@@ -82,7 +84,7 @@ public class AdminServiceTests {
 
     @Test
     public void testGetAnimalesPendientes_listaVacia() {
-        when(animalRepository.findByAprobadoFalseAndRechazadoFalse()).thenReturn(List.of());
+        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.ADOPCION)).thenReturn(List.of());
 
         List<AnimalResponse> resultado = adminService.getAnimalesPendientes();
 
@@ -91,7 +93,7 @@ public class AdminServiceTests {
 
     @Test
     public void testGetAnimalesPendientes_retornaAnimales() {
-        when(animalRepository.findByAprobadoFalseAndRechazadoFalse()).thenReturn(List.of(animalPendiente));
+        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.ADOPCION)).thenReturn(List.of(animalPendiente));
 
         List<AnimalResponse> resultado = adminService.getAnimalesPendientes();
 
@@ -182,4 +184,55 @@ public class AdminServiceTests {
         assertEquals("Foto borrosa", fotoPendiente.getMotivoRechazo());
         assertEquals(EstadoFoto.RECHAZADA, response.getEstado());
     }
+
+    @Test
+    public void testGetAnimalesPendientes_incluye_reporte_perdido_encontrado() {
+        Animal reportePendiente = Animal.builder()
+                .id(2L)
+                .categoria(CategoriaAnimal.PERDIDO_ENCONTRADO)
+                .tipo(TipoAnimal.PERRO)
+                .estado(EstadoAnimal.PERDIDO)
+                .direccion("Av. Siempre Viva 742")
+                .publicador(rescatista)
+                .aprobado(false)
+                .rechazado(false)
+                .fotos(new ArrayList<>())
+                .build();
+
+        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.ADOPCION))
+                .thenReturn(List.of());
+        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.PERDIDO_ENCONTRADO))
+                .thenReturn(List.of(reportePendiente));
+
+        List<AnimalResponse> resultado = adminService.getAnimalesPendientes();
+
+        assertEquals(1, resultado.size());
+        assertEquals(CategoriaAnimal.PERDIDO_ENCONTRADO, resultado.get(0).getCategoria());
+        assertFalse(resultado.get(0).isAprobado());
+    }
+
+    @Test
+    public void testGetAnimalesPendientes_combina_ambas_categorias() {
+        Animal reportePendiente = Animal.builder()
+                .id(2L)
+                .categoria(CategoriaAnimal.PERDIDO_ENCONTRADO)
+                .tipo(TipoAnimal.GATO)
+                .estado(EstadoAnimal.ENCONTRADO)
+                .direccion("Calle Falsa 123")
+                .publicador(rescatista)
+                .aprobado(false)
+                .rechazado(false)
+                .fotos(new ArrayList<>())
+                .build();
+
+        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.ADOPCION))
+                .thenReturn(List.of(animalPendiente));
+        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.PERDIDO_ENCONTRADO))
+                .thenReturn(List.of(reportePendiente));
+
+        List<AnimalResponse> resultado = adminService.getAnimalesPendientes();
+
+        assertEquals(2, resultado.size());
+    }
 }
+

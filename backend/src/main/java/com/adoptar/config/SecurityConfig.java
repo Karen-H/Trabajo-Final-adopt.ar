@@ -5,6 +5,7 @@ import com.adoptar.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -44,6 +45,15 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(PUBLIC_URLS).permitAll()
+                // búsqueda pública de animales aprobados
+                .requestMatchers(HttpMethod.GET, "/api/animales").permitAll()
+                // mis-animales requiere auth (va antes del wildcard)
+                .requestMatchers(HttpMethod.GET, "/api/animales/mis-animales").authenticated()
+                // detalle de un animal por id
+                .requestMatchers(HttpMethod.GET, "/api/animales/*").permitAll()
+                // vistas públicas de perdidos y encontrados
+                .requestMatchers(HttpMethod.GET, "/api/reportes/perdidos").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/reportes/encontrados").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
