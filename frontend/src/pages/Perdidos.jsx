@@ -76,7 +76,6 @@ function Perdidos() {
       ) : (
         visibles.map(r => (
           <div key={r.id} style={{ border: '1px solid #ccc', marginBottom: 12, padding: 12 }}>
-            <strong>{ETIQUETA_TIPO[r.tipo]}</strong>
             {r.fotos?.length > 0 && (
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '6px 0' }}>
                 {r.fotos.map(f => (
@@ -84,13 +83,9 @@ function Perdidos() {
                 ))}
               </div>
             )}
+            <p>Tipo: {ETIQUETA_TIPO[r.tipo]}</p>
             {r.direccion && <p>Visto en: {r.direccion}</p>}
-            {r.descripcion && <p>{r.descripcion}</p>}
-            <p>
-              {r.enPosesionDelPublicador
-                ? 'El animal esta en posesion del publicador'
-                : 'El animal no esta en posesion del publicador'}
-            </p>
+            {r.descripcion && <p>Descripción: {r.descripcion}</p>}
             <p style={{ fontSize: 12, color: '#666' }}>
               Publicado por {r.rescatistaNombre} en {r.ciudad}, {r.provincia}
             </p>

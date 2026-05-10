@@ -13,3 +13,13 @@ export async function getMunicipios(provinciaNombre) {
   const data = await res.json()
   return data.localidades
 }
+
+export async function ubicacionPorCoordenadas(lat, lon) {
+  const res = await fetch(`${BASE}/ubicacion?lat=${lat}&lon=${lon}`)
+  const data = await res.json()
+  const ub = data.ubicacion
+  return {
+    provincia: ub?.provincia?.nombre || '',
+    ciudad: ub?.localidad_censal?.nombre || ub?.municipio?.nombre || '',
+  }
+}

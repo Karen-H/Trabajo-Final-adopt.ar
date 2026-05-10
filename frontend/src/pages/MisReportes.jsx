@@ -98,13 +98,8 @@ function MisReportes() {
               </p>
 
               {reporte.direccion && <p>Visto en: {reporte.direccion}</p>}
-
-              <p>
-                En posesion del publicador:{' '}
-                {reporte.enPosesionDelPublicador ? 'Si' : 'No'}
-              </p>
-
-              {reporte.descripcion && <p>{reporte.descripcion}</p>}
+              {reporte.estado === 'ENCONTRADO' && <p>En posesión del publicador: {reporte.enPosesionDelPublicador ? 'Sí' : 'No'}</p>}
+              {reporte.descripcion && <p>Descripción: {reporte.descripcion}</p>}
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
                 {reporte.fotos.map(foto => (

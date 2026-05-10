@@ -78,6 +78,9 @@ public class AnimalService {
                 .amigableConPerros(request.isAmigableConPerros())
                 .amigableConNinos(request.isAmigableConNinos())
                 .descripcion(request.getDescripcion())
+                .direccion(request.getDireccion())
+                .latitud(request.getLatitud())
+                .longitud(request.getLongitud())
                 .publicador(publicador)
                 .build();
 

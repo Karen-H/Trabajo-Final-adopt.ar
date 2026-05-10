@@ -4,6 +4,7 @@ import { getMisAnimales, cambiarEstadoAnimal, agregarFotosAnimal } from '../api/
 import { getMisReportes, resolverReporte } from '../api/reporte'
 
 const ETIQUETA_TIPO = { PERRO: 'Perro', GATO: 'Gato', OTRO: 'Otro' }
+const ETIQUETA_SEXO = { MACHO: 'Macho', HEMBRA: 'Hembra' }
 
 const ETIQUETA_EDAD = {
   CACHORRO: 'Cachorro (0-6 meses)',
@@ -17,13 +18,7 @@ const ETIQUETA_FOTO_ESTADO = {
   RECHAZADA: 'Rechazada',
 }
 
-const ESTADOS_ADOPCION = ['EN_ADOPCION', 'ADOPTADO', 'PERDIDO', 'ENCONTRADO']
-const ETIQUETA_ESTADO_ADOPCION = {
-  EN_ADOPCION: 'En adopcion',
-  ADOPTADO: 'Adoptado',
-  PERDIDO: 'Perdido',
-  ENCONTRADO: 'Encontrado',
-}
+
 
 function estadoRevision(item) {
   if (item.rechazado) return { texto: 'Rechazado', color: '#c00' }
@@ -81,7 +76,7 @@ function MisPublicaciones() {
   const activeProfile = localStorage.getItem('activeProfile')
   const esRescatista = activeProfile === 'RESCATISTA'
 
-  const [tab, setTab] = useState(esRescatista ? 'adopcion' : 'perdidos')
+  const [tab, setTab] = useState(esRescatista ? 'en_revision' : 'perdidos')
   const [animales, setAnimales] = useState([])
   const [reportes, setReportes] = useState([])
   const [error, setError] = useState('')
@@ -152,6 +147,10 @@ function MisPublicaciones() {
     }
   }
 
+  const enRevision = animales.filter(a => !a.aprobado && !a.rechazado)
+  const enAdopcion = animales.filter(a => a.aprobado && a.estado === 'EN_ADOPCION')
+  const adoptados = animales.filter(a => a.aprobado && a.estado === 'ADOPTADO')
+
   const perdidos = reportes.filter(r => r.estado === 'PERDIDO')
   const encontrados = reportes.filter(r => r.estado === 'ENCONTRADO')
   const resueltos = reportes.filter(r => r.estado === 'RESUELTO')
@@ -164,9 +163,17 @@ function MisPublicaciones() {
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '1rem' }}>
         {esRescatista && (
-          <button onClick={() => setTab('adopcion')} disabled={tab === 'adopcion'}>
-            En adopcion ({animales.length})
-          </button>
+          <>
+            <button onClick={() => setTab('en_revision')} disabled={tab === 'en_revision'}>
+              En revision ({enRevision.length})
+            </button>
+            <button onClick={() => setTab('adopcion')} disabled={tab === 'adopcion'}>
+              En adopcion ({enAdopcion.length})
+            </button>
+            <button onClick={() => setTab('adoptados')} disabled={tab === 'adoptados'}>
+              Adoptados ({adoptados.length})
+            </button>
+          </>
         )}
         <button onClick={() => setTab('perdidos')} disabled={tab === 'perdidos'}>
           Perdidos ({perdidos.length})
@@ -179,71 +186,99 @@ function MisPublicaciones() {
         </button>
       </div>
 
-      {tab === 'adopcion' && esRescatista && (
+      {tab === 'en_revision' && esRescatista && (
         <div>
           <Link to="/agregar-animal">+ Publicar animal en adopcion</Link>
           <br /><br />
-          {animales.length === 0 ? (
-            <p>Todavia no publicaste ningun animal en adopcion.</p>
+          {enRevision.length === 0 ? (
+            <p>No tenes animales en revision.</p>
           ) : (
-            animales.map(animal => {
-              const revision = estadoRevision(animal)
-              return (
-                <div key={animal.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
-                  <h3>
-                    {animal.nombre}
-                    {'  '}
-                    <span style={{ fontSize: '0.85rem', color: revision.color }}>
-                      [{revision.texto}]
-                    </span>
-                  </h3>
-                  {animal.rechazado && animal.motivoRechazo && (
-                    <p style={{ color: '#c00' }}>Motivo de rechazo: {animal.motivoRechazo}</p>
-                  )}
-                  <p>
-                    {ETIQUETA_TIPO[animal.tipo]}
-                    {animal.sexo ? ` - ${animal.sexo.charAt(0) + animal.sexo.slice(1).toLowerCase()}` : ''}
-                    {animal.edad ? ` - ${ETIQUETA_EDAD[animal.edad]}` : ''}
-                  </p>
-                  <p>{animal.ciudad}, {animal.provincia}</p>
-                  {animal.tipoAdopcion && (
-                    <p>Adopcion: {animal.tipoAdopcion === 'PERMANENTE' ? 'Permanente' : 'Transito'}</p>
-                  )}
-                  <p>
-                    Amigable con:{' '}
-                    {[
-                      animal.amigableConGatos && 'gatos',
-                      animal.amigableConPerros && 'perros',
-                      animal.amigableConNinos && 'ninos',
-                    ].filter(Boolean).join(', ') || 'no especificado'}
-                  </p>
-                  {animal.descripcion && <p>{animal.descripcion}</p>}
-                  <FotosList fotos={animal.fotos} />
-                  <AgregarFotosBtn
-                    id={animal.id}
-                    rechazado={animal.rechazado}
-                    fotosCount={animal.fotos.length}
-                    fotosNuevas={fotosNuevas}
-                    setFotosNuevas={setFotosNuevas}
-                    onAgregar={handleAgregarFotosAnimal}
-                  />
-                  {animal.aprobado && (
-                    <div style={{ marginTop: '0.5rem' }}>
-                      <strong>Estado: {ETIQUETA_ESTADO_ADOPCION[animal.estado]}</strong>
-                      {'  '}
-                      <select
-                        value={animal.estado}
-                        onChange={e => handleCambiarEstado(animal.id, e.target.value)}
-                      >
-                        {ESTADOS_ADOPCION.map(s => (
-                          <option key={s} value={s}>{ETIQUETA_ESTADO_ADOPCION[s]}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+            enRevision.map(animal => (
+              <div key={animal.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
+                <h3>{animal.nombre} <span style={{ fontSize: '0.85rem', color: '#888' }}>[En revision]</span></h3>
+                <p>Tipo: {ETIQUETA_TIPO[animal.tipo]}</p>
+                {animal.sexo && <p>Sexo: {ETIQUETA_SEXO[animal.sexo]}</p>}
+                {animal.edad && <p>Edad: {ETIQUETA_EDAD[animal.edad]}</p>}
+                {animal.tipoAdopcion && <p>Tipo de adopción: {animal.tipoAdopcion === 'PERMANENTE' ? 'Permanente' : 'Tránsito'}</p>}
+                <p>Ubicación: {animal.ciudad}, {animal.provincia}</p>
+                {(animal.amigableConGatos || animal.amigableConPerros || animal.amigableConNinos) && (
+                  <p>Amigable con: {[animal.amigableConGatos && 'gatos', animal.amigableConPerros && 'perros', animal.amigableConNinos && 'niños'].filter(Boolean).join(', ')}</p>
+                )}
+                {animal.descripcion && <p>Descripción: {animal.descripcion}</p>}
+                <FotosList fotos={animal.fotos} />
+                <AgregarFotosBtn
+                  id={animal.id}
+                  rechazado={false}
+                  fotosCount={animal.fotos.length}
+                  fotosNuevas={fotosNuevas}
+                  setFotosNuevas={setFotosNuevas}
+                  onAgregar={handleAgregarFotosAnimal}
+                />
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {tab === 'adopcion' && esRescatista && (
+        <div>
+          {enAdopcion.length === 0 ? (
+            <p>No tenes animales en adopcion activos.</p>
+          ) : (
+            enAdopcion.map(animal => (
+              <div key={animal.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
+                <h3>{animal.nombre}</h3>
+                <p>Tipo: {ETIQUETA_TIPO[animal.tipo]}</p>
+                {animal.sexo && <p>Sexo: {ETIQUETA_SEXO[animal.sexo]}</p>}
+                {animal.edad && <p>Edad: {ETIQUETA_EDAD[animal.edad]}</p>}
+                {animal.tipoAdopcion && <p>Tipo de adopción: {animal.tipoAdopcion === 'PERMANENTE' ? 'Permanente' : 'Tránsito'}</p>}
+                <p>Ubicación: {animal.ciudad}, {animal.provincia}</p>
+                {(animal.amigableConGatos || animal.amigableConPerros || animal.amigableConNinos) && (
+                  <p>Amigable con: {[animal.amigableConGatos && 'gatos', animal.amigableConPerros && 'perros', animal.amigableConNinos && 'niños'].filter(Boolean).join(', ')}</p>
+                )}
+                {animal.descripcion && <p>Descripción: {animal.descripcion}</p>}
+                <FotosList fotos={animal.fotos} />
+                <AgregarFotosBtn
+                  id={animal.id}
+                  rechazado={false}
+                  fotosCount={animal.fotos.length}
+                  fotosNuevas={fotosNuevas}
+                  setFotosNuevas={setFotosNuevas}
+                  onAgregar={handleAgregarFotosAnimal}
+                />
+                <div style={{ marginTop: '0.5rem' }}>
+                  <button onClick={() => handleCambiarEstado(animal.id, 'ADOPTADO')}>
+                    Marcar como adoptado
+                  </button>
                 </div>
-              )
-            })
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {tab === 'adoptados' && esRescatista && (
+        <div>
+          {adoptados.length === 0 ? (
+            <p>Todavia no tenes animales adoptados.</p>
+          ) : (
+            adoptados.map(animal => (
+              <div key={animal.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
+                <h3>{animal.nombre}</h3>
+                <p>Tipo: {ETIQUETA_TIPO[animal.tipo]}</p>
+                {animal.sexo && <p>Sexo: {ETIQUETA_SEXO[animal.sexo]}</p>}
+                {animal.edad && <p>Edad: {ETIQUETA_EDAD[animal.edad]}</p>}
+                {animal.tipoAdopcion && <p>Tipo de adopción: {animal.tipoAdopcion === 'PERMANENTE' ? 'Permanente' : 'Tránsito'}</p>}
+                <p>Ubicación: {animal.ciudad}, {animal.provincia}</p>
+                {animal.descripcion && <p>Descripción: {animal.descripcion}</p>}
+                <FotosList fotos={animal.fotos} />
+                <div style={{ marginTop: '0.5rem' }}>
+                  <button onClick={() => handleCambiarEstado(animal.id, 'EN_ADOPCION')}>
+                    Marcar en adopcion
+                  </button>
+                </div>
+              </div>
+            ))
           )}
         </div>
       )}
@@ -278,15 +313,12 @@ function MisPublicaciones() {
                     <p style={{ color: '#c00' }}>Motivo de rechazo: {reporte.motivoRechazo}</p>
                   )}
                   {reporte.direccion && <p>Visto en: {reporte.direccion}</p>}
-                  <p>
-                    En posesion del publicador:{' '}
-                    {reporte.enPosesionDelPublicador ? 'Si' : 'No'}
-                  </p>
-                  {reporte.descripcion && <p>{reporte.descripcion}</p>}
+                  {reporte.estado === 'ENCONTRADO' && <p>En posesión del publicador: {reporte.enPosesionDelPublicador ? 'Sí' : 'No'}</p>}
+                  {reporte.descripcion && <p>Descripción: {reporte.descripcion}</p>}
                   <FotosList fotos={reporte.fotos} />
                   <AgregarFotosBtn
                     id={reporte.id}
-                    rechazado={reporte.rechazado}
+                    rechazado={reporte.rechazado || resuelto}
                     fotosCount={reporte.fotos.length}
                     fotosNuevas={fotosNuevas}
                     setFotosNuevas={setFotosNuevas}
