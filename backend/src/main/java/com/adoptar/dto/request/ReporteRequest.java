@@ -26,6 +26,8 @@ public class ReporteRequest {
     private String provincia;
     private String ciudad;
 
+    private java.time.LocalDate fechaAvistamiento;
+
     @NotNull(message = "Indicá si el animal está en tu posesión")
     private Boolean enPosesionDelPublicador;
 

@@ -68,6 +68,7 @@ public class ReporteService {
                 .enPosesionDelPublicador(request.getEnPosesionDelPublicador())
                 .provincia(request.getProvincia())
                 .ciudad(request.getCiudad())
+                .fechaAvistamiento(request.getFechaAvistamiento())
                 .descripcion(request.getDescripcion())
                 .publicador(publicador)
                 .build();
@@ -177,6 +178,7 @@ public class ReporteService {
                 .enPosesionDelPublicador(animal.getEnPosesionDelPublicador())
                 .provincia(animal.getProvincia() != null ? animal.getProvincia() : animal.getPublicador().getProvincia())
                 .ciudad(animal.getCiudad() != null ? animal.getCiudad() : animal.getPublicador().getCiudad())
+                .fechaAvistamiento(animal.getFechaAvistamiento())
                 .rescatistaNombre(animal.getPublicador().getNombre() + " " + animal.getPublicador().getApellido())
                 .fotos(fotos)
                 .aprobado(animal.isAprobado())
@@ -208,6 +210,7 @@ public class ReporteService {
                 .enPosesionDelPublicador(animal.getEnPosesionDelPublicador())
                 .provincia(animal.getProvincia() != null ? animal.getProvincia() : animal.getPublicador().getProvincia())
                 .ciudad(animal.getCiudad() != null ? animal.getCiudad() : animal.getPublicador().getCiudad())
+                .fechaAvistamiento(animal.getFechaAvistamiento())
                 .rescatistaNombre(animal.getPublicador().getNombre() + " " + animal.getPublicador().getApellido())
                 .fotos(fotos)
                 .aprobado(animal.isAprobado())

@@ -76,6 +76,9 @@ public class Animal {
     @Column
     private Boolean enPosesionDelPublicador;
 
+    @Column
+    private java.time.LocalDate fechaAvistamiento;
+
     // provincia/ciudad del lugar donde se vio el animal (solo para PERDIDO_ENCONTRADO)
     @Column
     private String provincia;

@@ -18,6 +18,7 @@ function AgregarReporte() {
     longitud: '',
     provincia: '',
     ciudad: '',
+    fechaAvistamiento: '',
     enPosesionDelPublicador: '',
     descripcion: '',
   })
@@ -85,6 +86,7 @@ function AgregarReporte() {
     if (!form.estadoInicial) return setError('Indicá si lo perdiste o lo encontraste')
     if (!form.direccion) return setError('Ingresá la dirección')
     if (!form.latitud || !form.longitud) return setError('Seleccioná una dirección de la lista para guardar las coordenadas')
+    if (!form.fechaAvistamiento) return setError('Ingresá la fecha')
     if (form.estadoInicial === 'ENCONTRADO' && form.enPosesionDelPublicador === '') return setError('Indicá si el animal está en tu posesión')
     if (fotos.length === 0) return setError('Subí al menos una foto')
     if (fotos.length > 5) return setError('Máximo 5 fotos')
@@ -97,6 +99,7 @@ function AgregarReporte() {
     data.append('longitud', form.longitud)
     if (form.provincia) data.append('provincia', form.provincia)
     if (form.ciudad) data.append('ciudad', form.ciudad)
+    data.append('fechaAvistamiento', form.fechaAvistamiento)
     data.append('enPosesionDelPublicador', form.estadoInicial === 'PERDIDO' ? 'false' : form.enPosesionDelPublicador)
     if (form.descripcion) data.append('descripcion', form.descripcion)
     fotos.forEach(f => data.append('fotos', f))
@@ -186,7 +189,16 @@ function AgregarReporte() {
             </select>
           </div>
         )}
-
+        <div>
+          <label>{form.estadoInicial === 'PERDIDO' ? 'Fecha en que se perdió' : 'Fecha en que fue visto'}</label>
+          <input
+            type="date"
+            name="fechaAvistamiento"
+            value={form.fechaAvistamiento}
+            onChange={handleChange}
+            max={new Date().toISOString().split('T')[0]}
+          />
+        </div>
         <div>
           <label>Descripción (opcional)</label>
           <textarea

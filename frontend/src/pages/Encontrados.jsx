@@ -85,6 +85,7 @@ function Encontrados() {
             )}
             <p>Tipo: {ETIQUETA_TIPO[r.tipo]}</p>
             {r.direccion && <p>Visto en: {r.direccion}</p>}
+            {r.fechaAvistamiento && <p>Fecha: {r.fechaAvistamiento}</p>}
             <p>En posesión del publicador: {r.enPosesionDelPublicador ? 'Sí' : 'No'}</p>
             {r.descripcion && <p>Descripción: {r.descripcion}</p>}
             <p style={{ fontSize: 12, color: '#666' }}>

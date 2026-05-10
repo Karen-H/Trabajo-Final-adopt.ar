@@ -85,6 +85,7 @@ function Perdidos() {
             )}
             <p>Tipo: {ETIQUETA_TIPO[r.tipo]}</p>
             {r.direccion && <p>Visto en: {r.direccion}</p>}
+            {r.fechaAvistamiento && <p>Fecha: {r.fechaAvistamiento}</p>}
             {r.descripcion && <p>Descripción: {r.descripcion}</p>}
             <p style={{ fontSize: 12, color: '#666' }}>
               Publicado por {r.rescatistaNombre} en {r.ciudad}, {r.provincia}

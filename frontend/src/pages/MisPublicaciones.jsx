@@ -313,6 +313,7 @@ function MisPublicaciones() {
                     <p style={{ color: '#c00' }}>Motivo de rechazo: {reporte.motivoRechazo}</p>
                   )}
                   {reporte.direccion && <p>Visto en: {reporte.direccion}</p>}
+                  {reporte.fechaAvistamiento && <p>Fecha: {reporte.fechaAvistamiento}</p>}
                   {reporte.estado === 'ENCONTRADO' && <p>En posesión del publicador: {reporte.enPosesionDelPublicador ? 'Sí' : 'No'}</p>}
                   {reporte.descripcion && <p>Descripción: {reporte.descripcion}</p>}
                   <FotosList fotos={reporte.fotos} />

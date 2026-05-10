@@ -60,6 +60,7 @@ function CardReporte({ animal, motivoAnimal, setMotivoAnimal, onAprobar, onRecha
     <div style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
       <h4>Tipo: {ETIQUETA_TIPO[animal.tipo]} {ETIQUETA_ESTADO[animal.estado] ? `(${ETIQUETA_ESTADO[animal.estado]})` : ''}</h4>
       {animal.direccion && <p>Visto en: {animal.direccion}</p>}
+      {animal.fechaAvistamiento && <p>Fecha: {animal.fechaAvistamiento}</p>}
       {animal.estado === 'ENCONTRADO' && <p>En posesión del publicador: {animal.enPosesionDelPublicador ? 'Sí' : 'No'}</p>}
       {animal.descripcion && <p>Descripción: {animal.descripcion}</p>}
       <p>Publicado por: {animal.rescatistaNombre}</p>
