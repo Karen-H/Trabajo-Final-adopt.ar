@@ -6,6 +6,7 @@ import com.adoptar.entity.Animal;
 import com.adoptar.entity.AnimalFoto;
 import com.adoptar.entity.User;
 import com.adoptar.enums.*;
+import com.adoptar.enums.CategoriaAnimal;
 import com.adoptar.repository.AnimalFotoRepository;
 import com.adoptar.repository.AnimalRepository;
 import com.adoptar.service.AnimalService;
@@ -102,15 +103,14 @@ public class AnimalServiceTests {
     public void testCrearAnimal_ok_guardaAnimalYFoto() throws IOException {
         Animal animalGuardado = Animal.builder()
                 .id(1L)
+                .categoria(CategoriaAnimal.ADOPCION)
                 .nombre("Firulais")
                 .sexo(SexoAnimal.MACHO)
                 .edad(RangoEdad.JOVEN)
                 .tipo(TipoAnimal.PERRO)
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
-                .rescatista(rescatista)
+                .publicador(rescatista)
                 .fotos(new ArrayList<>())
                 .build();
 
@@ -136,19 +136,18 @@ public class AnimalServiceTests {
     public void testGetMisAnimales_devuelveListaDelRescatista() {
         Animal animal = Animal.builder()
                 .id(1L)
+                .categoria(CategoriaAnimal.ADOPCION)
                 .nombre("Michi")
                 .sexo(SexoAnimal.HEMBRA)
                 .edad(RangoEdad.ADULTO)
                 .tipo(TipoAnimal.GATO)
                 .tipoAdopcion(TipoAdopcion.TRANSITO)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
-                .rescatista(rescatista)
+                .publicador(rescatista)
                 .fotos(new ArrayList<>())
                 .build();
 
-        when(animalRepository.findByRescatista(rescatista)).thenReturn(List.of(animal));
+        when(animalRepository.findByPublicador(rescatista)).thenReturn(List.of(animal));
 
         List<AnimalResponse> lista = animalService.getMisAnimales(rescatista);
 
@@ -158,7 +157,7 @@ public class AnimalServiceTests {
 
     @Test
     public void testGetMisAnimales_listaVacia() {
-        when(animalRepository.findByRescatista(rescatista)).thenReturn(List.of());
+        when(animalRepository.findByPublicador(rescatista)).thenReturn(List.of());
 
         List<AnimalResponse> lista = animalService.getMisAnimales(rescatista);
 
@@ -169,15 +168,14 @@ public class AnimalServiceTests {
     public void testCambiarEstado_ok() {
         Animal animal = Animal.builder()
                 .id(1L)
+                .categoria(CategoriaAnimal.ADOPCION)
                 .nombre("Rex")
                 .sexo(SexoAnimal.MACHO)
                 .edad(RangoEdad.SENIOR)
                 .tipo(TipoAnimal.PERRO)
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
-                .rescatista(rescatista)
+                .publicador(rescatista)
                 .fotos(new ArrayList<>())
                 .build();
 
@@ -203,15 +201,14 @@ public class AnimalServiceTests {
 
         Animal animal = Animal.builder()
                 .id(1L)
+                .categoria(CategoriaAnimal.ADOPCION)
                 .nombre("Rex")
                 .sexo(SexoAnimal.MACHO)
                 .edad(RangoEdad.ADULTO)
                 .tipo(TipoAnimal.PERRO)
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
-                .rescatista(otroRescatista)
+                .publicador(otroRescatista)
                 .fotos(new ArrayList<>())
                 .build();
 
@@ -224,15 +221,14 @@ public class AnimalServiceTests {
     public void testAgregarFotos_ok() throws IOException {
         Animal animal = Animal.builder()
                 .id(1L)
+                .categoria(CategoriaAnimal.ADOPCION)
                 .nombre("Firulais")
                 .sexo(SexoAnimal.MACHO)
                 .edad(RangoEdad.JOVEN)
                 .tipo(TipoAnimal.PERRO)
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
-                .rescatista(rescatista)
+                .publicador(rescatista)
                 .rechazado(false)
                 .fotos(new ArrayList<>())
                 .build();
@@ -262,9 +258,7 @@ public class AnimalServiceTests {
                 .tipo(TipoAnimal.PERRO)
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
-                .rescatista(rescatista)
+                .publicador(rescatista)
                 .rechazado(true)
                 .fotos(new ArrayList<>())
                 .build();
@@ -279,15 +273,14 @@ public class AnimalServiceTests {
     public void testAgregarFotos_superaLimite_lanzaExcepcion() {
         Animal animal = Animal.builder()
                 .id(1L)
+                .categoria(CategoriaAnimal.ADOPCION)
                 .nombre("Firulais")
                 .sexo(SexoAnimal.MACHO)
                 .edad(RangoEdad.JOVEN)
                 .tipo(TipoAnimal.PERRO)
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
-                .provincia("Buenos Aires")
-                .ciudad("La Plata")
-                .rescatista(rescatista)
+                .publicador(rescatista)
                 .rechazado(false)
                 .fotos(new ArrayList<>(List.of(
                         AnimalFoto.builder().id(1L).nombreArchivo("a.jpg").build(),

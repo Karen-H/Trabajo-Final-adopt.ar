@@ -21,41 +21,60 @@ public class Animal {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    private CategoriaAnimal categoria;
+
+    // solo para ADOPCION
+    @Column
     private String nombre;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column
     private SexoAnimal sexo;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column
     private RangoEdad edad;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TipoAnimal tipo;
 
+    // solo para ADOPCION
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column
     private TipoAdopcion tipoAdopcion;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @Builder.Default
-    private EstadoAnimal estado = EstadoAnimal.EN_ADOPCION;
+    private EstadoAnimal estado;
 
-    @Column(nullable = false)
-    private boolean amigableConGatos;
+    // solo para ADOPCION
+    @Column
+    private Boolean amigableConGatos;
 
-    @Column(nullable = false)
-    private boolean amigableConPerros;
+    @Column
+    private Boolean amigableConPerros;
 
-    @Column(nullable = false)
-    private boolean amigableConNinos;
+    @Column
+    private Boolean amigableConNinos;
 
     @Column(columnDefinition = "TEXT")
     private String descripcion;
+
+    // solo para PERDIDO_ENCONTRADO
+    @Column
+    private String direccion;
+
+    @Column
+    private Double latitud;
+
+    @Column
+    private Double longitud;
+
+    @Column
+    private Boolean enPosesionDelPublicador;
 
     // false hasta que el admin lo apruebe
     @Column(nullable = false)
@@ -70,16 +89,9 @@ public class Animal {
     @Column(columnDefinition = "TEXT")
     private String motivoRechazo;
 
-    // provincia y ciudad se copian del rescatista al momento de publicar
-    @Column(nullable = false)
-    private String provincia;
-
-    @Column(nullable = false)
-    private String ciudad;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rescatista_id", nullable = false)
-    private User rescatista;
+    @JoinColumn(name = "publicador_id", nullable = false)
+    private User publicador;
 
     @OneToMany(mappedBy = "animal", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -89,3 +101,4 @@ public class Animal {
     @Builder.Default
     private LocalDateTime creadoEn = LocalDateTime.now();
 }
+

@@ -8,8 +8,8 @@ export async function getProvincias() {
 
 export async function getMunicipios(provinciaNombre) {
   const res = await fetch(
-    `${BASE}/municipios?provincia=${encodeURIComponent(provinciaNombre)}&orden=nombre&campos=id,nombre&max=500`
+    `${BASE}/localidades?provincia=${encodeURIComponent(provinciaNombre)}&orden=nombre&campos=id,nombre&max=1000`
   )
   const data = await res.json()
-  return data.municipios
+  return data.localidades
 }

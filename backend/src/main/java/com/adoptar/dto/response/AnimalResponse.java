@@ -14,19 +14,25 @@ import java.util.List;
 public class AnimalResponse {
 
     private Long id;
+    private CategoriaAnimal categoria;
     private String nombre;
     private SexoAnimal sexo;
     private RangoEdad edad;
     private TipoAnimal tipo;
     private TipoAdopcion tipoAdopcion;
     private EstadoAnimal estado;
-    private boolean amigableConGatos;
-    private boolean amigableConPerros;
-    private boolean amigableConNinos;
+    private Boolean amigableConGatos;
+    private Boolean amigableConPerros;
+    private Boolean amigableConNinos;
     private String descripcion;
     private String provincia;
     private String ciudad;
     private String rescatistaNombre;
+    // campos solo para reportes
+    private String direccion;
+    private Double latitud;
+    private Double longitud;
+    private Boolean enPosesionDelPublicador;
     private List<FotoResponse> fotos;
     private boolean aprobado;
     private boolean rechazado;

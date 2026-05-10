@@ -4,6 +4,10 @@ import com.adoptar.dto.request.AnimalRequest;
 import com.adoptar.dto.response.AnimalResponse;
 import com.adoptar.entity.User;
 import com.adoptar.enums.EstadoAnimal;
+import com.adoptar.enums.RangoEdad;
+import com.adoptar.enums.SexoAnimal;
+import com.adoptar.enums.TipoAdopcion;
+import com.adoptar.enums.TipoAnimal;
 import com.adoptar.enums.UserProfile;
 import com.adoptar.service.AnimalService;
 import jakarta.validation.Valid;
@@ -23,6 +27,25 @@ import java.util.List;
 public class AnimalController {
 
     private final AnimalService animalService;
+
+    @GetMapping
+    public ResponseEntity<List<AnimalResponse>> buscar(
+            @RequestParam(required = false) TipoAnimal tipo,
+            @RequestParam(required = false) SexoAnimal sexo,
+            @RequestParam(required = false) RangoEdad edad,
+            @RequestParam(required = false) TipoAdopcion tipoAdopcion,
+            @RequestParam(required = false) String provincia) {
+        return ResponseEntity.ok(animalService.buscarAnimales(tipo, sexo, edad, tipoAdopcion, provincia));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getById(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(animalService.getAnimalById(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> crear(

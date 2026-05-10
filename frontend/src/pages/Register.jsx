@@ -117,7 +117,7 @@ function Register() {
         </div>
         {municipios.length > 0 && (
           <div>
-            <label>Ciudad</label><br />
+            <label>Ciudad (opcional)</label><br />
             <select name="ciudad" value={form.ciudad} onChange={handleChange}>
               <option value="">Seleccioná una ciudad</option>
               {municipios.map(m => (

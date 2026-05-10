@@ -6,6 +6,10 @@ export function crearAnimal(formData) {
   })
 }
 
+export function getAdopciones() {
+  return api.get('/animales')
+}
+
 export function getMisAnimales() {
   return api.get('/animales/mis-animales')
 }
