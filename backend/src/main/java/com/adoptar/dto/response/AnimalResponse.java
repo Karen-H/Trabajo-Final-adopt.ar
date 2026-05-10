@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -33,6 +34,7 @@ public class AnimalResponse {
     private Double latitud;
     private Double longitud;
     private Boolean enPosesionDelPublicador;
+    private LocalDate fechaAvistamiento;
     private List<FotoResponse> fotos;
     private boolean aprobado;
     private boolean rechazado;

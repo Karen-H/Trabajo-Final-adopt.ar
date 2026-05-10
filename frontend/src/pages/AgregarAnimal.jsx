@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { getProfile } from '../api/user'
 import { crearAnimal } from '../api/animal'
+import { buscarNominatim } from '../api/reporte'
 
 const TIPOS = ['PERRO', 'GATO', 'OTRO']
 const SEXOS = ['MACHO', 'HEMBRA']
@@ -29,10 +30,14 @@ function AgregarAnimal() {
     amigableConPerros: false,
     amigableConNinos: false,
     descripcion: '',
+    direccion: '',
+    latitud: '',
+    longitud: '',
   })
   const [fotos, setFotos] = useState([])
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
+  const [geocodificando, setGeocodificando] = useState(false)
 
   useEffect(() => {
     if (!localStorage.getItem('token')) {
@@ -40,7 +45,29 @@ function AgregarAnimal() {
       return
     }
     getProfile()
-      .then(res => setPerfil(res.data))
+      .then(async res => {
+        const p = res.data
+        setPerfil(p)
+        if (p.ciudad && p.provincia) {
+          setGeocodificando(true)
+          try {
+            const resultados = await buscarNominatim(`${p.ciudad}, ${p.provincia}, Argentina`)
+            if (resultados.length > 0) {
+              const r = resultados[0]
+              setForm(f => ({
+                ...f,
+                direccion: `${p.ciudad}, ${p.provincia}`,
+                latitud: r.lat,
+                longitud: r.lon,
+              }))
+            }
+          } catch {
+            // geocoding fallo, se muestra el campo sin coordenadas
+          } finally {
+            setGeocodificando(false)
+          }
+        }
+      })
       .catch(() => navigate('/login'))
   }, [navigate])
 
@@ -63,6 +90,10 @@ function AgregarAnimal() {
     e.preventDefault()
     setError('')
 
+    if (!form.latitud || !form.longitud) {
+      setError('No se pudo obtener las coordenadas de tu ubicación. Verificá tu provincia y ciudad en el perfil.')
+      return
+    }
     if (fotos.length === 0) {
       setError('Debés subir al menos una foto')
       return
@@ -70,14 +101,14 @@ function AgregarAnimal() {
 
     const formData = new FormData()
     Object.entries(form).forEach(([key, value]) => {
-      formData.append(key, value)
+      if (value !== '') formData.append(key, value)
     })
     fotos.forEach(foto => formData.append('fotos', foto))
 
     setCargando(true)
     try {
       await crearAnimal(formData)
-      navigate('/mis-animales')
+      navigate('/mis-publicaciones')
     } catch (err) {
       const msg = err.response?.data
       setError(typeof msg === 'string' ? msg : 'Ocurrió un error. Intentá de nuevo.')
@@ -140,8 +171,13 @@ function AgregarAnimal() {
         </div>
 
         <div>
-          <label>Ubicación (del rescatista)</label><br />
-          <input value={perfil.provincia && perfil.ciudad ? `${perfil.ciudad}, ${perfil.provincia}` : 'Sin configurar'} readOnly disabled />
+          <label>Dirección</label><br />
+          <input
+            type="text"
+            value={geocodificando ? 'Obteniendo ubicación...' : form.direccion}
+            readOnly
+            disabled
+          />
         </div>
 
         <div>

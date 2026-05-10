@@ -2,7 +2,10 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { getMisAnimales, cambiarEstadoAnimal, agregarFotosAnimal } from '../api/animal'
 
-const ESTADOS = ['EN_ADOPCION', 'ADOPTADO', 'PERDIDO', 'ENCONTRADO']
+const ESTADOS = ['EN_ADOPCION', 'ADOPTADO']
+
+const ETIQUETA_TIPO = { PERRO: 'Perro', GATO: 'Gato', OTRO: 'Otro' }
+const ETIQUETA_SEXO = { MACHO: 'Macho', HEMBRA: 'Hembra' }
 
 const ETIQUETA_ESTADO = {
   EN_ADOPCION: 'En adopcion',
@@ -97,24 +100,15 @@ function MisAnimales() {
                 </p>
               )}
 
-              <p>
-                {animal.tipo.charAt(0) + animal.tipo.slice(1).toLowerCase()}
-                {' - '}
-                {animal.sexo.charAt(0) + animal.sexo.slice(1).toLowerCase()}
-                {' - '}
-                {ETIQUETA_EDAD[animal.edad]}
-              </p>
-              <p>{animal.ciudad}, {animal.provincia}</p>
-              <p>Adopcion: {animal.tipoAdopcion === 'PERMANENTE' ? 'Permanente' : 'Transito'}</p>
-              <p>
-                Amigable con:{' '}
-                {[
-                  animal.amigableConGatos && 'gatos',
-                  animal.amigableConPerros && 'perros',
-                  animal.amigableConNinos && 'ninos',
-                ].filter(Boolean).join(', ') || 'ninguna especie indicada'}
-              </p>
-              {animal.descripcion && <p>{animal.descripcion}</p>}
+              <p>Tipo: {ETIQUETA_TIPO[animal.tipo]}</p>
+              {animal.sexo && <p>Sexo: {ETIQUETA_SEXO[animal.sexo]}</p>}
+              {animal.edad && <p>Edad: {ETIQUETA_EDAD[animal.edad]}</p>}
+              {animal.tipoAdopcion && <p>Tipo de adopción: {animal.tipoAdopcion === 'PERMANENTE' ? 'Permanente' : 'Tránsito'}</p>}
+              <p>Ubicación: {animal.ciudad}, {animal.provincia}</p>
+              {(animal.amigableConGatos || animal.amigableConPerros || animal.amigableConNinos) && (
+                <p>Amigable con: {[animal.amigableConGatos && 'gatos', animal.amigableConPerros && 'perros', animal.amigableConNinos && 'niños'].filter(Boolean).join(', ')}</p>
+              )}
+              {animal.descripcion && <p>Descripción: {animal.descripcion}</p>}
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
                 {animal.fotos.map(foto => (

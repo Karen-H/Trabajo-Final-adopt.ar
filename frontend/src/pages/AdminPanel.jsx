@@ -34,22 +34,16 @@ function AccionesAnimal({ id, motivoAnimal, setMotivoAnimal, onAprobar, onRechaz
 function CardAdopcion({ animal, motivoAnimal, setMotivoAnimal, onAprobar, onRechazar }) {
   return (
     <div style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
-      <h4>{animal.nombre} ({ETIQUETA_TIPO[animal.tipo]})</h4>
-      <p>
-        {ETIQUETA_SEXO[animal.sexo]}
-        {animal.edad ? ` · ${ETIQUETA_EDAD[animal.edad]}` : ''}
-        {animal.tipoAdopcion ? ` · Adopcion ${animal.tipoAdopcion === 'PERMANENTE' ? 'permanente' : 'en transito'}` : ''}
-      </p>
-      <p>{animal.ciudad}, {animal.provincia}</p>
-      <p>
-        Amigable con:{' '}
-        {[
-          animal.amigableConGatos && 'gatos',
-          animal.amigableConPerros && 'perros',
-          animal.amigableConNinos && 'ninos',
-        ].filter(Boolean).join(', ') || 'no especificado'}
-      </p>
-      {animal.descripcion && <p>{animal.descripcion}</p>}
+      <h4>Nombre: {animal.nombre}</h4>
+      <p>Tipo: {ETIQUETA_TIPO[animal.tipo]}</p>
+      {animal.sexo && <p>Sexo: {ETIQUETA_SEXO[animal.sexo]}</p>}
+      {animal.edad && <p>Edad: {ETIQUETA_EDAD[animal.edad]}</p>}
+      {animal.tipoAdopcion && <p>Tipo de adopción: {animal.tipoAdopcion === 'PERMANENTE' ? 'Permanente' : 'Tránsito'}</p>}
+      <p>Ubicación: {animal.ciudad}, {animal.provincia}</p>
+      {(animal.amigableConGatos || animal.amigableConPerros || animal.amigableConNinos) && (
+        <p>Amigable con: {[animal.amigableConGatos && 'gatos', animal.amigableConPerros && 'perros', animal.amigableConNinos && 'niños'].filter(Boolean).join(', ')}</p>
+      )}
+      {animal.descripcion && <p>Descripción: {animal.descripcion}</p>}
       <p>Publicado por: {animal.rescatistaNombre}</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
         {animal.fotos.map(foto => (
@@ -64,10 +58,11 @@ function CardAdopcion({ animal, motivoAnimal, setMotivoAnimal, onAprobar, onRech
 function CardReporte({ animal, motivoAnimal, setMotivoAnimal, onAprobar, onRechazar }) {
   return (
     <div style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
-      <h4>{ETIQUETA_TIPO[animal.tipo]} {ETIQUETA_ESTADO[animal.estado] ? `(${ETIQUETA_ESTADO[animal.estado]})` : ''}</h4>
+      <h4>Tipo: {ETIQUETA_TIPO[animal.tipo]} {ETIQUETA_ESTADO[animal.estado] ? `(${ETIQUETA_ESTADO[animal.estado]})` : ''}</h4>
       {animal.direccion && <p>Visto en: {animal.direccion}</p>}
-      <p>En posesion del publicador: {animal.enPosesionDelPublicador ? 'Si' : 'No'}</p>
-      {animal.descripcion && <p>{animal.descripcion}</p>}
+      {animal.fechaAvistamiento && <p>Fecha: {animal.fechaAvistamiento}</p>}
+      {animal.estado === 'ENCONTRADO' && <p>En posesión del publicador: {animal.enPosesionDelPublicador ? 'Sí' : 'No'}</p>}
+      {animal.descripcion && <p>Descripción: {animal.descripcion}</p>}
       <p>Publicado por: {animal.rescatistaNombre}</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
         {animal.fotos.map(foto => (

@@ -16,6 +16,9 @@ function AgregarReporte() {
     direccion: '',
     latitud: '',
     longitud: '',
+    provincia: '',
+    ciudad: '',
+    fechaAvistamiento: '',
     enPosesionDelPublicador: '',
     descripcion: '',
   })
@@ -44,12 +47,18 @@ function AgregarReporte() {
     }, 400)
   }, [busqueda])
 
-  function elegirSugerencia(lugar) {
+  async function elegirSugerencia(lugar) {
+    clearTimeout(debounceRef.current)
+    const addr = lugar.address || {}
+    const provincia = addr.state || ''
+    const ciudad = addr.suburb || addr.quarter || addr.city_district || addr.city || addr.town || addr.village || addr.municipality || ''
     setForm(f => ({
       ...f,
       direccion: lugar.display_name,
       latitud: lugar.lat,
       longitud: lugar.lon,
+      provincia,
+      ciudad,
     }))
     setBusqueda(lugar.display_name)
     setSugerencias([])
@@ -57,7 +66,13 @@ function AgregarReporte() {
 
   function handleChange(e) {
     const { name, value } = e.target
-    setForm(f => ({ ...f, [name]: value }))
+    setForm(f => {
+      const next = { ...f, [name]: value }
+      if (name === 'estadoInicial' && value === 'PERDIDO') {
+        next.enPosesionDelPublicador = ''
+      }
+      return next
+    })
   }
 
   function handleFotos(e) {
@@ -70,7 +85,9 @@ function AgregarReporte() {
     if (!form.tipo) return setError('Seleccioná el tipo de animal')
     if (!form.estadoInicial) return setError('Indicá si lo perdiste o lo encontraste')
     if (!form.direccion) return setError('Ingresá la dirección')
-    if (form.enPosesionDelPublicador === '') return setError('Indicá si el animal está en tu posesión')
+    if (!form.latitud || !form.longitud) return setError('Seleccioná una dirección de la lista para guardar las coordenadas')
+    if (!form.fechaAvistamiento) return setError('Ingresá la fecha')
+    if (form.estadoInicial === 'ENCONTRADO' && form.enPosesionDelPublicador === '') return setError('Indicá si el animal está en tu posesión')
     if (fotos.length === 0) return setError('Subí al menos una foto')
     if (fotos.length > 5) return setError('Máximo 5 fotos')
 
@@ -78,16 +95,19 @@ function AgregarReporte() {
     data.append('tipo', form.tipo)
     data.append('estadoInicial', form.estadoInicial)
     data.append('direccion', form.direccion)
-    if (form.latitud) data.append('latitud', form.latitud)
-    if (form.longitud) data.append('longitud', form.longitud)
-    data.append('enPosesionDelPublicador', form.enPosesionDelPublicador)
+    data.append('latitud', form.latitud)
+    data.append('longitud', form.longitud)
+    if (form.provincia) data.append('provincia', form.provincia)
+    if (form.ciudad) data.append('ciudad', form.ciudad)
+    data.append('fechaAvistamiento', form.fechaAvistamiento)
+    data.append('enPosesionDelPublicador', form.estadoInicial === 'PERDIDO' ? 'false' : form.enPosesionDelPublicador)
     if (form.descripcion) data.append('descripcion', form.descripcion)
     fotos.forEach(f => data.append('fotos', f))
 
     setCargando(true)
     try {
       await crearReporte(data)
-      navigate('/')
+      navigate('/mis-publicaciones')
     } catch (e) {
       setError(e.response?.data || 'Error al publicar el reporte')
     } finally {
@@ -116,7 +136,7 @@ function AgregarReporte() {
         </div>
 
         <div style={{ position: 'relative' }}>
-          <label>Dirección donde fue visto por última vez</label>
+          <label>{form.estadoInicial === 'PERDIDO' ? 'Lugar donde se perdió' : 'Dirección donde fue visto'}</label>
           <input
             type="text"
             value={busqueda}
@@ -147,7 +167,7 @@ function AgregarReporte() {
               {sugerencias.map(s => (
                 <li
                   key={s.place_id}
-                  onClick={() => elegirSugerencia(s)}
+                  onMouseDown={() => elegirSugerencia(s)}
                   style={{ padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid #eee' }}
                   onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -159,15 +179,26 @@ function AgregarReporte() {
           )}
         </div>
 
+        {form.estadoInicial === 'ENCONTRADO' && (
+          <div>
+            <label>¿El animal está en tu posesión?</label>
+            <select name="enPosesionDelPublicador" value={form.enPosesionDelPublicador} onChange={handleChange}>
+              <option value="">-- Seleccioná --</option>
+              <option value="true">Sí, está conmigo</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+        )}
         <div>
-          <label>¿El animal está en tu posesión?</label>
-          <select name="enPosesionDelPublicador" value={form.enPosesionDelPublicador} onChange={handleChange}>
-            <option value="">-- Seleccioná --</option>
-            <option value="true">Sí, está conmigo</option>
-            <option value="false">No</option>
-          </select>
+          <label>{form.estadoInicial === 'PERDIDO' ? 'Fecha en que se perdió' : 'Fecha en que fue visto'}</label>
+          <input
+            type="date"
+            name="fechaAvistamiento"
+            value={form.fechaAvistamiento}
+            onChange={handleChange}
+            max={new Date().toISOString().split('T')[0]}
+          />
         </div>
-
         <div>
           <label>Descripción (opcional)</label>
           <textarea
