@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { login } from '../api/auth'
+import { login as loginApi } from '../api/auth'
+import { useAuth } from '../context/AuthContext'
 
 function Login() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [form, setForm] = useState({ email: '', pass: '' })
   const [error, setError] = useState('')
 
@@ -15,11 +17,8 @@ function Login() {
     e.preventDefault()
     setError('')
     try {
-      const res = await login(form.email, form.pass)
-      localStorage.setItem('token', res.data.token)
-      localStorage.setItem('nombre', res.data.nombre)
-      localStorage.setItem('role', res.data.role)
-      localStorage.setItem('activeProfile', res.data.activeProfile)
+      const res = await loginApi(form.email, form.pass)
+      login(res.data)
       navigate('/')
     } catch (err) {
       if (err.response?.status === 401) {

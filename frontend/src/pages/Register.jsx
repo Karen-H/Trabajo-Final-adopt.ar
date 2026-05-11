@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { register } from '../api/auth'
 import { getProvincias, getMunicipios } from '../api/georef'
+import { useAuth } from '../context/AuthContext'
 
 function Register() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [form, setForm] = useState({
     nombre: '',
     apellido: '',
@@ -48,10 +50,7 @@ function Register() {
       if (!data.provincia) delete data.provincia
       if (!data.ciudad) delete data.ciudad
       const res = await register(data)
-      localStorage.setItem('token', res.data.token)
-      localStorage.setItem('nombre', res.data.nombre)
-      localStorage.setItem('role', res.data.role)
-      localStorage.setItem('activeProfile', res.data.activeProfile)
+      login(res.data)
       navigate('/')
     } catch (err) {
       const status = err.response?.status
