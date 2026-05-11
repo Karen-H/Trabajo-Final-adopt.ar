@@ -99,12 +99,12 @@ public class Animal {
     @Column(columnDefinition = "TEXT")
     private String motivoRechazo;
 
-    @Column(nullable = false)
+    @Column(columnDefinition = "boolean not null default false")
     @Builder.Default
     private boolean eliminado = false;
 
     // true si lo eliminó un admin (el publicador no puede republicar)
-    @Column(nullable = false)
+    @Column(columnDefinition = "boolean not null default false")
     @Builder.Default
     private boolean eliminadoPorAdmin = false;
 
