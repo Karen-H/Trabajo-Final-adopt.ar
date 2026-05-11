@@ -99,6 +99,18 @@ public class Animal {
     @Column(columnDefinition = "TEXT")
     private String motivoRechazo;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean eliminado = false;
+
+    // true si lo eliminó un admin (el publicador no puede republicar)
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean eliminadoPorAdmin = false;
+
+    @Column(columnDefinition = "TEXT")
+    private String motivoEliminacion;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "publicador_id", nullable = false)
     private User publicador;

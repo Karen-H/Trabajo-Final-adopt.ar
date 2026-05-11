@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import {
   getAnimalesPendientes, aprobarAnimal, rechazarAnimal,
   getFotosPendientes, aprobarFoto, rechazarFoto,
+  getPublicaciones, eliminarAnimalAdmin, eliminarFotoAdmin,
 } from '../api/admin'
 
 const ETIQUETA_TIPO = { PERRO: 'Perro', GATO: 'Gato', OTRO: 'Otro' }
@@ -79,9 +80,12 @@ function AdminPanel() {
   const [tab, setTab] = useState('animales')
   const [animales, setAnimales] = useState([])
   const [fotos, setFotos] = useState([])
+  const [publicaciones, setPublicaciones] = useState([])
   const [error, setError] = useState('')
   const [motivoAnimal, setMotivoAnimal] = useState({})
   const [motivoFoto, setMotivoFoto] = useState({})
+  const [motivoEliminar, setMotivoEliminar] = useState({})
+  const [motivoEliminarFoto, setMotivoEliminarFoto] = useState({})
 
   useEffect(() => {
     if (localStorage.getItem('role') !== 'ADMIN') {
@@ -90,6 +94,7 @@ function AdminPanel() {
     }
     cargarAnimales()
     cargarFotos()
+    cargarPublicaciones()
   }, [navigate])
 
   function cargarAnimales() {
@@ -102,6 +107,12 @@ function AdminPanel() {
     getFotosPendientes()
       .then(res => setFotos(res.data))
       .catch(() => setError('No se pudieron cargar las fotos pendientes.'))
+  }
+
+  function cargarPublicaciones() {
+    getPublicaciones()
+      .then(res => setPublicaciones(res.data))
+      .catch(() => {})
   }
 
   async function handleAprobarAnimal(id) {
@@ -154,6 +165,41 @@ function AdminPanel() {
     }
   }
 
+  async function handleEliminarPublicacion(id) {
+    setError('')
+    const motivo = motivoEliminar[id]
+    if (!motivo || !motivo.trim()) {
+      setError('Ingresá un motivo antes de eliminar.')
+      return
+    }
+    if (!window.confirm('¿Eliminear esta publicación? Esta acción no puede deshacerse por el usuario.')) return
+    try {
+      await eliminarAnimalAdmin(id, motivo)
+      setPublicaciones(prev => prev.filter(p => p.id !== id))
+    } catch {
+      setError('No se pudo eliminar la publicación.')
+    }
+  }
+
+  async function handleEliminarFotoAdmin(id) {
+    setError('')
+    const motivo = motivoEliminarFoto[id]
+    if (!motivo || !motivo.trim()) {
+      setError('Ingresá un motivo antes de eliminar la foto.')
+      return
+    }
+    if (!window.confirm('¿Eliminar esta foto?')) return
+    try {
+      await eliminarFotoAdmin(id, motivo)
+      setPublicaciones(prev => prev.map(p => ({
+        ...p,
+        fotos: p.fotos.filter(f => f.id !== id)
+      })))
+    } catch {
+      setError('No se pudo eliminar la foto.')
+    }
+  }
+
   const adopcionesPendientes = animales.filter(a => a.categoria === 'ADOPCION')
   const reportesPendientes = animales.filter(a => a.categoria === 'PERDIDO_ENCONTRADO')
 
@@ -174,6 +220,10 @@ function AdminPanel() {
         {' '}
         <button onClick={() => setTab('fotos')} disabled={tab === 'fotos'}>
           Fotos pendientes ({fotos.length})
+        </button>
+        {' '}
+        <button onClick={() => setTab('publicaciones')} disabled={tab === 'publicaciones'}>
+          Gestionar publicaciones ({publicaciones.length})
         </button>
       </div>
 
@@ -277,6 +327,55 @@ function AdminPanel() {
 
       <br />
       <Link to="/">Volver al inicio</Link>
+
+      {tab === 'publicaciones' && (
+        <div>
+          {publicaciones.length === 0 && <p>No hay publicaciones activas.</p>}
+          {publicaciones.map(pub => {
+            const esReporte = pub.categoria === 'PERDIDO_ENCONTRADO'
+            return (
+              <div key={pub.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
+                <h4>
+                  {esReporte
+                    ? `${ETIQUETA_TIPO[pub.tipo]} (${ETIQUETA_ESTADO[pub.estado] || pub.estado})`
+                    : pub.nombre}
+                </h4>
+                <p>Publicado por: {pub.rescatistaNombre}</p>
+                {pub.provincia && <p>Ubicación: {pub.ciudad}, {pub.provincia}</p>}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0.5rem 0' }}>
+                  {pub.fotos?.filter(f => f.estado === 'APROBADA').map(foto => (
+                    <div key={foto.id} style={{ textAlign: 'center' }}>
+                      <img src={foto.url} alt="foto" style={{ width: 100, height: 100, objectFit: 'cover', display: 'block' }} />
+                      <input
+                        type="text"
+                        placeholder="Motivo"
+                        value={motivoEliminarFoto[foto.id] || ''}
+                        onChange={e => setMotivoEliminarFoto(prev => ({ ...prev, [foto.id]: e.target.value }))}
+                        style={{ width: 95, fontSize: 11 }}
+                      />
+                      <button onClick={() => handleEliminarFotoAdmin(foto.id)} style={{ fontSize: 11, color: '#c00' }}>
+                        Eliminar foto
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: '0.5rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Motivo de eliminación"
+                    value={motivoEliminar[pub.id] || ''}
+                    onChange={e => setMotivoEliminar(prev => ({ ...prev, [pub.id]: e.target.value }))}
+                    style={{ width: 280 }}
+                  />
+                  <button onClick={() => handleEliminarPublicacion(pub.id)} style={{ color: '#c00' }}>
+                    Eliminar publicación
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

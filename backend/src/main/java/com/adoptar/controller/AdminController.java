@@ -87,4 +87,44 @@ public class AdminController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @GetMapping("/animales/publicados")
+    public ResponseEntity<?> getPublicaciones(@AuthenticationPrincipal User user) {
+        if (user.getRole() != UserRole.ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(adminService.getPublicaciones());
+    }
+
+    @DeleteMapping("/animales/{id}")
+    public ResponseEntity<?> eliminarAnimal(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id,
+            @Valid @RequestBody RechazarRequest request) {
+        if (user.getRole() != UserRole.ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        try {
+            adminService.eliminarAnimal(id, request.getMotivo());
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/fotos/{id}")
+    public ResponseEntity<?> eliminarFoto(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id,
+            @Valid @RequestBody RechazarRequest request) {
+        if (user.getRole() != UserRole.ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        try {
+            adminService.eliminarFoto(id, request.getMotivo());
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

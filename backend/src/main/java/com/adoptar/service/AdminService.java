@@ -26,8 +26,8 @@ public class AdminService {
     @Transactional(readOnly = true)
     public List<AnimalResponse> getAnimalesPendientes() {
         List<Animal> pendientes = new ArrayList<>();
-        pendientes.addAll(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.ADOPCION));
-        pendientes.addAll(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.PERDIDO_ENCONTRADO));
+        pendientes.addAll(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal.ADOPCION));
+        pendientes.addAll(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal.PERDIDO_ENCONTRADO));
         return pendientes.stream()
                 .map(this::toAnimalResponse)
                 .toList();
@@ -100,6 +100,36 @@ public class AdminService {
         return toFotoResponse(foto);
     }
 
+    @Transactional(readOnly = true)
+    public List<AnimalResponse> getPublicaciones() {
+        return animalRepository.findByAprobadoTrueAndEliminadoFalse()
+                .stream()
+                .map(this::toAnimalResponse)
+                .toList();
+    }
+
+    @Transactional
+    public void eliminarAnimal(Long id, String motivo) {
+        Animal animal = animalRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Animal no encontrado"));
+        if (animal.isEliminado()) {
+            throw new IllegalArgumentException("El animal ya fue eliminado");
+        }
+        animal.setEliminado(true);
+        animal.setEliminadoPorAdmin(true);
+        animal.setMotivoEliminacion(motivo);
+        animalRepository.save(animal);
+    }
+
+    @Transactional
+    public void eliminarFoto(Long id, String motivo) {
+        AnimalFoto foto = animalFotoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Foto no encontrada"));
+        foto.setEstado(EstadoFoto.ELIMINADA);
+        foto.setMotivoRechazo(motivo);
+        animalFotoRepository.save(foto);
+    }
+
     private AnimalResponse toAnimalResponse(Animal animal) {
         List<FotoResponse> fotos = animal.getFotos().stream()
                 .map(f -> FotoResponse.builder()
@@ -131,6 +161,9 @@ public class AdminService {
                 .aprobado(animal.isAprobado())
                 .rechazado(animal.isRechazado())
                 .motivoRechazo(animal.getMotivoRechazo())
+                .eliminado(animal.isEliminado())
+                .eliminadoPorAdmin(animal.isEliminadoPorAdmin())
+                .motivoEliminacion(animal.getMotivoEliminacion())
                 .creadoEn(animal.getCreadoEn())
                 .build();
     }
