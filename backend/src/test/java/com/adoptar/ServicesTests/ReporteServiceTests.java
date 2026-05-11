@@ -224,7 +224,7 @@ public class ReporteServiceTests {
         Animal reporte = animalPerdido(publicador);
         reporte.setAprobado(true);
 
-        when(animalRepository.findByCategoriaAndAprobadoTrueAndEstado(
+        when(animalRepository.findByCategoriaAndAprobadoTrueAndEstadoAndEliminadoFalse(
                 CategoriaAnimal.PERDIDO_ENCONTRADO, EstadoAnimal.PERDIDO))
                 .thenReturn(List.of(reporte));
 
@@ -240,7 +240,7 @@ public class ReporteServiceTests {
         reporte.setEstado(EstadoAnimal.ENCONTRADO);
         reporte.setAprobado(true);
 
-        when(animalRepository.findByCategoriaAndAprobadoTrueAndEstado(
+        when(animalRepository.findByCategoriaAndAprobadoTrueAndEstadoAndEliminadoFalse(
                 CategoriaAnimal.PERDIDO_ENCONTRADO, EstadoAnimal.ENCONTRADO))
                 .thenReturn(List.of(reporte));
 
