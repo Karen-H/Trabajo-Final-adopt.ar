@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { login as loginApi } from '../api/auth'
+import { agregarFavorito } from '../api/favorito'
 import { useAuth } from '../context/AuthContext'
 
 function Login() {
@@ -19,6 +20,11 @@ function Login() {
     try {
       const res = await loginApi(form.email, form.pass)
       login(res.data)
+      const pending = localStorage.getItem('pendingFavorito')
+      if (pending) {
+        localStorage.removeItem('pendingFavorito')
+        await agregarFavorito(pending).catch(() => {})
+      }
       navigate('/')
     } catch (err) {
       if (err.response?.status === 401) {

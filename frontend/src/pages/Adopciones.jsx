@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getAdopciones } from '../api/animal'
+import { getFavoritos, agregarFavorito, quitarFavorito } from '../api/favorito'
 import FiltroUbicacion from '../components/FiltroUbicacion'
 
 const TIPOS = ['PERRO', 'GATO', 'OTRO']
@@ -41,6 +42,8 @@ function filtrar(animales, tipos, provincia, ciudad, edades, tipoAdopcion, amiga
 }
 
 function Adopciones() {
+  const navigate = useNavigate()
+  const estaLogueado = !!localStorage.getItem('token')
   const [animales, setAnimales] = useState([])
   const [cargando, setCargando] = useState(true)
   const [tipos, setTipos] = useState([])
@@ -49,12 +52,18 @@ function Adopciones() {
   const [edades, setEdades] = useState([])
   const [tipoAdopcion, setTipoAdopcion] = useState('')
   const [amigableCon, setAmigableCon] = useState([])
+  const [favoritoIds, setFavoritoIds] = useState(new Set())
 
   useEffect(() => {
     getAdopciones()
       .then(r => setAnimales(r.data))
       .catch(() => {})
       .finally(() => setCargando(false))
+    if (estaLogueado) {
+      getFavoritos()
+        .then(r => setFavoritoIds(new Set(r.data.map(f => f.animalId))))
+        .catch(() => {})
+    }
   }, [])
 
   function toggleTipo(tipo) {
@@ -67,6 +76,21 @@ function Adopciones() {
 
   function toggleAmigable(key) {
     setAmigableCon(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])
+  }
+
+  async function toggleFavorito(animalId) {
+    if (!estaLogueado) {
+      localStorage.setItem('pendingFavorito', animalId)
+      navigate('/login')
+      return
+    }
+    if (favoritoIds.has(animalId)) {
+      await quitarFavorito(animalId)
+      setFavoritoIds(prev => { const s = new Set(prev); s.delete(animalId); return s })
+    } else {
+      await agregarFavorito(animalId)
+      setFavoritoIds(prev => new Set([...prev, animalId]))
+    }
   }
 
   const hayFiltros = tipos.length > 0 || provincia || ciudad || edades.length > 0 || tipoAdopcion || amigableCon.length > 0
@@ -173,6 +197,13 @@ function Adopciones() {
             <p style={{ fontSize: 12, color: '#666' }}>
               Publicado por {a.rescatistaNombre} en {a.ciudad}, {a.provincia}
             </p>
+            <button
+              onClick={() => toggleFavorito(a.id)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: '4px 0' }}
+              title={favoritoIds.has(a.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+            >
+              {favoritoIds.has(a.id) ? '❤️' : '🤍'}
+            </button>
           </div>
         ))
       )}

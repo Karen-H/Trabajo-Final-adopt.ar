@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { register } from '../api/auth'
 import { getProvincias, getMunicipios } from '../api/georef'
+import { agregarFavorito } from '../api/favorito'
 import { useAuth } from '../context/AuthContext'
 
 function Register() {
@@ -51,6 +52,11 @@ function Register() {
       if (!data.ciudad) delete data.ciudad
       const res = await register(data)
       login(res.data)
+      const pending = localStorage.getItem('pendingFavorito')
+      if (pending) {
+        localStorage.removeItem('pendingFavorito')
+        await agregarFavorito(pending).catch(() => {})
+      }
       navigate('/')
     } catch (err) {
       const status = err.response?.status

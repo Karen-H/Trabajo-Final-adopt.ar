@@ -11,6 +11,7 @@ import AgregarReporte from './pages/AgregarReporte'
 import Adopciones from './pages/Adopciones'
 import Perdidos from './pages/Perdidos'
 import Encontrados from './pages/Encontrados'
+import Favoritos from './pages/Favoritos'
 import './App.css'
 
 function Home() {
@@ -49,6 +50,7 @@ function App() {
         <Route path="/adopciones" element={<Adopciones />} />
         <Route path="/perdidos" element={<Perdidos />} />
         <Route path="/encontrados" element={<Encontrados />} />
+        <Route path="/favoritos" element={<Favoritos />} />
       </Routes>
     </AuthProvider>
   )

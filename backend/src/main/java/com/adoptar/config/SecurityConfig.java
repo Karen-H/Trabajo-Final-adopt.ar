@@ -54,6 +54,8 @@ public class SecurityConfig {
                 // vistas públicas de perdidos y encontrados
                 .requestMatchers(HttpMethod.GET, "/api/reportes/perdidos").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reportes/encontrados").permitAll()
+                // favoritos requieren autenticación
+                .requestMatchers("/api/favoritos/**").authenticated()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
