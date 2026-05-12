@@ -28,6 +28,7 @@ function estadoRevision(item) {
 
 function FotosList({ fotos, onEliminar }) {
   if (!fotos || fotos.length === 0) return null
+  const fotosActivas = fotos.filter(f => f.estado !== 'ELIMINADA').length
   return (
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
       {fotos.map(foto => (
@@ -49,7 +50,7 @@ function FotosList({ fotos, onEliminar }) {
                   {foto.estado === 'RECHAZADA' && foto.motivoRechazo && ': ' + foto.motivoRechazo}
                 </small>
               )}
-              {onEliminar && (
+              {onEliminar && fotosActivas > 1 && (
                 <button
                   onClick={() => onEliminar(foto.id)}
                   style={{ display: 'block', margin: '2px auto', fontSize: 11 }}
@@ -277,6 +278,11 @@ function MisPublicaciones() {
                   setFotosNuevas={setFotosNuevas}
                   onAgregar={handleAgregarFotosAnimal}
                 />
+                <div style={{ marginTop: '0.5rem' }}>
+                  <button onClick={() => handleEliminar(animal.id)} style={{ color: '#c00' }}>
+                    Eliminar publicación
+                  </button>
+                </div>
               </div>
             ))
           )}
@@ -338,14 +344,6 @@ function MisPublicaciones() {
                 <p>Ubicación: {animal.ciudad}, {animal.provincia}</p>
                 {animal.descripcion && <p>Descripción: {animal.descripcion}</p>}
                 <FotosList fotos={animal.fotos} />
-                <div style={{ marginTop: '0.5rem', display: 'flex', gap: 8 }}>
-                  <button onClick={() => handleCambiarEstado(animal.id, 'EN_ADOPCION')}>
-                    Marcar en adopcion
-                  </button>
-                  <button onClick={() => handleEliminar(animal.id)} style={{ color: '#c00' }}>
-                    Eliminar publicación
-                  </button>
-                </div>
               </div>
             ))
           )}
@@ -385,7 +383,7 @@ function MisPublicaciones() {
                   {reporte.fechaAvistamiento && <p>Fecha: {reporte.fechaAvistamiento}</p>}
                   {reporte.estado === 'ENCONTRADO' && <p>En posesión del publicador: {reporte.enPosesionDelPublicador ? 'Sí' : 'No'}</p>}
                   {reporte.descripcion && <p>Descripción: {reporte.descripcion}</p>}
-                  <FotosList fotos={reporte.fotos} onEliminar={(fotoId) => handleEliminarFoto(reporte.id, fotoId)} />
+                  <FotosList fotos={reporte.fotos} onEliminar={!resuelto ? (fotoId) => handleEliminarFoto(reporte.id, fotoId) : undefined} />
                   <AgregarFotosBtn
                     id={reporte.id}
                     rechazado={reporte.rechazado || resuelto}
@@ -429,17 +427,8 @@ function MisPublicaciones() {
               return (
                 <div
                   key={item.id}
-                  style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem', opacity: 0.7, position: 'relative' }}
+                  style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem', opacity: 0.7 }}
                 >
-                  <div style={{
-                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                    backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', zIndex: 1, pointerEvents: 'none'
-                  }}>
-                    <span style={{ background: 'rgba(200,0,0,0.8)', color: '#fff', padding: '4px 16px', fontWeight: 'bold', borderRadius: 4 }}>
-                      No disponible
-                    </span>
-                  </div>
                   <h3>{titulo}</h3>
                   {item.eliminadoPorAdmin ? (
                     <p style={{ color: '#c00' }}>
@@ -457,7 +446,7 @@ function MisPublicaciones() {
                     </div>
                   )}
                   {!item.eliminadoPorAdmin && !esReporte && (
-                    <div style={{ pointerEvents: 'auto', position: 'relative', zIndex: 2 }}>
+                    <div style={{ marginTop: '0.5rem' }}>
                       <button onClick={() => handleRepublicar(item.id)}>
                         Republicar
                       </button>
