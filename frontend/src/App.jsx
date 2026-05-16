@@ -12,6 +12,7 @@ import Adopciones from './pages/Adopciones'
 import Perdidos from './pages/Perdidos'
 import Encontrados from './pages/Encontrados'
 import Favoritos from './pages/Favoritos'
+import SolicitarTienda from './pages/SolicitarTienda'
 import './App.css'
 
 function Home() {
@@ -51,6 +52,8 @@ function App() {
         <Route path="/perdidos" element={<Perdidos />} />
         <Route path="/encontrados" element={<Encontrados />} />
         <Route path="/favoritos" element={<Favoritos />} />
+        <Route path="/abrir-tienda" element={<SolicitarTienda />} />
+        <Route path="/mi-tienda" element={<SolicitarTienda />} />
       </Routes>
     </AuthProvider>
   )

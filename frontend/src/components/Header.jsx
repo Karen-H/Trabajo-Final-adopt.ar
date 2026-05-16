@@ -42,6 +42,10 @@ function Header() {
               <Link to="/mis-publicaciones">Mis publicaciones</Link>
               <Link to="/agregar-animal">Publicar en adopción</Link>
               <Link to="/agregar-reporte">Publicar perdido/encontrado</Link>
+              {user.tieneTienda
+                ? <Link to="/mi-tienda">Mi tienda</Link>
+                : <Link to="/abrir-tienda">Abrir tienda</Link>
+              }
             </>
           )}
           {user.role === 'USER' && user.activeProfile === 'ADOPTANTE' && (

@@ -1,0 +1,9 @@
+package com.adoptar.enums;
+
+public enum MotivoReprogramacion {
+    PROBLEMA_TECNICO,
+    RESCATISTA_NO_SE_PRESENTO,
+    ADMINISTRADOR_NO_SE_PRESENTO,
+    RESCATISTA_SIN_EVIDENCIA,
+    ERROR_EN_HORARIO
+}

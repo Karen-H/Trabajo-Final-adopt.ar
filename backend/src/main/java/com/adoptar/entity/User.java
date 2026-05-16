@@ -63,6 +63,11 @@ public class User implements UserDetails {
     @Builder.Default
     private UserProfile activeProfile = UserProfile.ADOPTANTE;
 
+    // true cuando el admin aprueba la solicitud de tienda
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean tieneTienda = false;
+
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
