@@ -90,7 +90,7 @@ public class ReporteService {
 
     @Transactional(readOnly = true)
     public List<AnimalResponse> getPerdidos() {
-        return animalRepository.findByCategoriaAndAprobadoTrueAndEstado(
+        return animalRepository.findByCategoriaAndAprobadoTrueAndEstadoAndEliminadoFalse(
                 CategoriaAnimal.PERDIDO_ENCONTRADO, EstadoAnimal.PERDIDO)
                 .stream()
                 .map(this::toPublicResponse)
@@ -99,7 +99,7 @@ public class ReporteService {
 
     @Transactional(readOnly = true)
     public List<AnimalResponse> getEncontrados() {
-        return animalRepository.findByCategoriaAndAprobadoTrueAndEstado(
+        return animalRepository.findByCategoriaAndAprobadoTrueAndEstadoAndEliminadoFalse(
                 CategoriaAnimal.PERDIDO_ENCONTRADO, EstadoAnimal.ENCONTRADO)
                 .stream()
                 .map(this::toPublicResponse)
@@ -136,7 +136,24 @@ public class ReporteService {
     // fotos pendientes de aprobación (solo perdido/encontrado)
     @Transactional(readOnly = true)
     public List<Animal> getPendientesAdmin() {
-        return animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.PERDIDO_ENCONTRADO);
+        return animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal.PERDIDO_ENCONTRADO);
+    }
+
+    @Transactional
+    public void eliminarReporte(Long id, User user) {
+        Animal animal = animalRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Reporte no encontrado"));
+        if (!animal.getPublicador().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("No tenés permiso para eliminar este reporte");
+        }
+        if (animal.getCategoria() != CategoriaAnimal.PERDIDO_ENCONTRADO) {
+            throw new IllegalArgumentException("Este endpoint es solo para reportes");
+        }
+        if (animal.isEliminado()) {
+            throw new IllegalArgumentException("El reporte ya fue eliminado");
+        }
+        animal.setEliminado(true);
+        animalRepository.save(animal);
     }
 
     private void guardarFotos(Animal animal, List<MultipartFile> fotos) {
@@ -184,6 +201,9 @@ public class ReporteService {
                 .aprobado(animal.isAprobado())
                 .rechazado(animal.isRechazado())
                 .motivoRechazo(animal.getMotivoRechazo())
+                .eliminado(animal.isEliminado())
+                .eliminadoPorAdmin(animal.isEliminadoPorAdmin())
+                .motivoEliminacion(animal.getMotivoEliminacion())
                 .creadoEn(animal.getCreadoEn())
                 .build();
     }

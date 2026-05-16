@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getPerdidos } from '../api/reporte'
+import { getFavoritos, agregarFavorito, quitarFavorito } from '../api/favorito'
 import FiltroUbicacion from '../components/FiltroUbicacion'
 
 const TIPOS = ['PERRO', 'GATO', 'OTRO']
@@ -15,21 +17,44 @@ function filtrar(reportes, tipos, provincia, ciudad) {
 }
 
 function Perdidos() {
+  const navigate = useNavigate()
+  const estaLogueado = !!localStorage.getItem('token')
   const [reportes, setReportes] = useState([])
   const [cargando, setCargando] = useState(true)
   const [tipos, setTipos] = useState([])
   const [provincia, setProvincia] = useState('')
   const [ciudad, setCiudad] = useState('')
+  const [favoritoIds, setFavoritoIds] = useState(new Set())
 
   useEffect(() => {
     getPerdidos()
       .then(r => setReportes(r.data))
       .catch(() => {})
       .finally(() => setCargando(false))
+    if (estaLogueado) {
+      getFavoritos()
+        .then(r => setFavoritoIds(new Set(r.data.map(f => f.animalId))))
+        .catch(() => {})
+    }
   }, [])
 
   function toggleTipo(tipo) {
     setTipos(prev => prev.includes(tipo) ? prev.filter(t => t !== tipo) : [...prev, tipo])
+  }
+
+  async function toggleFavorito(animalId) {
+    if (!estaLogueado) {
+      localStorage.setItem('pendingFavorito', animalId)
+      navigate('/login')
+      return
+    }
+    if (favoritoIds.has(animalId)) {
+      await quitarFavorito(animalId)
+      setFavoritoIds(prev => { const s = new Set(prev); s.delete(animalId); return s })
+    } else {
+      await agregarFavorito(animalId)
+      setFavoritoIds(prev => new Set([...prev, animalId]))
+    }
   }
 
   const hayFiltros = tipos.length > 0 || provincia || ciudad
@@ -90,6 +115,13 @@ function Perdidos() {
             <p style={{ fontSize: 12, color: '#666' }}>
               Publicado por {r.rescatistaNombre} en {r.ciudad}, {r.provincia}
             </p>
+            <button
+              onClick={() => toggleFavorito(r.id)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: '4px 0' }}
+              title={favoritoIds.has(r.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+            >
+              {favoritoIds.has(r.id) ? '❤️' : '🤍'}
+            </button>
           </div>
         ))
       )}

@@ -84,7 +84,7 @@ public class AdminServiceTests {
 
     @Test
     public void testGetAnimalesPendientes_listaVacia() {
-        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.ADOPCION)).thenReturn(List.of());
+        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal.ADOPCION)).thenReturn(List.of());
 
         List<AnimalResponse> resultado = adminService.getAnimalesPendientes();
 
@@ -93,7 +93,7 @@ public class AdminServiceTests {
 
     @Test
     public void testGetAnimalesPendientes_retornaAnimales() {
-        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.ADOPCION)).thenReturn(List.of(animalPendiente));
+        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal.ADOPCION)).thenReturn(List.of(animalPendiente));
 
         List<AnimalResponse> resultado = adminService.getAnimalesPendientes();
 
@@ -199,9 +199,9 @@ public class AdminServiceTests {
                 .fotos(new ArrayList<>())
                 .build();
 
-        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.ADOPCION))
+        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal.ADOPCION))
                 .thenReturn(List.of());
-        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.PERDIDO_ENCONTRADO))
+        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal.PERDIDO_ENCONTRADO))
                 .thenReturn(List.of(reportePendiente));
 
         List<AnimalResponse> resultado = adminService.getAnimalesPendientes();
@@ -225,9 +225,9 @@ public class AdminServiceTests {
                 .fotos(new ArrayList<>())
                 .build();
 
-        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.ADOPCION))
+        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal.ADOPCION))
                 .thenReturn(List.of(animalPendiente));
-        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.PERDIDO_ENCONTRADO))
+        when(animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal.PERDIDO_ENCONTRADO))
                 .thenReturn(List.of(reportePendiente));
 
         List<AnimalResponse> resultado = adminService.getAnimalesPendientes();

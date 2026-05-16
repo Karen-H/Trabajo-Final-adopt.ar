@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { getMisAnimales, cambiarEstadoAnimal, agregarFotosAnimal } from '../api/animal'
+import { getMisAnimales, cambiarEstadoAnimal, agregarFotosAnimal, eliminarAnimal, republicarAnimal, eliminarFotoAnimal } from '../api/animal'
 import { getMisReportes, resolverReporte } from '../api/reporte'
 
 const ETIQUETA_TIPO = { PERRO: 'Perro', GATO: 'Gato', OTRO: 'Otro' }
@@ -26,8 +26,9 @@ function estadoRevision(item) {
   return { texto: 'En revision', color: '#888' }
 }
 
-function FotosList({ fotos }) {
+function FotosList({ fotos, onEliminar }) {
   if (!fotos || fotos.length === 0) return null
+  const fotosActivas = fotos.filter(f => f.estado !== 'ELIMINADA').length
   return (
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
       {fotos.map(foto => (
@@ -35,13 +36,29 @@ function FotosList({ fotos }) {
           <img
             src={foto.url}
             alt="foto"
-            style={{ width: 120, height: 120, objectFit: 'cover', display: 'block' }}
+            style={{ width: 120, height: 120, objectFit: 'cover', display: 'block', opacity: foto.estado === 'ELIMINADA' ? 0.4 : 1 }}
           />
-          {ETIQUETA_FOTO_ESTADO[foto.estado] && (
-            <small style={{ color: foto.estado === 'RECHAZADA' ? '#c00' : '#888' }}>
-              {ETIQUETA_FOTO_ESTADO[foto.estado]}
-              {foto.estado === 'RECHAZADA' && foto.motivoRechazo && ': ' + foto.motivoRechazo}
+          {foto.estado === 'ELIMINADA' ? (
+            <small style={{ color: '#c00' }}>
+              {foto.motivoRechazo ? `Eliminada por admin: ${foto.motivoRechazo}` : 'Eliminada'}
             </small>
+          ) : (
+            <>
+              {ETIQUETA_FOTO_ESTADO[foto.estado] && (
+                <small style={{ color: foto.estado === 'RECHAZADA' ? '#c00' : '#888' }}>
+                  {ETIQUETA_FOTO_ESTADO[foto.estado]}
+                  {foto.estado === 'RECHAZADA' && foto.motivoRechazo && ': ' + foto.motivoRechazo}
+                </small>
+              )}
+              {onEliminar && fotosActivas > 1 && (
+                <button
+                  onClick={() => onEliminar(foto.id)}
+                  style={{ display: 'block', margin: '2px auto', fontSize: 11 }}
+                >
+                  Eliminar foto
+                </button>
+              )}
+            </>
           )}
         </div>
       ))}
@@ -147,13 +164,57 @@ function MisPublicaciones() {
     }
   }
 
-  const enRevision = animales.filter(a => !a.aprobado && !a.rechazado)
-  const enAdopcion = animales.filter(a => a.aprobado && a.estado === 'EN_ADOPCION')
-  const adoptados = animales.filter(a => a.aprobado && a.estado === 'ADOPTADO')
+  async function handleEliminar(id) {
+    if (!window.confirm('\u00bfSegúro que querés eliminar esta publicación?')) return
+    setError('')
+    try {
+      await eliminarAnimal(id)
+      // actualizar en ambas listas
+      setAnimales(prev => prev.map(a => a.id === id ? { ...a, eliminado: true } : a))
+      setReportes(prev => prev.map(r => r.id === id ? { ...r, eliminado: true } : r))
+    } catch (err) {
+      setError(err.response?.data || 'No se pudo eliminar la publicación.')
+    }
+  }
 
-  const perdidos = reportes.filter(r => r.estado === 'PERDIDO')
-  const encontrados = reportes.filter(r => r.estado === 'ENCONTRADO')
-  const resueltos = reportes.filter(r => r.estado === 'RESUELTO')
+  async function handleRepublicar(id) {
+    setError('')
+    try {
+      const res = await republicarAnimal(id)
+      setAnimales(prev => prev.map(a => a.id === id ? res.data : a))
+    } catch (err) {
+      setError(err.response?.data || 'No se pudo republicar.')
+    }
+  }
+
+  async function handleEliminarFoto(animalId, fotoId) {
+    if (!window.confirm('\u00bfEliminear esta foto?')) return
+    setError('')
+    try {
+      await eliminarFotoAnimal(animalId, fotoId)
+      const actualizar = prev => prev.map(a => a.id === animalId
+        ? { ...a, fotos: a.fotos.map(f => f.id === fotoId ? { ...f, estado: 'ELIMINADA', motivoRechazo: null } : f) }
+        : a
+      )
+      setAnimales(actualizar)
+      setReportes(actualizar)
+    } catch (err) {
+      setError(err.response?.data || 'No se pudo eliminar la foto.')
+    }
+  }
+
+  const enRevision = animales.filter(a => !a.eliminado && !a.aprobado && !a.rechazado)
+  const enAdopcion = animales.filter(a => !a.eliminado && a.aprobado && a.estado === 'EN_ADOPCION')
+  const adoptados = animales.filter(a => !a.eliminado && a.aprobado && a.estado === 'ADOPTADO')
+
+  const perdidos = reportes.filter(r => !r.eliminado && r.estado === 'PERDIDO')
+  const encontrados = reportes.filter(r => !r.eliminado && r.estado === 'ENCONTRADO')
+  const resueltos = reportes.filter(r => !r.eliminado && r.estado === 'RESUELTO')
+
+  const eliminados = [
+    ...animales.filter(a => a.eliminado),
+    ...reportes.filter(r => r.eliminado),
+  ]
 
   return (
     <div>
@@ -184,6 +245,9 @@ function MisPublicaciones() {
         <button onClick={() => setTab('resueltos')} disabled={tab === 'resueltos'}>
           Resueltos ({resueltos.length})
         </button>
+        <button onClick={() => setTab('eliminados')} disabled={tab === 'eliminados'}>
+          Eliminados ({eliminados.length})
+        </button>
       </div>
 
       {tab === 'en_revision' && esRescatista && (
@@ -205,7 +269,7 @@ function MisPublicaciones() {
                   <p>Amigable con: {[animal.amigableConGatos && 'gatos', animal.amigableConPerros && 'perros', animal.amigableConNinos && 'niños'].filter(Boolean).join(', ')}</p>
                 )}
                 {animal.descripcion && <p>Descripción: {animal.descripcion}</p>}
-                <FotosList fotos={animal.fotos} />
+                <FotosList fotos={animal.fotos} onEliminar={(fotoId) => handleEliminarFoto(animal.id, fotoId)} />
                 <AgregarFotosBtn
                   id={animal.id}
                   rechazado={false}
@@ -214,6 +278,11 @@ function MisPublicaciones() {
                   setFotosNuevas={setFotosNuevas}
                   onAgregar={handleAgregarFotosAnimal}
                 />
+                <div style={{ marginTop: '0.5rem' }}>
+                  <button onClick={() => handleEliminar(animal.id)} style={{ color: '#c00' }}>
+                    Eliminar publicación
+                  </button>
+                </div>
               </div>
             ))
           )}
@@ -237,7 +306,7 @@ function MisPublicaciones() {
                   <p>Amigable con: {[animal.amigableConGatos && 'gatos', animal.amigableConPerros && 'perros', animal.amigableConNinos && 'niños'].filter(Boolean).join(', ')}</p>
                 )}
                 {animal.descripcion && <p>Descripción: {animal.descripcion}</p>}
-                <FotosList fotos={animal.fotos} />
+                <FotosList fotos={animal.fotos} onEliminar={(fotoId) => handleEliminarFoto(animal.id, fotoId)} />
                 <AgregarFotosBtn
                   id={animal.id}
                   rechazado={false}
@@ -246,9 +315,12 @@ function MisPublicaciones() {
                   setFotosNuevas={setFotosNuevas}
                   onAgregar={handleAgregarFotosAnimal}
                 />
-                <div style={{ marginTop: '0.5rem' }}>
+                <div style={{ marginTop: '0.5rem', display: 'flex', gap: 8 }}>
                   <button onClick={() => handleCambiarEstado(animal.id, 'ADOPTADO')}>
                     Marcar como adoptado
+                  </button>
+                  <button onClick={() => handleEliminar(animal.id)} style={{ color: '#c00' }}>
+                    Eliminar publicación
                   </button>
                 </div>
               </div>
@@ -272,11 +344,6 @@ function MisPublicaciones() {
                 <p>Ubicación: {animal.ciudad}, {animal.provincia}</p>
                 {animal.descripcion && <p>Descripción: {animal.descripcion}</p>}
                 <FotosList fotos={animal.fotos} />
-                <div style={{ marginTop: '0.5rem' }}>
-                  <button onClick={() => handleCambiarEstado(animal.id, 'EN_ADOPCION')}>
-                    Marcar en adopcion
-                  </button>
-                </div>
               </div>
             ))
           )}
@@ -316,7 +383,7 @@ function MisPublicaciones() {
                   {reporte.fechaAvistamiento && <p>Fecha: {reporte.fechaAvistamiento}</p>}
                   {reporte.estado === 'ENCONTRADO' && <p>En posesión del publicador: {reporte.enPosesionDelPublicador ? 'Sí' : 'No'}</p>}
                   {reporte.descripcion && <p>Descripción: {reporte.descripcion}</p>}
-                  <FotosList fotos={reporte.fotos} />
+                  <FotosList fotos={reporte.fotos} onEliminar={!resuelto ? (fotoId) => handleEliminarFoto(reporte.id, fotoId) : undefined} />
                   <AgregarFotosBtn
                     id={reporte.id}
                     rechazado={reporte.rechazado || resuelto}
@@ -325,13 +392,18 @@ function MisPublicaciones() {
                     setFotosNuevas={setFotosNuevas}
                     onAgregar={handleAgregarFotosReporte}
                   />
-                  {reporte.aprobado && !resuelto && (
-                    <div style={{ marginTop: '0.5rem' }}>
+                  <div style={{ marginTop: '0.5rem', display: 'flex', gap: 8 }}>
+                    {reporte.aprobado && !resuelto && (
                       <button onClick={() => handleResolver(reporte.id)}>
                         Marcar como resuelto
                       </button>
-                    </div>
-                  )}
+                    )}
+                    {!resuelto && (
+                      <button onClick={() => handleEliminar(reporte.id)} style={{ color: '#c00' }}>
+                        Eliminar publicación
+                      </button>
+                    )}
+                  </div>
                 </div>
               )
             })
@@ -341,6 +413,51 @@ function MisPublicaciones() {
 
       <br />
       <Link to="/">Volver al inicio</Link>
+
+      {tab === 'eliminados' && (
+        <div>
+          {eliminados.length === 0 ? (
+            <p>No tenés publicaciones eliminadas.</p>
+          ) : (
+            eliminados.map(item => {
+              const esReporte = item.categoria === 'PERDIDO_ENCONTRADO'
+              const titulo = esReporte
+                ? ETIQUETA_TIPO[item.tipo]
+                : item.nombre
+              return (
+                <div
+                  key={item.id}
+                  style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem', opacity: 0.7 }}
+                >
+                  <h3>{titulo}</h3>
+                  {item.eliminadoPorAdmin ? (
+                    <p style={{ color: '#c00' }}>
+                      Eliminada por un administrador
+                      {item.motivoEliminacion && `: ${item.motivoEliminacion}`}
+                    </p>
+                  ) : (
+                    <p style={{ color: '#888' }}>Eliminada por vos</p>
+                  )}
+                  {item.fotos?.length > 0 && (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0.5rem 0' }}>
+                      {item.fotos.slice(0, 1).map(f => (
+                        <img key={f.id} src={f.url} alt="foto" style={{ width: 80, height: 80, objectFit: 'cover' }} />
+                      ))}
+                    </div>
+                  )}
+                  {!item.eliminadoPorAdmin && !esReporte && (
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <button onClick={() => handleRepublicar(item.id)}>
+                        Republicar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+      )}
     </div>
   )
 }

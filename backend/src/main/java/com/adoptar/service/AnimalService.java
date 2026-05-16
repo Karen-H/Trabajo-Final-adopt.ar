@@ -163,7 +163,57 @@ public class AnimalService {
 
     @Transactional(readOnly = true)
     public List<Animal> getPendientesAdmin() {
-        return animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalse(CategoriaAnimal.ADOPCION);
+        return animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal.ADOPCION);
+    }
+
+    @Transactional
+    public void eliminarAnimal(Long animalId, User user) {
+        Animal animal = animalRepository.findById(animalId)
+                .orElseThrow(() -> new IllegalArgumentException("Animal no encontrado"));
+        if (!animal.getPublicador().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("No tenes permiso para eliminar este animal");
+        }
+        if (animal.isEliminado()) {
+            throw new IllegalArgumentException("El animal ya fue eliminado");
+        }
+        animal.setEliminado(true);
+        animalRepository.save(animal);
+    }
+
+    @Transactional
+    public AnimalResponse republicarAnimal(Long animalId, User user) {
+        Animal animal = animalRepository.findById(animalId)
+                .orElseThrow(() -> new IllegalArgumentException("Animal no encontrado"));
+        if (!animal.getPublicador().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("No tenes permiso para republicar este animal");
+        }
+        if (!animal.isEliminado()) {
+            throw new IllegalArgumentException("El animal no está eliminado");
+        }
+        if (animal.isEliminadoPorAdmin()) {
+            throw new IllegalArgumentException("No podes republicar un animal eliminado por un administrador");
+        }
+        animal.setEliminado(false);
+        animal.setAprobado(false);
+        animal.setRechazado(false);
+        animal.setMotivoRechazo(null);
+        animalRepository.save(animal);
+        return toResponse(animal);
+    }
+
+    @Transactional
+    public void eliminarFotoPropia(Long animalId, Long fotoId, User user) {
+        Animal animal = animalRepository.findById(animalId)
+                .orElseThrow(() -> new IllegalArgumentException("Animal no encontrado"));
+        if (!animal.getPublicador().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("No tenes permiso para modificar este animal");
+        }
+        AnimalFoto foto = animal.getFotos().stream()
+                .filter(f -> f.getId().equals(fotoId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Foto no encontrada"));
+        foto.setEstado(EstadoFoto.ELIMINADA);
+        animalFotoRepository.save(foto);
     }
 
     private void guardarFotos(Animal animal, List<MultipartFile> fotos) {
@@ -217,6 +267,9 @@ public class AnimalService {
                 .aprobado(animal.isAprobado())
                 .rechazado(animal.isRechazado())
                 .motivoRechazo(animal.getMotivoRechazo())
+                .eliminado(animal.isEliminado())
+                .eliminadoPorAdmin(animal.isEliminadoPorAdmin())
+                .motivoEliminacion(animal.getMotivoEliminacion())
                 .creadoEn(animal.getCreadoEn())
                 .build();
     }

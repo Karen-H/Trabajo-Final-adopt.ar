@@ -39,5 +39,8 @@ public class AnimalResponse {
     private boolean aprobado;
     private boolean rechazado;
     private String motivoRechazo;
+    private boolean eliminado;
+    private boolean eliminadoPorAdmin;
+    private String motivoEliminacion;
     private LocalDateTime creadoEn;
 }

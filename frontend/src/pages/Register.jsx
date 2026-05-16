@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { register } from '../api/auth'
 import { getProvincias, getMunicipios } from '../api/georef'
+import { agregarFavorito } from '../api/favorito'
+import { useAuth } from '../context/AuthContext'
 
 function Register() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [form, setForm] = useState({
     nombre: '',
     apellido: '',
@@ -48,10 +51,12 @@ function Register() {
       if (!data.provincia) delete data.provincia
       if (!data.ciudad) delete data.ciudad
       const res = await register(data)
-      localStorage.setItem('token', res.data.token)
-      localStorage.setItem('nombre', res.data.nombre)
-      localStorage.setItem('role', res.data.role)
-      localStorage.setItem('activeProfile', res.data.activeProfile)
+      login(res.data)
+      const pending = localStorage.getItem('pendingFavorito')
+      if (pending) {
+        localStorage.removeItem('pendingFavorito')
+        await agregarFavorito(pending).catch(() => {})
+      }
       navigate('/')
     } catch (err) {
       const status = err.response?.status
