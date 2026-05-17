@@ -76,6 +76,7 @@ public class AuthService {
                 .activeProfile(user.getActiveProfile())
                 .provincia(user.getProvincia())
                 .ciudad(user.getCiudad())
+                .tieneTienda(user.isTieneTienda())
                 .build();
     }
 }

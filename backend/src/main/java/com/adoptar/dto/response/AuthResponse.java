@@ -20,4 +20,5 @@ public class AuthResponse {
     private UserProfile activeProfile;
     private String provincia;
     private String ciudad;
+    private boolean tieneTienda;
 }

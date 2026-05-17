@@ -10,6 +10,7 @@ function leerUsuario() {
     nombre: localStorage.getItem('nombre'),
     role: localStorage.getItem('role'),
     activeProfile: localStorage.getItem('activeProfile'),
+    tieneTienda: localStorage.getItem('tieneTienda') === 'true',
   }
 }
 
@@ -21,11 +22,13 @@ export function AuthProvider({ children }) {
     localStorage.setItem('nombre', data.nombre)
     localStorage.setItem('role', data.role)
     localStorage.setItem('activeProfile', data.activeProfile)
+    localStorage.setItem('tieneTienda', data.tieneTienda ? 'true' : 'false')
     setUser({
       token: data.token,
       nombre: data.nombre,
       role: data.role,
       activeProfile: data.activeProfile,
+      tieneTienda: data.tieneTienda ?? false,
     })
   }
 
@@ -39,8 +42,13 @@ export function AuthProvider({ children }) {
     setUser(prev => ({ ...prev, activeProfile: profile }))
   }
 
+  function setTieneTienda(valor) {
+    localStorage.setItem('tieneTienda', valor ? 'true' : 'false')
+    setUser(prev => ({ ...prev, tieneTienda: valor }))
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, setActiveProfile }}>
+    <AuthContext.Provider value={{ user, login, logout, setActiveProfile, setTieneTienda }}>
       {children}
     </AuthContext.Provider>
   )

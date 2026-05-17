@@ -33,6 +33,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: adoptar_pass
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       UPLOADS_PATH: /app/uploads
+      TZ: America/Argentina/Buenos_Aires
     ports:
       - "8080:8080"
     volumes:
