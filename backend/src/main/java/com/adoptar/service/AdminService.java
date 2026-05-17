@@ -3,12 +3,19 @@ package com.adoptar.service;
 import com.adoptar.dto.response.AnimalResponse;
 import com.adoptar.dto.response.FotoPendienteResponse;
 import com.adoptar.dto.response.FotoResponse;
+import com.adoptar.dto.response.ItemFotoPendienteResponse;
+import com.adoptar.dto.response.ItemTiendaResponse;
 import com.adoptar.entity.Animal;
 import com.adoptar.entity.AnimalFoto;
+import com.adoptar.entity.ItemFoto;
+import com.adoptar.entity.ItemTienda;
 import com.adoptar.enums.CategoriaAnimal;
 import com.adoptar.enums.EstadoFoto;
+import com.adoptar.enums.EstadoItem;
 import com.adoptar.repository.AnimalFotoRepository;
 import com.adoptar.repository.AnimalRepository;
+import com.adoptar.repository.ItemFotoRepository;
+import com.adoptar.repository.ItemTiendaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +29,9 @@ public class AdminService {
 
     private final AnimalRepository animalRepository;
     private final AnimalFotoRepository animalFotoRepository;
+    private final ItemTiendaRepository itemTiendaRepository;
+    private final ItemFotoRepository itemFotoRepository;
+    private final ItemTiendaService itemTiendaService;
 
     @Transactional(readOnly = true)
     public List<AnimalResponse> getAnimalesPendientes() {
@@ -187,6 +197,97 @@ public class AdminService {
                 .url("/uploads/" + foto.getNombreArchivo())
                 .estado(foto.getEstado())
                 .motivoRechazo(foto.getMotivoRechazo())
+                .build();
+    }
+
+    // --- items de tienda ---
+
+    @Transactional(readOnly = true)
+    public List<ItemTiendaResponse> getItemsPendientes() {
+        return itemTiendaRepository.findByEstadoAndEliminadoFalse(EstadoItem.PENDIENTE)
+                .stream()
+                .map(itemTiendaService::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public ItemTiendaResponse aprobarItem(Long id) {
+        ItemTienda item = itemTiendaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Ítem no encontrado"));
+        if (item.getEstado() == EstadoItem.APROBADO) {
+            throw new IllegalArgumentException("El ítem ya está aprobado");
+        }
+        item.setEstado(EstadoItem.APROBADO);
+        item.setMotivoRechazo(null);
+        item.getFotos().forEach(f -> {
+            if (f.getEstado() == EstadoFoto.PENDIENTE) {
+                f.setEstado(EstadoFoto.APROBADA);
+            }
+        });
+        itemTiendaRepository.save(item);
+        return itemTiendaService.toResponse(item);
+    }
+
+    @Transactional
+    public ItemTiendaResponse rechazarItem(Long id, String motivo) {
+        ItemTienda item = itemTiendaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Ítem no encontrado"));
+        if (item.getEstado() == EstadoItem.APROBADO) {
+            throw new IllegalArgumentException("El ítem ya fue aprobado, no puede rechazarse");
+        }
+        item.setEstado(EstadoItem.RECHAZADO);
+        item.setMotivoRechazo(motivo);
+        itemTiendaRepository.save(item);
+        return itemTiendaService.toResponse(item);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ItemFotoPendienteResponse> getFotosItemPendientes() {
+        return itemFotoRepository.findByEstadoAndItem_EstadoAndItem_EliminadoFalse(EstadoFoto.PENDIENTE, EstadoItem.APROBADO)
+                .stream()
+                .map(f -> ItemFotoPendienteResponse.builder()
+                        .id(f.getId())
+                        .url("/uploads/" + f.getNombreArchivo())
+                        .itemId(f.getItem().getId())
+                        .itemTitulo(f.getItem().getTitulo())
+                        .itemTipo(f.getItem().getTipo().name())
+                        .rescatistaNombre(f.getItem().getRescatista().getNombre() + " " + f.getItem().getRescatista().getApellido())
+                        .build())
+                .toList();
+    }
+
+    @Transactional
+    public FotoResponse aprobarFotoItem(Long id) {
+        ItemFoto foto = itemFotoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Foto no encontrada"));
+        if (foto.getItem().getEstado() != EstadoItem.APROBADO) {
+            throw new IllegalArgumentException("Esta foto pertenece a un ítem que aún no fue aprobado");
+        }
+        foto.setEstado(EstadoFoto.APROBADA);
+        foto.setMotivoRechazo(null);
+        itemFotoRepository.save(foto);
+        return FotoResponse.builder()
+                .id(foto.getId())
+                .url("/uploads/" + foto.getNombreArchivo())
+                .estado(foto.getEstado())
+                .build();
+    }
+
+    @Transactional
+    public FotoResponse rechazarFotoItem(Long id, String motivo) {
+        ItemFoto foto = itemFotoRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Foto no encontrada"));
+        if (foto.getItem().getEstado() != EstadoItem.APROBADO) {
+            throw new IllegalArgumentException("Esta foto pertenece a un ítem que aún no fue aprobado");
+        }
+        foto.setEstado(EstadoFoto.RECHAZADA);
+        foto.setMotivoRechazo(motivo);
+        itemFotoRepository.save(foto);
+        return FotoResponse.builder()
+                .id(foto.getId())
+                .url("/uploads/" + foto.getNombreArchivo())
+                .estado(foto.getEstado())
+                .motivoRechazo(motivo)
                 .build();
     }
 }

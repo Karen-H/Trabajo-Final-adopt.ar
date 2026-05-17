@@ -9,6 +9,15 @@ import {
   getSolicitudesAdmin, aceptarSolicitud, editarLinkSolicitud,
   aprobarSolicitud, rechazarSolicitud, reprogramarSolicitudAdmin,
 } from '../api/tienda'
+import {
+  getItemsPendientesAdmin, aprobarItemAdmin, rechazarItemAdmin,
+  getFotosItemPendientesAdmin, aprobarFotoItemAdmin, rechazarFotoItemAdmin,
+} from '../api/item'
+
+const TIPOS_ITEM_LABEL = {
+  INDUMENTARIA: 'Indumentaria', ACCESORIO: 'Accesorio', ALIMENTO: 'Alimento',
+  JUGUETE: 'Juguete', HIGIENE: 'Higiene', CAMA: 'Cama', TRANSPORTE: 'Transporte', OTRO: 'Otro',
+}
 
 const MOTIVO_REPROGRAMACION_OPCIONES = [
   { value: 'PROBLEMA_TECNICO', label: 'Problema técnico' },
@@ -136,6 +145,12 @@ function AdminPanel() {
   // tienda
   const [solicitudes, setSolicitudes] = useState([])
   const [linkMap, setLinkMap] = useState({})
+
+  // items
+  const [itemsPendientes, setItemsPendientes] = useState([])
+  const [fotosItemPendientes, setFotosItemPendientes] = useState([])
+  const [motivoRechazarItem, setMotivoRechazarItem] = useState({})
+  const [motivoRechazarFotoItem, setMotivoRechazarFotoItem] = useState({})
   const [motivoRechazarMap, setMotivoRechazarMap] = useState({})
   const [motivoReprogramarMap, setMotivoReprogramarMap] = useState({})
   const [llamadaEstado, setLlamadaEstado] = useState({})
@@ -149,7 +164,21 @@ function AdminPanel() {
     cargarFotos()
     cargarPublicaciones()
     cargarSolicitudesTienda()
+    cargarItemsPendientes()
+    cargarFotosItemPendientes()
   }, [navigate])
+
+  function cargarItemsPendientes() {
+    getItemsPendientesAdmin()
+      .then(res => setItemsPendientes(res.data))
+      .catch(() => {})
+  }
+
+  function cargarFotosItemPendientes() {
+    getFotosItemPendientesAdmin()
+      .then(res => setFotosItemPendientes(res.data))
+      .catch(() => {})
+  }
 
   function cargarAnimales() {
     getAnimalesPendientes()
@@ -310,6 +339,50 @@ function AdminPanel() {
     }
   }
 
+  async function handleAprobarItem(id) {
+    setError('')
+    try {
+      await aprobarItemAdmin(id)
+      setItemsPendientes(prev => prev.filter(it => it.id !== id))
+    } catch {
+      setError('No se pudo aprobar el ítem.')
+    }
+  }
+
+  async function handleRechazarItem(id) {
+    setError('')
+    const motivo = motivoRechazarItem[id]
+    if (!motivo?.trim()) { setError('Ingresá un motivo de rechazo.'); return }
+    try {
+      await rechazarItemAdmin(id, motivo)
+      setItemsPendientes(prev => prev.filter(it => it.id !== id))
+    } catch {
+      setError('No se pudo rechazar el ítem.')
+    }
+  }
+
+  async function handleAprobarFotoItem(id) {
+    setError('')
+    try {
+      await aprobarFotoItemAdmin(id)
+      setFotosItemPendientes(prev => prev.filter(f => f.id !== id))
+    } catch {
+      setError('No se pudo aprobar la foto.')
+    }
+  }
+
+  async function handleRechazarFotoItem(id) {
+    setError('')
+    const motivo = motivoRechazarFotoItem[id]
+    if (!motivo?.trim()) { setError('Ingresá un motivo de rechazo.'); return }
+    try {
+      await rechazarFotoItemAdmin(id, motivo)
+      setFotosItemPendientes(prev => prev.filter(f => f.id !== id))
+    } catch {
+      setError('No se pudo rechazar la foto.')
+    }
+  }
+
   async function handleEliminarFotoAdmin(id) {
     setError('')
     const motivo = motivoEliminarFoto[id]
@@ -357,6 +430,14 @@ function AdminPanel() {
         {' '}
         <button onClick={() => setTab('tiendas')} disabled={tab === 'tiendas'}>
           Solicitudes de tienda ({solicitudes.length})
+        </button>
+        {' '}
+        <button onClick={() => setTab('items')} disabled={tab === 'items'}>
+          Ítems pendientes ({itemsPendientes.length})
+        </button>
+        {' '}
+        <button onClick={() => setTab('fotos-items')} disabled={tab === 'fotos-items'}>
+          Fotos de ítems ({fotosItemPendientes.length})
         </button>
       </div>
 
@@ -660,6 +741,64 @@ function AdminPanel() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {tab === 'items' && (
+        <div>
+          <h3>Ítems pendientes de aprobación</h3>
+          {itemsPendientes.length === 0 && <p>No hay ítems pendientes.</p>}
+          {itemsPendientes.map(item => (
+            <div key={item.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
+              <p><strong>{item.titulo}</strong> — {TIPOS_ITEM_LABEL[item.tipo] ?? item.tipo}</p>
+              {item.precio != null && <p>Precio: ${Number(item.precio).toLocaleString('es-AR')}</p>}
+              {item.descripcion && <p>Descripción: {item.descripcion}</p>}
+              <p>Publicado por: {item.rescatistaNombre}</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
+                {item.fotos.map(foto => (
+                  <img key={foto.id} src={foto.url} alt="foto" style={{ width: 120, height: 120, objectFit: 'cover' }} />
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button onClick={() => handleAprobarItem(item.id)}>Aprobar</button>
+                <input
+                  type="text"
+                  placeholder="Motivo de rechazo"
+                  value={motivoRechazarItem[item.id] || ''}
+                  onChange={e => setMotivoRechazarItem(prev => ({ ...prev, [item.id]: e.target.value }))}
+                  style={{ width: 260 }}
+                />
+                <button onClick={() => handleRechazarItem(item.id)}>Rechazar</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'fotos-items' && (
+        <div>
+          <h3>Fotos de ítems pendientes de aprobación</h3>
+          {fotosItemPendientes.length === 0 && <p>No hay fotos pendientes.</p>}
+          {fotosItemPendientes.map(foto => (
+            <div key={foto.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+              <img src={foto.url} alt="foto" style={{ width: 150, height: 150, objectFit: 'cover', flexShrink: 0 }} />
+              <div>
+                <p><strong>{foto.itemTitulo}</strong> ({TIPOS_ITEM_LABEL[foto.itemTipo] ?? foto.itemTipo})</p>
+                <p>Publicado por: {foto.rescatistaNombre}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <button onClick={() => handleAprobarFotoItem(foto.id)}>Aprobar</button>
+                  <input
+                    type="text"
+                    placeholder="Motivo de rechazo"
+                    value={motivoRechazarFotoItem[foto.id] || ''}
+                    onChange={e => setMotivoRechazarFotoItem(prev => ({ ...prev, [foto.id]: e.target.value }))}
+                    style={{ width: 250 }}
+                  />
+                  <button onClick={() => handleRechazarFotoItem(foto.id)}>Rechazar</button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

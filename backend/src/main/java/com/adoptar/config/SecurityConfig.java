@@ -62,6 +62,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/tienda/**").authenticated()
                 .requestMatchers("/api/admin/tienda/**").authenticated()
                 .requestMatchers("/api/admin/disponibilidad/**").authenticated()
+                // items de tienda requieren autenticación
+                .requestMatchers("/api/items/**").authenticated()
+                .requestMatchers("/api/admin/items/**").authenticated()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
