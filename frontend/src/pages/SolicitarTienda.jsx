@@ -14,6 +14,7 @@ const MOTIVO_REPROGRAMACION = {
   PROBLEMA_TECNICO: 'Problema técnico',
   RESCATISTA_NO_SE_PRESENTO: 'Rescatista no se presentó',
   ADMINISTRADOR_NO_SE_PRESENTO: 'Administrador no se presentó',
+  ADMINISTRADOR_NO_PODRA_PRESENTARSE: 'Administrador no podrá presentarse',
   RESCATISTA_SIN_EVIDENCIA: 'Rescatista sin evidencia disponible',
   ERROR_EN_HORARIO: 'Error en el horario',
 }
@@ -39,6 +40,51 @@ function formatSlot(slot) {
   const fechaStr = fecha.toLocaleDateString('es-AR')
   const hora = slot.hora.substring(0, 5)
   return `${dia} ${fechaStr} a las ${hora}hs`
+}
+
+function formatFechaSel(fechaStr) {
+  const fecha = new Date(fechaStr + 'T00:00:00')
+  const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+  return `${dias[fecha.getDay()]} ${fecha.toLocaleDateString('es-AR')}`
+}
+
+function SlotSelector({ slots, value, onChange }) {
+  const fechaDeValue = value ? value.split('|')[0] : ''
+  const horaDeValue = value ? value.split('|')[1] : ''
+  const [fechaElegida, setFechaElegida] = useState(fechaDeValue)
+  const [horaElegida, setHoraElegida] = useState(horaDeValue)
+
+  useEffect(() => {
+    if (!value) { setFechaElegida(''); setHoraElegida('') }
+  }, [value])
+
+  const fechasDisponibles = [...new Set(slots.map(s => s.fecha))].sort()
+  const horasDisponibles = slots.filter(s => s.fecha === fechaElegida).map(s => s.hora).sort()
+
+  function handleFechaChange(e) {
+    setFechaElegida(e.target.value)
+    setHoraElegida('')
+    onChange('')
+  }
+
+  function handleHoraChange(e) {
+    const h = e.target.value
+    setHoraElegida(h)
+    onChange(h ? `${fechaElegida}|${h}` : '')
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+      <select value={fechaElegida} onChange={handleFechaChange}>
+        <option value="">-- Elegí un día --</option>
+        {fechasDisponibles.map(f => <option key={f} value={f}>{formatFechaSel(f)}</option>)}
+      </select>
+      <select value={horaElegida} onChange={handleHoraChange} disabled={!fechaElegida}>
+        <option value="">-- Elegí un horario --</option>
+        {horasDisponibles.map(h => <option key={h} value={h}>{h.substring(0, 5)}hs</option>)}
+      </select>
+    </div>
+  )
 }
 
 function SolicitarTienda() {
@@ -161,18 +207,7 @@ function SolicitarTienda() {
 
             <div style={{ marginBottom: 12 }}>
               <label>Horario disponible</label>
-              <select
-                value={slotElegido}
-                onChange={e => setSlotElegido(e.target.value)}
-                style={{ display: 'block', marginTop: 4 }}
-              >
-                <option value="">-- Elegí un horario --</option>
-                {slots.map(s => (
-                  <option key={`${s.fecha}|${s.hora}`} value={`${s.fecha}|${s.hora}`}>
-                    {formatSlot(s)}
-                  </option>
-                ))}
-              </select>
+              <SlotSelector slots={slots} value={slotElegido} onChange={setSlotElegido} />
             </div>
 
             <div style={{ marginBottom: 12 }}>
@@ -260,18 +295,7 @@ function SolicitarTienda() {
       {solicitud.estado === 'PENDIENTE' && editando && (
         <div style={{ border: '1px solid #ccc', padding: 16, marginTop: 12 }}>
           <h3>Cambiar horario</h3>
-          <select
-            value={slotElegido}
-            onChange={e => setSlotElegido(e.target.value)}
-            style={{ display: 'block', marginBottom: 8 }}
-          >
-            <option value="">-- Elegí un horario --</option>
-            {slots.map(s => (
-              <option key={`${s.fecha}|${s.hora}`} value={`${s.fecha}|${s.hora}`}>
-                {formatSlot(s)}
-              </option>
-            ))}
-          </select>
+          <SlotSelector slots={slots} value={slotElegido} onChange={setSlotElegido} />
           {error && <p style={{ color: 'red' }}>{error}</p>}
           <button onClick={handleEditar}>Guardar</button>
           <button onClick={() => setEditando(false)} style={{ marginLeft: 8 }}>Cancelar</button>
@@ -292,18 +316,7 @@ function SolicitarTienda() {
       {solicitud.estado === 'REPROGRAMADA' && reprogramando && (
         <div style={{ border: '1px solid #ccc', padding: 16, marginTop: 12 }}>
           <h3>Nuevo horario</h3>
-          <select
-            value={slotElegido}
-            onChange={e => setSlotElegido(e.target.value)}
-            style={{ display: 'block', marginBottom: 8 }}
-          >
-            <option value="">-- Elegí un horario --</option>
-            {slots.map(s => (
-              <option key={`${s.fecha}|${s.hora}`} value={`${s.fecha}|${s.hora}`}>
-                {formatSlot(s)}
-              </option>
-            ))}
-          </select>
+          <SlotSelector slots={slots} value={slotElegido} onChange={setSlotElegido} />
 
           <div style={{ marginBottom: 12 }}>
             <p style={{ fontWeight: 'bold', marginBottom: 8 }}>Confirmá nuevamente las condiciones:</p>

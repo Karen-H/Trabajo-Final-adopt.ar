@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface SolicitudTiendaRepository extends JpaRepository<SolicitudTienda, Long> {
 
@@ -28,4 +29,23 @@ public interface SolicitudTiendaRepository extends JpaRepository<SolicitudTienda
     boolean existsSlotOcupado(@Param("adminId") Long adminId,
                                @Param("fecha") LocalDate fecha,
                                @Param("hora") LocalTime hora);
+
+    // solicitudes PENDIENTE cuyo horario ya pasó (para auto-expirar)
+    @Query("SELECT s FROM SolicitudTienda s " +
+           "WHERE s.estado = :estado " +
+           "AND (s.fechaPreferida < :hoy " +
+           "OR (s.fechaPreferida = :hoy AND s.horaPreferida < :ahora))")
+    List<SolicitudTienda> findVencidasPendientes(@Param("estado") EstadoSolicitudTienda estado,
+                                                 @Param("hoy") LocalDate hoy,
+                                                 @Param("ahora") LocalTime ahora);
+
+    // carga todos los slots ocupados en un rango de fechas de una sola vez
+    @Query("SELECT s.adminAsignado.id, s.fechaPreferida, s.horaPreferida " +
+           "FROM SolicitudTienda s " +
+           "WHERE s.fechaPreferida BETWEEN :desde AND :hasta " +
+           "AND s.adminAsignado IS NOT NULL " +
+           "AND s.estado <> :estadoExcluido")
+    List<Object[]> findSlotsOcupadosEnRango(@Param("desde") LocalDate desde,
+                                             @Param("hasta") LocalDate hasta,
+                                             @Param("estadoExcluido") EstadoSolicitudTienda estadoExcluido);
 }

@@ -6,10 +6,9 @@ import com.adoptar.dto.response.SlotDisponibleResponse;
 import com.adoptar.entity.DisponibilidadAdmin;
 import com.adoptar.entity.User;
 import com.adoptar.enums.DiaSemana;
-import com.adoptar.enums.UserRole;
+import com.adoptar.enums.EstadoSolicitudTienda;
 import com.adoptar.repository.DisponibilidadAdminRepository;
 import com.adoptar.repository.SolicitudTiendaRepository;
-import com.adoptar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +18,10 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,21 +29,53 @@ public class DisponibilidadAdminService {
 
     private final DisponibilidadAdminRepository disponibilidadRepository;
     private final SolicitudTiendaRepository solicitudRepository;
-    private final UserRepository userRepository;
 
     @Transactional
-    public DisponibilidadAdminResponse agregar(DisponibilidadAdminRequest request, User admin) {
+    public List<DisponibilidadAdminResponse> agregar(DisponibilidadAdminRequest request, User admin) {
         if (!request.getHoraFin().isAfter(request.getHoraInicio())) {
             throw new IllegalArgumentException("La hora de fin debe ser posterior a la hora de inicio");
         }
-        DisponibilidadAdmin disponibilidad = DisponibilidadAdmin.builder()
-                .admin(admin)
-                .diaSemana(request.getDiaSemana())
-                .horaInicio(request.getHoraInicio())
-                .horaFin(request.getHoraFin())
-                .build();
-        disponibilidadRepository.save(disponibilidad);
-        return toResponse(disponibilidad);
+        int inicioMin = request.getHoraInicio().getMinute();
+        int finMin = request.getHoraFin().getMinute();
+        if (inicioMin != 0 && inicioMin != 30) {
+            throw new IllegalArgumentException("La hora de inicio debe ser en punto (:00) o y media (:30)");
+        }
+        if (finMin != 0 && finMin != 30) {
+            throw new IllegalArgumentException("La hora de fin debe ser en punto (:00) o y media (:30)");
+        }
+
+        // combinar bloques existentes del mismo día con el nuevo y fusionar solapados/contiguos
+        List<DisponibilidadAdmin> existentes = disponibilidadRepository
+                .findByAdminIdAndDiaSemana(admin.getId(), request.getDiaSemana());
+
+        List<LocalTime[]> intervalos = new ArrayList<>();
+        for (DisponibilidadAdmin d : existentes) {
+            intervalos.add(new LocalTime[]{ d.getHoraInicio(), d.getHoraFin() });
+        }
+        intervalos.add(new LocalTime[]{ request.getHoraInicio(), request.getHoraFin() });
+        intervalos.sort(Comparator.comparingInt(iv -> iv[0].toSecondOfDay()));
+
+        List<LocalTime[]> merged = new ArrayList<>();
+        for (LocalTime[] iv : intervalos) {
+            if (merged.isEmpty() || iv[0].isAfter(merged.get(merged.size() - 1)[1])) {
+                merged.add(new LocalTime[]{ iv[0], iv[1] });
+            } else if (iv[1].isAfter(merged.get(merged.size() - 1)[1])) {
+                merged.get(merged.size() - 1)[1] = iv[1];
+            }
+        }
+
+        disponibilidadRepository.deleteAll(existentes);
+        List<DisponibilidadAdmin> nuevos = merged.stream()
+                .map(iv -> DisponibilidadAdmin.builder()
+                        .admin(admin)
+                        .diaSemana(request.getDiaSemana())
+                        .horaInicio(iv[0])
+                        .horaFin(iv[1])
+                        .build())
+                .toList();
+        disponibilidadRepository.saveAll(nuevos);
+
+        return nuevos.stream().map(this::toResponse).toList();
     }
 
     @Transactional
@@ -58,36 +92,51 @@ public class DisponibilidadAdminService {
                 .toList();
     }
 
-    // genera todos los slots disponibles de todos los admins para las proximas 4 semanas
+    // genera todos los slots disponibles de todos los admins para el proximo mes
+    @Transactional(readOnly = true)
     public List<SlotDisponibleResponse> getSlotsDisponibles() {
-        List<User> admins = userRepository.findByRole(UserRole.ADMIN);
-        List<SlotDisponibleResponse> slots = new ArrayList<>();
         LocalDate hoy = LocalDate.now();
+        LocalTime ahora = LocalTime.now();
         LocalDate hasta = hoy.plusMonths(1);
 
-        for (LocalDate fecha = hoy.plusDays(1); !fecha.isAfter(hasta); fecha = fecha.plusDays(1)) {
+        // próximo bloque de 30 min disponible hoy (ej: 18:05 → 18:30, 18:30 → 19:00)
+        int minutosAhora = ahora.getHour() * 60 + ahora.getMinute();
+        int siguienteBloqueMin = ((minutosAhora / 30) + 1) * 30;
+
+        // carga todas las disponibilidades con sus admins en una sola query
+        List<DisponibilidadAdmin> todasDisponibilidades = disponibilidadRepository.findAllWithAdmin();
+        List<Object[]> ocupadosRaw = solicitudRepository.findSlotsOcupadosEnRango(
+                hoy, hasta, EstadoSolicitudTienda.RECHAZADA);
+        Set<String> slotsOcupados = ocupadosRaw.stream()
+                .map(row -> row[0] + "|" + row[1] + "|" + row[2])
+                .collect(Collectors.toCollection(HashSet::new));
+
+        List<SlotDisponibleResponse> slots = new ArrayList<>();
+        Set<String> slotsAgregados = new HashSet<>();
+        for (LocalDate fecha = hoy; !fecha.isAfter(hasta); fecha = fecha.plusDays(1)) {
             final LocalDate fechaFinal = fecha;
             DiaSemana dia = toDiaSemana(fecha.getDayOfWeek());
-            List<DisponibilidadAdmin> bloques = disponibilidadRepository.findByDiaSemana(dia);
+            List<DisponibilidadAdmin> bloques = todasDisponibilidades.stream()
+                    .filter(d -> d.getDiaSemana() == dia)
+                    .toList();
 
             for (DisponibilidadAdmin bloque : bloques) {
-                // generar slots de 30 minutos dentro del bloque
-                LocalTime hora = bloque.getHoraInicio();
-                while (hora.plusMinutes(30).compareTo(bloque.getHoraFin()) <= 0) {
-                    // verificar que ese slot no esté ya ocupado para ese admin en esa fecha
-                    if (!solicitudRepository.existsSlotOcupado(bloque.getAdmin().getId(), fechaFinal, hora)) {
-                        final LocalTime horaFinal = hora;
-                        // evitar duplicados (si dos admins tienen el mismo slot, se muestra una sola vez)
-                        boolean yaCargado = slots.stream().anyMatch(
-                                s -> s.getFecha().equals(fechaFinal) && s.getHora().equals(horaFinal));
-                        if (!yaCargado) {
-                            slots.add(SlotDisponibleResponse.builder()
-                                    .fecha(fechaFinal)
-                                    .hora(horaFinal)
-                                    .build());
-                        }
+                int minutosInicio = bloque.getHoraInicio().toSecondOfDay() / 60;
+                int minutosFin = bloque.getHoraFin().toSecondOfDay() / 60;
+                // para hoy: empezar desde el próximo bloque de 30 min
+                int inicioEfectivo = fechaFinal.equals(hoy)
+                        ? Math.max(minutosInicio, siguienteBloqueMin)
+                        : minutosInicio;
+                for (int m = inicioEfectivo; m + 30 <= minutosFin; m += 30) {
+                    LocalTime horaFinal = LocalTime.of(m / 60, m % 60);
+                    String keyOcupado = bloque.getAdmin().getId() + "|" + fechaFinal + "|" + horaFinal;
+                    String keySlot = fechaFinal + "|" + horaFinal;
+                    if (!slotsOcupados.contains(keyOcupado) && slotsAgregados.add(keySlot)) {
+                        slots.add(SlotDisponibleResponse.builder()
+                                .fecha(fechaFinal)
+                                .hora(horaFinal)
+                                .build());
                     }
-                    hora = hora.plusMinutes(30);
                 }
             }
         }

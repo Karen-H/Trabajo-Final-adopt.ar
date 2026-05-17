@@ -13,7 +13,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.scheduling.annotation.Scheduled;
+
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -94,6 +97,7 @@ public class SolicitudTiendaService {
         solicitudRepository.delete(solicitud);
     }
 
+    @Transactional(readOnly = true)
     public SolicitudTiendaResponse getMiSolicitud(User rescatista) {
         SolicitudTienda solicitud = getSolicitudDelRescatista(rescatista);
         return toResponse(solicitud);
@@ -167,8 +171,8 @@ public class SolicitudTiendaService {
     @Transactional
     public SolicitudTiendaResponse rechazar(Long id, String motivo, User admin) {
         SolicitudTienda solicitud = getSolicitudDelAdmin(id, admin);
-        if (solicitud.getEstado() != EstadoSolicitudTienda.ACEPTADA) {
-            throw new IllegalArgumentException("Solo podés rechazar una solicitud ACEPTADA");
+        if (solicitud.getEstado() != EstadoSolicitudTienda.ACEPTADA && solicitud.getEstado() != EstadoSolicitudTienda.PENDIENTE) {
+            throw new IllegalArgumentException("Solo podés rechazar una solicitud PENDIENTE o ACEPTADA");
         }
         solicitud.setEstado(EstadoSolicitudTienda.RECHAZADA);
         solicitud.setMotivoRechazo(motivo);
@@ -180,8 +184,8 @@ public class SolicitudTiendaService {
     @Transactional
     public SolicitudTiendaResponse reprogramar(Long id, ReprogramarSolicitudRequest request, User admin) {
         SolicitudTienda solicitud = getSolicitudDelAdmin(id, admin);
-        if (solicitud.getEstado() != EstadoSolicitudTienda.ACEPTADA) {
-            throw new IllegalArgumentException("Solo podés reprogramar una solicitud ACEPTADA");
+        if (solicitud.getEstado() != EstadoSolicitudTienda.ACEPTADA && solicitud.getEstado() != EstadoSolicitudTienda.PENDIENTE) {
+            throw new IllegalArgumentException("Solo podés reprogramar una solicitud PENDIENTE o ACEPTADA");
         }
         solicitud.setEstado(EstadoSolicitudTienda.REPROGRAMADA);
         solicitud.setMotivoReprogramacion(request.getMotivo());
@@ -192,6 +196,7 @@ public class SolicitudTiendaService {
         return toResponse(solicitud);
     }
 
+    @Transactional(readOnly = true)
     public List<SolicitudTiendaResponse> listarTodas() {
         return solicitudRepository.findAllByOrderByCreadoEnDesc().stream()
                 .map(this::toResponse)
@@ -210,6 +215,24 @@ public class SolicitudTiendaService {
             throw new IllegalArgumentException("No tenés permiso para gestionar esta solicitud");
         }
         return solicitud;
+    }
+
+    // expira automáticamente las solicitudes PENDIENTE cuyo horario ya pasó
+    @Scheduled(fixedDelay = 60000)
+    @Transactional
+    public void expirarSolicitudesVencidas() {
+        LocalDate hoy = LocalDate.now();
+        LocalTime ahora = LocalTime.now();
+        List<SolicitudTienda> vencidas = solicitudRepository.findVencidasPendientes(
+                EstadoSolicitudTienda.PENDIENTE, hoy, ahora);
+        for (SolicitudTienda s : vencidas) {
+            s.setEstado(EstadoSolicitudTienda.RECHAZADA);
+            s.setMotivoRechazo("La solicitud no fue aceptada antes del horario propuesto");
+            // sin bloqueadoHasta: el usuario puede volver a solicitar inmediatamente
+        }
+        if (!vencidas.isEmpty()) {
+            solicitudRepository.saveAll(vencidas);
+        }
     }
 
     private SolicitudTiendaResponse toResponse(SolicitudTienda s) {

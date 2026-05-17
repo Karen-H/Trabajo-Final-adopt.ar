@@ -40,6 +40,26 @@ public class InitialConfiguration implements CommandLineRunner {
                 .role(UserRole.ADMIN)
                 .build());
 
-        log.info("Usuario admin creado: admin@adoptar.com / admin123");
+        userRepository.save(User.builder()
+                .nombre("Ingrid")
+                .apellido("Usuario")
+                .dni(1000002L)
+                .email("ingrid@adoptar.com")
+                .tel("1100000002")
+                .pass(passwordEncoder.encode("admin123"))
+                .role(UserRole.USER)
+                .build());
+
+        userRepository.save(User.builder()
+                .nombre("Karen")
+                .apellido("Usuario")
+                .dni(1000003L)
+                .email("karen@adoptar.com")
+                .tel("1100000003")
+                .pass(passwordEncoder.encode("admin123"))
+                .role(UserRole.USER)
+                .build());
+
+        log.info("Usuarios iniciales creados: admin@adoptar.com, ingrid@adoptar.com, karen@adoptar.com / admin123");
     }
 }
