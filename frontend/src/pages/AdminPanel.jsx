@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import {
   getAnimalesPendientes, aprobarAnimal, rechazarAnimal,
   getFotosPendientes, aprobarFoto, rechazarFoto,
   getPublicaciones, eliminarAnimalAdmin, eliminarFotoAdmin,
+  getUsuarios, eliminarUsuario, actualizarRol,
+  getTiendasActivas, revocarTienda,
 } from '../api/admin'
 import {
   getSolicitudesAdmin, aceptarSolicitud, editarLinkSolicitud,
@@ -13,6 +16,7 @@ import {
   getItemsPendientesAdmin, aprobarItemAdmin, rechazarItemAdmin,
   getFotosItemPendientesAdmin, aprobarFotoItemAdmin, rechazarFotoItemAdmin,
 } from '../api/item'
+import { getDenunciasPendientes, desestimar, eliminarPublicacionDenuncia } from '../api/denuncia'
 
 const TIPOS_ITEM_LABEL = {
   INDUMENTARIA: 'Indumentaria', ACCESORIO: 'Accesorio', ALIMENTO: 'Alimento',
@@ -132,6 +136,7 @@ function CardReporte({ animal, motivoAnimal, setMotivoAnimal, onAprobar, onRecha
 
 function AdminPanel() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [tab, setTab] = useState('animales')
   const [animales, setAnimales] = useState([])
   const [fotos, setFotos] = useState([])
@@ -155,6 +160,15 @@ function AdminPanel() {
   const [motivoReprogramarMap, setMotivoReprogramarMap] = useState({})
   const [llamadaEstado, setLlamadaEstado] = useState({})
 
+  // denuncias
+  const [denuncias, setDenuncias] = useState([])
+
+  // usuarios
+  const [usuarios, setUsuarios] = useState([])
+
+  // tiendas activas
+  const [tiendasActivas, setTiendasActivas] = useState([])
+
   useEffect(() => {
     if (localStorage.getItem('role') !== 'ADMIN') {
       navigate('/')
@@ -166,6 +180,9 @@ function AdminPanel() {
     cargarSolicitudesTienda()
     cargarItemsPendientes()
     cargarFotosItemPendientes()
+    cargarDenuncias()
+    cargarUsuarios()
+    cargarTiendasActivas()
   }, [navigate])
 
   function cargarItemsPendientes() {
@@ -177,6 +194,24 @@ function AdminPanel() {
   function cargarFotosItemPendientes() {
     getFotosItemPendientesAdmin()
       .then(res => setFotosItemPendientes(res.data))
+      .catch(() => {})
+  }
+
+  function cargarDenuncias() {
+    getDenunciasPendientes()
+      .then(res => setDenuncias(res.data))
+      .catch(() => {})
+  }
+
+  function cargarUsuarios() {
+    getUsuarios()
+      .then(res => setUsuarios(res.data))
+      .catch(() => {})
+  }
+
+  function cargarTiendasActivas() {
+    getTiendasActivas()
+      .then(res => setTiendasActivas(res.data))
       .catch(() => {})
   }
 
@@ -429,15 +464,15 @@ function AdminPanel() {
         </button>
         {' '}
         <button onClick={() => setTab('tiendas')} disabled={tab === 'tiendas'}>
-          Solicitudes de tienda ({solicitudes.length})
+          Tiendas ({tiendasActivas.length} activas · {solicitudes.length} solicitudes · {itemsPendientes.length} ítems)
         </button>
         {' '}
-        <button onClick={() => setTab('items')} disabled={tab === 'items'}>
-          Ítems pendientes ({itemsPendientes.length})
+        <button onClick={() => setTab('denuncias')} disabled={tab === 'denuncias'}>
+          Denuncias ({denuncias.length})
         </button>
         {' '}
-        <button onClick={() => setTab('fotos-items')} disabled={tab === 'fotos-items'}>
-          Fotos de ítems ({fotosItemPendientes.length})
+        <button onClick={() => setTab('usuarios')} disabled={tab === 'usuarios'}>
+          Usuarios ({usuarios.length})
         </button>
       </div>
 
@@ -544,7 +579,92 @@ function AdminPanel() {
 
       {tab === 'tiendas' && (
         <div>
-          <h3>Solicitudes de tienda</h3>
+
+          {/* Tiendas activas */}
+          <h3>Tiendas activas ({tiendasActivas.length})</h3>
+          {tiendasActivas.length === 0 && <p>No hay tiendas activas.</p>}
+          {tiendasActivas.map(t => (
+            <div key={t.usuarioId} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
+              <p><strong>{t.nombre} {t.apellido}</strong> — {t.email} — {t.tel}</p>
+              {t.organizacion && <p>Organización: {t.organizacion}</p>}
+              {t.provincia && <p>Ubicación: {t.ciudad}, {t.provincia}</p>}
+              <button
+                style={{ color: '#c00', marginTop: 8 }}
+                onClick={async () => {
+                  if (!confirm(`¿Revocar la tienda de ${t.nombre} ${t.apellido}?`)) return
+                  try {
+                    await revocarTienda(t.usuarioId)
+                    setTiendasActivas(prev => prev.filter(x => x.usuarioId !== t.usuarioId))
+                  } catch {
+                    alert('No se pudo revocar la tienda')
+                  }
+                }}
+              >
+                Revocar tienda
+              </button>
+            </div>
+          ))}
+
+          <hr style={{ margin: '2rem 0' }} />
+
+          {/* Ítems pendientes */}
+          <h3>Ítems pendientes de aprobación ({itemsPendientes.length})</h3>
+          {itemsPendientes.length === 0 && <p>No hay ítems pendientes.</p>}
+          {itemsPendientes.map(item => (
+            <div key={item.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
+              <p><strong>{item.titulo}</strong> — {TIPOS_ITEM_LABEL[item.tipo] ?? item.tipo}</p>
+              {item.precio != null && <p>Precio: ${Number(item.precio).toLocaleString('es-AR')}</p>}
+              {item.descripcion && <p>Descripción: {item.descripcion}</p>}
+              <p>Publicado por: {item.rescatistaNombre}</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
+                {item.fotos.map(foto => (
+                  <img key={foto.id} src={foto.url} alt="foto" style={{ width: 120, height: 120, objectFit: 'cover' }} />
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button onClick={() => handleAprobarItem(item.id)}>Aprobar</button>
+                <input
+                  type="text"
+                  placeholder="Motivo de rechazo"
+                  value={motivoRechazarItem[item.id] || ''}
+                  onChange={e => setMotivoRechazarItem(prev => ({ ...prev, [item.id]: e.target.value }))}
+                  style={{ width: 260 }}
+                />
+                <button onClick={() => handleRechazarItem(item.id)}>Rechazar</button>
+              </div>
+            </div>
+          ))}
+
+          <hr style={{ margin: '2rem 0' }} />
+
+          {/* Fotos de ítems pendientes */}
+          <h3>Fotos de ítems pendientes ({fotosItemPendientes.length})</h3>
+          {fotosItemPendientes.length === 0 && <p>No hay fotos pendientes.</p>}
+          {fotosItemPendientes.map(foto => (
+            <div key={foto.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+              <img src={foto.url} alt="foto" style={{ width: 150, height: 150, objectFit: 'cover', flexShrink: 0 }} />
+              <div>
+                <p><strong>{foto.itemTitulo}</strong> ({TIPOS_ITEM_LABEL[foto.itemTipo] ?? foto.itemTipo})</p>
+                <p>Publicado por: {foto.rescatistaNombre}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <button onClick={() => handleAprobarFotoItem(foto.id)}>Aprobar</button>
+                  <input
+                    type="text"
+                    placeholder="Motivo de rechazo"
+                    value={motivoRechazarFotoItem[foto.id] || ''}
+                    onChange={e => setMotivoRechazarFotoItem(prev => ({ ...prev, [foto.id]: e.target.value }))}
+                    style={{ width: 250 }}
+                  />
+                  <button onClick={() => handleRechazarFotoItem(foto.id)}>Rechazar</button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <hr style={{ margin: '2rem 0' }} />
+
+          {/* Solicitudes de tienda */}
+          <h3>Solicitudes de tienda ({solicitudes.length})</h3>
           {solicitudes.length === 0 && <p>No hay solicitudes de tienda.</p>}
           {solicitudes.map(s => {
             const esMia = s.adminAsignadoId === Number(localStorage.getItem('id') ?? 0) || s.adminAsignadoId != null
@@ -744,64 +864,6 @@ function AdminPanel() {
         </div>
       )}
 
-      {tab === 'items' && (
-        <div>
-          <h3>Ítems pendientes de aprobación</h3>
-          {itemsPendientes.length === 0 && <p>No hay ítems pendientes.</p>}
-          {itemsPendientes.map(item => (
-            <div key={item.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
-              <p><strong>{item.titulo}</strong> — {TIPOS_ITEM_LABEL[item.tipo] ?? item.tipo}</p>
-              {item.precio != null && <p>Precio: ${Number(item.precio).toLocaleString('es-AR')}</p>}
-              {item.descripcion && <p>Descripción: {item.descripcion}</p>}
-              <p>Publicado por: {item.rescatistaNombre}</p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
-                {item.fotos.map(foto => (
-                  <img key={foto.id} src={foto.url} alt="foto" style={{ width: 120, height: 120, objectFit: 'cover' }} />
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                <button onClick={() => handleAprobarItem(item.id)}>Aprobar</button>
-                <input
-                  type="text"
-                  placeholder="Motivo de rechazo"
-                  value={motivoRechazarItem[item.id] || ''}
-                  onChange={e => setMotivoRechazarItem(prev => ({ ...prev, [item.id]: e.target.value }))}
-                  style={{ width: 260 }}
-                />
-                <button onClick={() => handleRechazarItem(item.id)}>Rechazar</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === 'fotos-items' && (
-        <div>
-          <h3>Fotos de ítems pendientes de aprobación</h3>
-          {fotosItemPendientes.length === 0 && <p>No hay fotos pendientes.</p>}
-          {fotosItemPendientes.map(foto => (
-            <div key={foto.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-              <img src={foto.url} alt="foto" style={{ width: 150, height: 150, objectFit: 'cover', flexShrink: 0 }} />
-              <div>
-                <p><strong>{foto.itemTitulo}</strong> ({TIPOS_ITEM_LABEL[foto.itemTipo] ?? foto.itemTipo})</p>
-                <p>Publicado por: {foto.rescatistaNombre}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <button onClick={() => handleAprobarFotoItem(foto.id)}>Aprobar</button>
-                  <input
-                    type="text"
-                    placeholder="Motivo de rechazo"
-                    value={motivoRechazarFotoItem[foto.id] || ''}
-                    onChange={e => setMotivoRechazarFotoItem(prev => ({ ...prev, [foto.id]: e.target.value }))}
-                    style={{ width: 250 }}
-                  />
-                  <button onClick={() => handleRechazarFotoItem(foto.id)}>Rechazar</button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {tab === 'publicaciones' && (
         <div>
           {publicaciones.length === 0 && <p>No hay publicaciones activas.</p>}
@@ -848,6 +910,115 @@ function AdminPanel() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {tab === 'usuarios' && (
+        <div>
+          {usuarios.length === 0 && <p>No hay usuarios registrados.</p>}
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+            <thead>
+              <tr style={{ background: '#f0f0f0' }}>
+                <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ccc' }}>Nombre</th>
+                <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ccc' }}>Email</th>
+                <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ccc' }}>Rol</th>
+                <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ccc' }}>Registrado</th>
+                <th style={{ textAlign: 'left', padding: '8px', border: '1px solid #ccc' }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usuarios.map(u => (
+                <tr key={u.id} style={{ borderBottom: '1px solid #eee' }}>
+                  <td style={{ padding: '8px', border: '1px solid #eee' }}>{u.nombre} {u.apellido}</td>
+                  <td style={{ padding: '8px', border: '1px solid #eee' }}>{u.email}</td>
+                  <td style={{ padding: '8px', border: '1px solid #eee' }}>
+                    <span style={{
+                      background: u.role === 'ADMIN' ? '#c00' : u.role === 'MODERADOR' ? '#c7700a' : '#555',
+                      color: '#fff',
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      fontSize: 12,
+                    }}>{u.role}</span>
+                  </td>
+                  <td style={{ padding: '8px', border: '1px solid #eee' }}>
+                    {new Date(u.createdAt).toLocaleDateString('es-AR')}
+                  </td>
+                  <td style={{ padding: '8px', border: '1px solid #eee', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {u.role === 'USER' && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`¿Hacer moderador a ${u.nombre} ${u.apellido}?`)) return
+                          try {
+                            const res = await actualizarRol(u.id, 'MODERADOR')
+                            setUsuarios(prev => prev.map(x => x.id === u.id ? res.data : x))
+                          } catch {
+                            alert('No se pudo actualizar el rol')
+                          }
+                        }}
+                      >
+                        Hacer moderador
+                      </button>
+                    )}
+
+                    {u.id !== user?.id && (
+                    <button
+                      style={{ color: '#c00' }}
+                      onClick={async () => {
+                        if (!confirm(`¿Eliminar la cuenta de ${u.nombre} ${u.apellido}? Esto también eliminará sus publicaciones.`)) return
+                        try {
+                          await eliminarUsuario(u.id)
+                          setUsuarios(prev => prev.filter(x => x.id !== u.id))
+                        } catch {
+                          alert('No se pudo eliminar el usuario')
+                        }
+                      }}
+                    >
+                      Eliminar
+                    </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {tab === 'denuncias' && (
+        <div>
+          {denuncias.length === 0 && <p>No hay denuncias pendientes.</p>}
+          {denuncias.map(d => (
+            <div key={d.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
+              <h4>
+                {d.animalCategoria === 'ADOPCION'
+                  ? `Adopción: ${d.animalNombre || d.animalTipo}`
+                  : `${ETIQUETA_TIPO[d.animalTipo]} (${ETIQUETA_ESTADO[d.animalEstado] || d.animalEstado})`}
+              </h4>
+              <p>Publicado por: {d.publicadorNombre}</p>
+              <p>Denunciado por: {d.denuncianteNombre}</p>
+              <p>Razón: <strong>{d.razon.replace(/_/g, ' ')}</strong></p>
+              {d.descripcion && <p>Detalle: {d.descripcion}</p>}
+              <p style={{ fontSize: 12, color: '#666' }}>Recibida: {new Date(d.creadoEn).toLocaleString('es-AR')}</p>
+              <div style={{ display: 'flex', gap: 8, marginTop: '0.5rem' }}>
+                <button onClick={async () => {
+                  await desestimar(d.id)
+                  setDenuncias(prev => prev.filter(x => x.id !== d.id))
+                }}>
+                  Desestimar
+                </button>
+                <button
+                  style={{ color: '#c00' }}
+                  onClick={async () => {
+                    if (!confirm('¿Eliminar la publicación por esta denuncia?')) return
+                    await eliminarPublicacionDenuncia(d.id)
+                    setDenuncias(prev => prev.filter(x => x.animalId !== d.animalId))
+                  }}
+                >
+                  Eliminar publicación
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

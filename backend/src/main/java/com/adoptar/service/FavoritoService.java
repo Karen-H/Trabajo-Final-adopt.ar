@@ -28,6 +28,9 @@ public class FavoritoService {
         }
         Animal animal = animalRepository.findById(animalId)
                 .orElseThrow(() -> new IllegalArgumentException("Animal no encontrado"));
+        if (animal.getPublicador().getId().equals(usuario.getId())) {
+            throw new IllegalArgumentException("No podés marcar como favorita tu propia publicación");
+        }
         Favorito favorito = Favorito.builder()
                 .usuario(usuario)
                 .animal(animal)
@@ -69,6 +72,7 @@ public class FavoritoService {
                 .toList();
         return AnimalResponse.builder()
                 .id(animal.getId())
+                .usuarioId(animal.getPublicador().getId())
                 .categoria(animal.getCategoria())
                 .nombre(animal.getNombre())
                 .tipo(animal.getTipo())

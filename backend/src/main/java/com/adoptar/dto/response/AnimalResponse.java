@@ -15,6 +15,7 @@ import java.util.List;
 public class AnimalResponse {
 
     private Long id;
+    private Long usuarioId;
     private CategoriaAnimal categoria;
     private String nombre;
     private SexoAnimal sexo;

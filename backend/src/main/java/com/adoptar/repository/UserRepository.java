@@ -18,4 +18,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByTel(String tel);
 
     List<User> findByRole(UserRole role);
+
+    List<User> findByTieneTiendaTrue();
 }

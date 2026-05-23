@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getAdopciones } from '../api/animal'
 import { getFavoritos, agregarFavorito, quitarFavorito } from '../api/favorito'
 import FiltroUbicacion from '../components/FiltroUbicacion'
+import ModalDenuncia from '../components/ModalDenuncia'
+import { useAuth } from '../context/AuthContext'
 
 const TIPOS = ['PERRO', 'GATO', 'OTRO']
 const ETIQUETA_TIPO = { PERRO: 'Perro', GATO: 'Gato', OTRO: 'Otro' }
@@ -43,6 +45,7 @@ function filtrar(animales, tipos, provincia, ciudad, edades, tipoAdopcion, amiga
 
 function Adopciones() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const estaLogueado = !!localStorage.getItem('token')
   const [animales, setAnimales] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -53,6 +56,8 @@ function Adopciones() {
   const [tipoAdopcion, setTipoAdopcion] = useState('')
   const [amigableCon, setAmigableCon] = useState([])
   const [favoritoIds, setFavoritoIds] = useState(new Set())
+  const [denunciaAnimalId, setDenunciaAnimalId] = useState(null)
+  const [denunciadoIds, setDenunciadoIds] = useState(new Set())
 
   useEffect(() => {
     getAdopciones()
@@ -197,15 +202,37 @@ function Adopciones() {
             <p style={{ fontSize: 12, color: '#666' }}>
               Publicado por {a.rescatistaNombre} en {a.ciudad}, {a.provincia}
             </p>
-            <button
-              onClick={() => toggleFavorito(a.id)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: '4px 0' }}
-              title={favoritoIds.has(a.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-            >
-              {favoritoIds.has(a.id) ? '❤️' : '🤍'}
-            </button>
+            {(!estaLogueado || a.usuarioId !== user?.id) && (
+              <button
+                onClick={() => toggleFavorito(a.id)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: '4px 0' }}
+                title={favoritoIds.has(a.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+              >
+                {favoritoIds.has(a.id) ? '❤️' : '🤍'}
+              </button>
+            )}
+            {estaLogueado && a.usuarioId !== user?.id && (
+              <button
+                onClick={() => {
+                    if (denunciadoIds.has(a.id)) { alert('Ya denunciaste esta publicación'); return }
+                    setDenunciaAnimalId(a.id)
+                  }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#999', padding: '4px 0', marginLeft: 8 }}
+                title="Reportar publicación"
+              >
+                🚩 Reportar
+              </button>
+            )}
           </div>
         ))
+      )}
+
+      {denunciaAnimalId && (
+        <ModalDenuncia
+          animalId={denunciaAnimalId}
+          onClose={() => setDenunciaAnimalId(null)}
+          onSuccess={() => { setDenunciadoIds(prev => new Set([...prev, denunciaAnimalId])); setDenunciaAnimalId(null); alert('Denuncia enviada. El administrador la revisará.') }}
+        />
       )}
 
       <br />

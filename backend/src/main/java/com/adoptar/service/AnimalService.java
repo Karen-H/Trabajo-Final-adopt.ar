@@ -245,6 +245,7 @@ public class AnimalService {
                 .toList();
         return AnimalResponse.builder()
                 .id(animal.getId())
+                .usuarioId(animal.getPublicador().getId())
                 .categoria(animal.getCategoria())
                 .nombre(animal.getNombre())
                 .sexo(animal.getSexo())
@@ -285,6 +286,7 @@ public class AnimalService {
                 .toList();
         return AnimalResponse.builder()
                 .id(animal.getId())
+                .usuarioId(animal.getPublicador().getId())
                 .nombre(animal.getNombre())
                 .sexo(animal.getSexo())
                 .edad(animal.getEdad())

@@ -185,6 +185,7 @@ public class ReporteService {
                 .toList();
         return AnimalResponse.builder()
                 .id(animal.getId())
+                .usuarioId(animal.getPublicador().getId())
                 .categoria(animal.getCategoria())
                 .tipo(animal.getTipo())
                 .estado(animal.getEstado())
@@ -220,6 +221,7 @@ public class ReporteService {
                 .toList();
         return AnimalResponse.builder()
                 .id(animal.getId())
+                .usuarioId(animal.getPublicador().getId())
                 .categoria(animal.getCategoria())
                 .tipo(animal.getTipo())
                 .estado(animal.getEstado())
