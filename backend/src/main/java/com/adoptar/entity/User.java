@@ -43,7 +43,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String pass;
 
-    @Column
+    @Column(unique = true)
     private String organizacion;
 
     @Column

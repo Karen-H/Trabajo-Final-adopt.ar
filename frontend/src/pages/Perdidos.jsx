@@ -87,6 +87,7 @@ function Perdidos() {
           ))}
         </div>
         <FiltroUbicacion
+          animales={reportes}
           provincia={provincia}
           ciudad={ciudad}
           onProvinciaChange={setProvincia}

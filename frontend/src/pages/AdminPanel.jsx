@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import AdminDashboard from './AdminDashboard'
 import {
   getAnimalesPendientes, aprobarAnimal, rechazarAnimal,
   getFotosPendientes, aprobarFoto, rechazarFoto,
@@ -473,6 +474,10 @@ function AdminPanel() {
         {' '}
         <button onClick={() => setTab('usuarios')} disabled={tab === 'usuarios'}>
           Usuarios ({usuarios.length})
+        </button>
+        {' '}
+        <button onClick={() => setTab('dashboard')} disabled={tab === 'dashboard'}>
+          Dashboard
         </button>
       </div>
 
@@ -1021,6 +1026,8 @@ function AdminPanel() {
           ))}
         </div>
       )}
+
+      {tab === 'dashboard' && <AdminDashboard />}
     </div>
   )
 }

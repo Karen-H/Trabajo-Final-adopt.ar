@@ -267,4 +267,14 @@ public class AdminController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    // --- dashboard ---
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<?> getDashboardStats(@AuthenticationPrincipal User user) {
+        if (user.getRole() != UserRole.ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(adminService.getDashboardStats());
+    }
 }

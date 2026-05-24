@@ -30,6 +30,7 @@ public class AnimalResponse {
     private String provincia;
     private String ciudad;
     private String rescatistaNombre;
+    private String organizacion;
     // campos solo para reportes
     private String direccion;
     private Double latitud;
@@ -44,4 +45,5 @@ public class AnimalResponse {
     private boolean eliminadoPorAdmin;
     private String motivoEliminacion;
     private LocalDateTime creadoEn;
+    private LocalDateTime adoptadoEn;
 }

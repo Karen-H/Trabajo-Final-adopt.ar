@@ -18,3 +18,5 @@ export const actualizarRol = (id, rol) => api.patch(`/admin/usuarios/${id}/rol`,
 
 export const getTiendasActivas = () => api.get('/admin/tiendas/activas')
 export const revocarTienda = (usuarioId) => api.delete(`/admin/tiendas/${usuarioId}`)
+
+export const getDashboardStats = () => api.get('/admin/dashboard')

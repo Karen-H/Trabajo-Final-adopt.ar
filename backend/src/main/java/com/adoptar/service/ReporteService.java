@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -62,6 +63,7 @@ public class ReporteService {
                 .categoria(CategoriaAnimal.PERDIDO_ENCONTRADO)
                 .tipo(request.getTipo())
                 .estado(request.getEstadoInicial())
+                .estadoInicial(request.getEstadoInicial())
                 .direccion(request.getDireccion())
                 .latitud(request.getLatitud())
                 .longitud(request.getLongitud())
@@ -129,6 +131,9 @@ public class ReporteService {
             throw new IllegalArgumentException("Este reporte ya está resuelto");
         }
         animal.setEstado(EstadoAnimal.RESUELTO);
+        if (animal.getResueltoEn() == null) {
+            animal.setResueltoEn(LocalDateTime.now());
+        }
         animalRepository.save(animal);
         return toResponse(animal);
     }

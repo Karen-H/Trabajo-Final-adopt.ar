@@ -122,5 +122,18 @@ public class Animal {
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime creadoEn = LocalDateTime.now();
+
+    // se setea cuando el estado cambia a ADOPTADO
+    @Column
+    private LocalDateTime adoptadoEn;
+
+    // estado original de un reporte P/E (PERDIDO o ENCONTRADO, nunca cambia)
+    @Enumerated(EnumType.STRING)
+    @Column
+    private EstadoAnimal estadoInicial;
+
+    // se setea cuando el estado de un reporte cambia a RESUELTO
+    @Column
+    private LocalDateTime resueltoEn;
 }
 

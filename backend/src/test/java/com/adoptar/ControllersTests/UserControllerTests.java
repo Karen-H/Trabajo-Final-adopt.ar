@@ -76,7 +76,7 @@ public class UserControllerTests {
 
         when(userService.updateProfile(any(User.class), any(UpdateProfileRequest.class))).thenReturn(mockProfile);
 
-        ResponseEntity<UserProfileResponse> response = userController.updateProfile(user, request);
+        ResponseEntity<?> response = userController.updateProfile(user, request);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(mockProfile, response.getBody());
@@ -90,7 +90,7 @@ public class UserControllerTests {
         when(userService.updateProfile(any(User.class), any(UpdateProfileRequest.class)))
                 .thenThrow(new EmailAlreadyExistsException("Ya existe una cuenta con ese email"));
 
-        ResponseEntity<UserProfileResponse> response = userController.updateProfile(user, request);
+        ResponseEntity<?> response = userController.updateProfile(user, request);
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
     }
@@ -103,7 +103,7 @@ public class UserControllerTests {
         when(userService.updateProfile(any(User.class), any(UpdateProfileRequest.class)))
                 .thenThrow(new TelAlreadyExistsException("Ya existe una cuenta con ese teléfono"));
 
-        ResponseEntity<UserProfileResponse> response = userController.updateProfile(user, request);
+        ResponseEntity<?> response = userController.updateProfile(user, request);
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
     }
