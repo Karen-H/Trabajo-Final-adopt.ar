@@ -14,10 +14,10 @@ function Donar() {
   // modal de donacion
   const [seleccionado, setSeleccionado] = useState(null)
   const [monto, setMonto] = useState('')
+  const [montoPersonalizado, setMontoPersonalizado] = useState(false)
   const [creando, setCreando] = useState(false)
   const [errorDonacion, setErrorDonacion] = useState('')
   const [donacionPendienteId, setDonacionPendienteId] = useState(null)
-  const [confirmando, setConfirmando] = useState(false)
   const [exitoDonacion, setExitoDonacion] = useState('')
 
   useEffect(() => {
@@ -46,11 +46,14 @@ function Donar() {
   function abrirModal(rescatista) {
     setSeleccionado(rescatista)
     setMonto('')
+    setMontoPersonalizado(false)
     setErrorDonacion('')
   }
 
   function cerrarModal() {
     setSeleccionado(null)
+    setMonto('')
+    setMontoPersonalizado(false)
     setErrorDonacion('')
     setDonacionPendienteId(null)
     setExitoDonacion('')
@@ -77,27 +80,26 @@ function Donar() {
     }
   }
 
-  async function handleYaPague() {
+  // polling automatico mientras hay pago pendiente
+  useEffect(() => {
     if (!donacionPendienteId) return
-    setConfirmando(true)
-    setErrorDonacion(null)
-    try {
-      const res = await confirmarPorDonacion(donacionPendienteId)
-      const estado = res.data?.estado
-      if (estado === 'COMPLETADA') {
-        setExitoDonacion('¡Gracias por tu donación!')
-        setDonacionPendienteId(null)
-      } else if (estado === 'FALLIDA') {
-        setErrorDonacion('El pago fue rechazado o cancelado.')
-      } else {
-        setErrorDonacion('Todavía no encontramos tu pago. Si ya pagaste, esperá unos segundos y volvé a intentar.')
+    const intervalo = setInterval(async () => {
+      try {
+        const res = await confirmarPorDonacion(donacionPendienteId)
+        const estado = res.data?.estado
+        if (estado === 'COMPLETADA') {
+          setExitoDonacion('¡Gracias por tu donación!')
+          setDonacionPendienteId(null)
+        } else if (estado === 'FALLIDA') {
+          setErrorDonacion('El pago fue rechazado o cancelado.')
+          setDonacionPendienteId(null)
+        }
+      } catch {
+        // si falla la consulta, seguir intentando
       }
-    } catch {
-      setErrorDonacion('No pudimos verificar el pago. Intentá de nuevo.')
-    } finally {
-      setConfirmando(false)
-    }
-  }
+    }, 5000)
+    return () => clearInterval(intervalo)
+  }, [donacionPendienteId])
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 16px' }}>
@@ -152,7 +154,7 @@ function Donar() {
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
         }}>
-          <div style={{ background: '#fff', padding: '2rem', borderRadius: 4, width: 340, maxWidth: '90%' }}>
+          <div style={{ background: '#fff', color: '#222', padding: '2rem', borderRadius: 4, width: 340, maxWidth: '90%' }}>
             <h3 style={{ marginTop: 0 }}>
               Donar a {seleccionado.organizacion || `${seleccionado.nombre} ${seleccionado.apellido}`}
             </h3>
@@ -164,28 +166,59 @@ function Donar() {
               </div>
             ) : donacionPendienteId ? (
               <div>
-                <p>Completá el pago en la ventana de MercadoPago que se abrió. Cuando termines, hacé click en "Ya pagué".</p>
-                {errorDonacion && <p style={{ color: 'red' }}>{errorDonacion}</p>}
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={handleYaPague} disabled={confirmando}>
-                    {confirmando ? 'Verificando...' : 'Ya pagué'}
-                  </button>
-                  <button onClick={cerrarModal}>Cancelar</button>
-                </div>
+                <p>Completá el pago en la ventana de MercadoPago que se abrió. El estado se actualizará automáticamente.</p>
+                {errorDonacion && <p style={{ color: 'red', fontSize: 13 }}>{errorDonacion}</p>}
+                <button onClick={cerrarModal}>Cancelar</button>
               </div>
             ) : (
               <form onSubmit={handleDonar}>
-                <label>Monto (mínimo $100)</label><br />
-                <input
-                  type="number"
-                  min={100}
-                  step={1}
-                  value={monto}
-                  onChange={e => setMonto(e.target.value)}
-                  placeholder="Ej: 500"
-                  style={{ width: '100%', marginTop: 4, marginBottom: 12, boxSizing: 'border-box' }}
-                  required
-                />
+                <p style={{ margin: '0 0 10px', fontWeight: 500 }}>Elegí un monto</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                  {[1000, 2000, 5000, 10000].map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => { setMonto(m); setMontoPersonalizado(false) }}
+                      style={{
+                        padding: '6px 14px',
+                        border: '1px solid #ccc',
+                        borderRadius: 4,
+                        background: monto === m && !montoPersonalizado ? '#1a73e8' : '#fff',
+                        color: monto === m && !montoPersonalizado ? '#fff' : '#333',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ${m.toLocaleString('es-AR')}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => { setMontoPersonalizado(true); setMonto('') }}
+                    style={{
+                      padding: '6px 14px',
+                      border: '1px solid #ccc',
+                      borderRadius: 4,
+                      background: montoPersonalizado ? '#1a73e8' : '#fff',
+                      color: montoPersonalizado ? '#fff' : '#333',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Otro monto
+                  </button>
+                </div>
+                {montoPersonalizado && (
+                  <input
+                    type="number"
+                    min={100}
+                    step={1}
+                    value={monto}
+                    onChange={e => setMonto(e.target.value)}
+                    placeholder="Ingresá el monto (mínimo $100)"
+                    style={{ width: '100%', marginBottom: 12, boxSizing: 'border-box' }}
+                    autoFocus
+                    required
+                  />
+                )}
                 {errorDonacion && <p style={{ color: 'red', marginBottom: 8 }}>{errorDonacion}</p>}
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button type="submit" disabled={creando}>
