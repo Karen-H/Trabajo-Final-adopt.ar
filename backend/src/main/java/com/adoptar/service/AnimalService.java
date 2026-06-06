@@ -25,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -50,8 +51,8 @@ public class AnimalService {
 
     @Transactional
     public AnimalResponse crearAnimal(User publicador, AnimalRequest request, List<MultipartFile> fotos) {
-        if (publicador.getProvincia() == null || publicador.getCiudad() == null) {
-            throw new IllegalArgumentException("Debes configurar tu provincia y ciudad en el perfil antes de publicar un animal");
+        if (publicador.getProvincia() == null || publicador.getCiudad() == null || publicador.getOrganizacion() == null) {
+            throw new IllegalArgumentException("Debes configurar tu provincia, ciudad y organizacion en el perfil antes de publicar un animal");
         }
         if (fotos == null || fotos.isEmpty()) {
             throw new IllegalArgumentException("Debes subir al menos una foto");
@@ -112,6 +113,9 @@ public class AnimalService {
             throw new IllegalArgumentException("Estado no valido para un animal en adopcion");
         }
         animal.setEstado(estado);
+        if (estado == EstadoAnimal.ADOPTADO && animal.getAdoptadoEn() == null) {
+            animal.setAdoptadoEn(LocalDateTime.now());
+        }
         animalRepository.save(animal);
         return toResponse(animal);
     }
@@ -245,6 +249,7 @@ public class AnimalService {
                 .toList();
         return AnimalResponse.builder()
                 .id(animal.getId())
+                .usuarioId(animal.getPublicador().getId())
                 .categoria(animal.getCategoria())
                 .nombre(animal.getNombre())
                 .sexo(animal.getSexo())
@@ -263,6 +268,7 @@ public class AnimalService {
                 .provincia(animal.getPublicador().getProvincia())
                 .ciudad(animal.getPublicador().getCiudad())
                 .rescatistaNombre(animal.getPublicador().getNombre() + " " + animal.getPublicador().getApellido())
+                .organizacion(animal.getPublicador().getOrganizacion())
                 .fotos(fotos)
                 .aprobado(animal.isAprobado())
                 .rechazado(animal.isRechazado())
@@ -271,6 +277,7 @@ public class AnimalService {
                 .eliminadoPorAdmin(animal.isEliminadoPorAdmin())
                 .motivoEliminacion(animal.getMotivoEliminacion())
                 .creadoEn(animal.getCreadoEn())
+                .adoptadoEn(animal.getAdoptadoEn())
                 .build();
     }
 
@@ -285,6 +292,7 @@ public class AnimalService {
                 .toList();
         return AnimalResponse.builder()
                 .id(animal.getId())
+                .usuarioId(animal.getPublicador().getId())
                 .nombre(animal.getNombre())
                 .sexo(animal.getSexo())
                 .edad(animal.getEdad())
@@ -298,9 +306,11 @@ public class AnimalService {
                 .provincia(animal.getPublicador().getProvincia())
                 .ciudad(animal.getPublicador().getCiudad())
                 .rescatistaNombre(animal.getPublicador().getNombre() + " " + animal.getPublicador().getApellido())
+                .organizacion(animal.getPublicador().getOrganizacion())
                 .fotos(fotos)
                 .aprobado(animal.isAprobado())
                 .creadoEn(animal.getCreadoEn())
+                .adoptadoEn(animal.getAdoptadoEn())
                 .build();
     }
 

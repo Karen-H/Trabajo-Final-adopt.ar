@@ -34,6 +34,9 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       UPLOADS_PATH: /app/uploads
       TZ: America/Argentina/Buenos_Aires
+      MP_ACCESS_TOKEN: "APP_USR-2272774358814070-052510-e8418f598babee936c9d9f9a59e23196-3425962764"
+      MP_BACK_URL_BASE: "http://localhost"
+      MP_SANDBOX: "false"
     ports:
       - "8080:8080"
     volumes:

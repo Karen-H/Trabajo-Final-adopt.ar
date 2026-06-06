@@ -1,6 +1,7 @@
 package com.adoptar.controller;
 
 import com.adoptar.dto.request.RechazarRequest;
+import com.adoptar.dto.request.ActualizarRolRequest;
 import com.adoptar.entity.User;
 import com.adoptar.enums.UserRole;
 import com.adoptar.service.AdminService;
@@ -198,5 +199,82 @@ public class AdminController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    // --- tiendas activas ---
+
+    @GetMapping("/tiendas/activas")
+    public ResponseEntity<?> listarTiendasActivas(@AuthenticationPrincipal User user) {
+        if (user.getRole() != UserRole.ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(adminService.listarTiendasActivas());
+    }
+
+    @DeleteMapping("/tiendas/{usuarioId}")
+    public ResponseEntity<?> revocarTienda(@AuthenticationPrincipal User user, @PathVariable Long usuarioId) {
+        if (user.getRole() != UserRole.ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        try {
+            adminService.revocarTienda(usuarioId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- usuarios ---
+
+    @GetMapping("/usuarios")
+    public ResponseEntity<?> listarUsuarios(@AuthenticationPrincipal User user) {
+        if (user.getRole() != UserRole.ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(adminService.listarUsuarios());
+    }
+
+    @DeleteMapping("/usuarios/{id}")
+    public ResponseEntity<?> eliminarUsuario(@AuthenticationPrincipal User user, @PathVariable Long id) {
+        if (user.getRole() != UserRole.ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        if (user.getId().equals(id)) {
+            return ResponseEntity.badRequest().body("No podés eliminar tu propia cuenta");
+        }
+        try {
+            adminService.eliminarUsuario(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/usuarios/{id}/rol")
+    public ResponseEntity<?> actualizarRol(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id,
+            @Valid @RequestBody ActualizarRolRequest request) {
+        if (user.getRole() != UserRole.ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        if (user.getId().equals(id)) {
+            return ResponseEntity.badRequest().body("No podés cambiar tu propio rol");
+        }
+        try {
+            return ResponseEntity.ok(adminService.actualizarRol(id, request.getRol()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- dashboard ---
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<?> getDashboardStats(@AuthenticationPrincipal User user) {
+        if (user.getRole() != UserRole.ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(adminService.getDashboardStats());
     }
 }

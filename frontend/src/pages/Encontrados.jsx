@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { getEncontrados } from '../api/reporte'
 import { getFavoritos, agregarFavorito, quitarFavorito } from '../api/favorito'
 import FiltroUbicacion from '../components/FiltroUbicacion'
+import ModalDenuncia from '../components/ModalDenuncia'
+import { useAuth } from '../context/AuthContext'
 
 const TIPOS = ['PERRO', 'GATO', 'OTRO']
 const ETIQUETA_TIPO = { PERRO: 'Perro', GATO: 'Gato', OTRO: 'Otro' }
@@ -18,6 +20,7 @@ function filtrar(reportes, tipos, provincia, ciudad) {
 
 function Encontrados() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const estaLogueado = !!localStorage.getItem('token')
   const [reportes, setReportes] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -25,6 +28,8 @@ function Encontrados() {
   const [provincia, setProvincia] = useState('')
   const [ciudad, setCiudad] = useState('')
   const [favoritoIds, setFavoritoIds] = useState(new Set())
+  const [denunciaAnimalId, setDenunciaAnimalId] = useState(null)
+  const [denunciadoIds, setDenunciadoIds] = useState(new Set())
 
   useEffect(() => {
     getEncontrados()
@@ -82,6 +87,7 @@ function Encontrados() {
           ))}
         </div>
         <FiltroUbicacion
+          animales={reportes}
           provincia={provincia}
           ciudad={ciudad}
           onProvinciaChange={setProvincia}
@@ -116,15 +122,37 @@ function Encontrados() {
             <p style={{ fontSize: 12, color: '#666' }}>
               Publicado por {r.rescatistaNombre} en {r.ciudad}, {r.provincia}
             </p>
-            <button
-              onClick={() => toggleFavorito(r.id)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: '4px 0' }}
-              title={favoritoIds.has(r.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-            >
-              {favoritoIds.has(r.id) ? '❤️' : '🤍'}
-            </button>
+            {(!estaLogueado || r.usuarioId !== user?.id) && (
+              <button
+                onClick={() => toggleFavorito(r.id)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: '4px 0' }}
+                title={favoritoIds.has(r.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+              >
+                {favoritoIds.has(r.id) ? '❤️' : '🤍'}
+              </button>
+            )}
+            {estaLogueado && r.usuarioId !== user?.id && (
+              <button
+                onClick={() => {
+                    if (denunciadoIds.has(r.id)) { alert('Ya denunciaste esta publicación'); return }
+                    setDenunciaAnimalId(r.id)
+                  }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#999', padding: '4px 0', marginLeft: 8 }}
+                title="Reportar publicación"
+              >
+                🚩 Reportar
+              </button>
+            )}
           </div>
         ))
+      )}
+
+      {denunciaAnimalId && (
+        <ModalDenuncia
+          animalId={denunciaAnimalId}
+          onClose={() => setDenunciaAnimalId(null)}
+          onSuccess={() => { setDenunciadoIds(prev => new Set([...prev, denunciaAnimalId])); setDenunciaAnimalId(null); alert('Denuncia enviada. El administrador la revisará.') }}
+        />
       )}
     </div>
   )

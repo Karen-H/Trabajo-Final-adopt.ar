@@ -11,5 +11,7 @@ public interface ItemTiendaRepository extends JpaRepository<ItemTienda, Long> {
 
     List<ItemTienda> findByRescatistaAndEliminadoFalse(User rescatista);
 
+    List<ItemTienda> findAllByRescatista(User rescatista);
+
     List<ItemTienda> findByEstadoAndEliminadoFalse(EstadoItem estado);
 }

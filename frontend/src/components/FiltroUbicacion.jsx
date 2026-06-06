@@ -1,24 +1,22 @@
-import { useState, useEffect } from 'react'
-import { getProvincias, getMunicipios } from '../api/georef'
+import { useMemo } from 'react'
 
-function FiltroUbicacion({ provincia, ciudad, onProvinciaChange, onCiudadChange }) {
-  const [provincias, setProvincias] = useState([])
-  const [municipios, setMunicipios] = useState([])
+function FiltroUbicacion({ animales = [], provincia, ciudad, onProvinciaChange, onCiudadChange }) {
+  const provincias = useMemo(() => {
+    const set = new Set(animales.map(a => a.provincia).filter(Boolean))
+    return [...set].sort()
+  }, [animales])
 
-  useEffect(() => {
-    getProvincias().then(setProvincias).catch(() => setProvincias([]))
-  }, [])
+  const ciudades = useMemo(() => {
+    if (!provincia) return []
+    const set = new Set(
+      animales.filter(a => a.provincia === provincia).map(a => a.ciudad).filter(Boolean)
+    )
+    return [...set].sort()
+  }, [animales, provincia])
 
-  async function handleProvincia(e) {
-    const val = e.target.value
-    onProvinciaChange(val)
+  function handleProvincia(e) {
+    onProvinciaChange(e.target.value)
     onCiudadChange('')
-    if (val) {
-      const munis = await getMunicipios(val).catch(() => [])
-      setMunicipios(munis)
-    } else {
-      setMunicipios([])
-    }
   }
 
   return (
@@ -30,20 +28,20 @@ function FiltroUbicacion({ provincia, ciudad, onProvinciaChange, onCiudadChange 
           <select value={provincia} onChange={handleProvincia}>
             <option value="">Todas</option>
             {provincias.map(p => (
-              <option key={p.id} value={p.nombre}>{p.nombre}</option>
+              <option key={p} value={p}>{p}</option>
             ))}
           </select>
         </label>
       </div>
-      {municipios.length > 0 && (
+      {ciudades.length > 0 && (
         <div>
           <label>
             <strong>Ciudad:</strong>
             {' '}
             <select value={ciudad} onChange={e => onCiudadChange(e.target.value)}>
               <option value="">Todas</option>
-              {municipios.map(m => (
-                <option key={m.id} value={m.nombre}>{m.nombre}</option>
+              {ciudades.map(c => (
+                <option key={c} value={c}>{c}</option>
               ))}
             </select>
           </label>

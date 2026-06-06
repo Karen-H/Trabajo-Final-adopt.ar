@@ -1,0 +1,11 @@
+package com.adoptar.enums;
+
+public enum RazonDenuncia {
+    INFORMACION_FALSA,
+    FOTOS_INAPROPIADAS,
+    MALTRATO_ANIMAL,
+    PUBLICACION_DUPLICADA,
+    VENTA_DE_ANIMALES,
+    DATOS_DE_CONTACTO_INVALIDOS,
+    OTRO
+}

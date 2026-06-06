@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getAdopciones } from '../api/animal'
 import { getFavoritos, agregarFavorito, quitarFavorito } from '../api/favorito'
 import FiltroUbicacion from '../components/FiltroUbicacion'
+import ModalDenuncia from '../components/ModalDenuncia'
+import { useAuth } from '../context/AuthContext'
 
 const TIPOS = ['PERRO', 'GATO', 'OTRO']
 const ETIQUETA_TIPO = { PERRO: 'Perro', GATO: 'Gato', OTRO: 'Otro' }
@@ -29,7 +31,7 @@ const AMIGABLE_CON = [
   { key: 'amigableConNinos', label: 'Niños' },
 ]
 
-function filtrar(animales, tipos, provincia, ciudad, edades, tipoAdopcion, amigableCon) {
+function filtrar(animales, tipos, provincia, ciudad, edades, tipoAdopcion, amigableCon, organizacion) {
   return animales.filter(a => {
     const pasaTipo = tipos.length === 0 || tipos.includes(a.tipo)
     const pasaProv = !provincia || (a.provincia || '') === provincia
@@ -37,12 +39,14 @@ function filtrar(animales, tipos, provincia, ciudad, edades, tipoAdopcion, amiga
     const pasaEdad = edades.length === 0 || edades.includes(a.edad)
     const pasaTipoAdopcion = !tipoAdopcion || a.tipoAdopcion === tipoAdopcion
     const pasaAmigable = amigableCon.length === 0 || amigableCon.every(k => a[k])
-    return pasaTipo && pasaProv && pasaCiudad && pasaEdad && pasaTipoAdopcion && pasaAmigable
+    const pasaOrg = !organizacion || a.organizacion === organizacion
+    return pasaTipo && pasaProv && pasaCiudad && pasaEdad && pasaTipoAdopcion && pasaAmigable && pasaOrg
   })
 }
 
 function Adopciones() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const estaLogueado = !!localStorage.getItem('token')
   const [animales, setAnimales] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -52,7 +56,10 @@ function Adopciones() {
   const [edades, setEdades] = useState([])
   const [tipoAdopcion, setTipoAdopcion] = useState('')
   const [amigableCon, setAmigableCon] = useState([])
+  const [organizacion, setOrganizacion] = useState('')
   const [favoritoIds, setFavoritoIds] = useState(new Set())
+  const [denunciaAnimalId, setDenunciaAnimalId] = useState(null)
+  const [denunciadoIds, setDenunciadoIds] = useState(new Set())
 
   useEffect(() => {
     getAdopciones()
@@ -93,8 +100,13 @@ function Adopciones() {
     }
   }
 
-  const hayFiltros = tipos.length > 0 || provincia || ciudad || edades.length > 0 || tipoAdopcion || amigableCon.length > 0
-  const visibles = filtrar(animales, tipos, provincia, ciudad, edades, tipoAdopcion, amigableCon)
+  const hayFiltros = tipos.length > 0 || provincia || ciudad || edades.length > 0 || tipoAdopcion || amigableCon.length > 0 || organizacion
+  const visibles = filtrar(animales, tipos, provincia, ciudad, edades, tipoAdopcion, amigableCon, organizacion)
+
+  const organizaciones = useMemo(() => {
+    const set = new Set(animales.map(a => a.organizacion).filter(Boolean))
+    return [...set].sort()
+  }, [animales])
 
   if (cargando) return <p>Cargando...</p>
 
@@ -118,6 +130,7 @@ function Adopciones() {
           ))}
         </div>
         <FiltroUbicacion
+          animales={animales}
           provincia={provincia}
           ciudad={ciudad}
           onProvinciaChange={setProvincia}
@@ -164,8 +177,19 @@ function Adopciones() {
             </label>
           ))}
         </div>
+        {organizaciones.length > 0 && (
+          <div>
+            <strong>Organización:</strong>{' '}
+            <select value={organizacion} onChange={e => setOrganizacion(e.target.value)}>
+              <option value=''>Todas</option>
+              {organizaciones.map(o => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+        )}
         {hayFiltros && (
-          <button onClick={() => { setTipos([]); setProvincia(''); setCiudad(''); setEdades([]); setTipoAdopcion(''); setAmigableCon([]) }}>
+          <button onClick={() => { setTipos([]); setProvincia(''); setCiudad(''); setEdades([]); setTipoAdopcion(''); setAmigableCon([]); setOrganizacion('') }}>
             Limpiar filtros
           </button>
         )}
@@ -197,15 +221,37 @@ function Adopciones() {
             <p style={{ fontSize: 12, color: '#666' }}>
               Publicado por {a.rescatistaNombre} en {a.ciudad}, {a.provincia}
             </p>
-            <button
-              onClick={() => toggleFavorito(a.id)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: '4px 0' }}
-              title={favoritoIds.has(a.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-            >
-              {favoritoIds.has(a.id) ? '❤️' : '🤍'}
-            </button>
+            {(!estaLogueado || a.usuarioId !== user?.id) && (
+              <button
+                onClick={() => toggleFavorito(a.id)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: '4px 0' }}
+                title={favoritoIds.has(a.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+              >
+                {favoritoIds.has(a.id) ? '❤️' : '🤍'}
+              </button>
+            )}
+            {estaLogueado && a.usuarioId !== user?.id && (
+              <button
+                onClick={() => {
+                    if (denunciadoIds.has(a.id)) { alert('Ya denunciaste esta publicación'); return }
+                    setDenunciaAnimalId(a.id)
+                  }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#999', padding: '4px 0', marginLeft: 8 }}
+                title="Reportar publicación"
+              >
+                🚩 Reportar
+              </button>
+            )}
           </div>
         ))
+      )}
+
+      {denunciaAnimalId && (
+        <ModalDenuncia
+          animalId={denunciaAnimalId}
+          onClose={() => setDenunciaAnimalId(null)}
+          onSuccess={() => { setDenunciadoIds(prev => new Set([...prev, denunciaAnimalId])); setDenunciaAnimalId(null); alert('Denuncia enviada. El administrador la revisará.') }}
+        />
       )}
 
       <br />

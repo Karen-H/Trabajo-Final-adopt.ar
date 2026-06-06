@@ -43,7 +43,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String pass;
 
-    @Column
+    @Column(unique = true)
     private String organizacion;
 
     @Column
@@ -67,6 +67,14 @@ public class User implements UserDetails {
     @Column(nullable = false)
     @Builder.Default
     private boolean tieneTienda = false;
+
+    // donaciones
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean aceptaDonaciones = false;
+
+    @Column(columnDefinition = "TEXT")
+    private String descripcionDonacion;
 
     @Column(nullable = false, updatable = false)
     @Builder.Default

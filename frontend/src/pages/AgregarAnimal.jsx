@@ -119,7 +119,7 @@ function AgregarAnimal() {
 
   if (!perfil) return null
 
-  const sinUbicacion = !perfil.provincia || !perfil.ciudad
+  const sinUbicacion = !perfil.provincia || !perfil.ciudad || !perfil.organizacion
 
   return (
     <div>
@@ -127,7 +127,7 @@ function AgregarAnimal() {
 
       {sinUbicacion && (
         <p>
-          Necesitás configurar tu provincia y ciudad en{' '}
+          Necesitás configurar tu provincia, ciudad y organización en{' '}
           <Link to="/perfil">tu perfil</Link> antes de publicar un animal.
         </p>
       )}

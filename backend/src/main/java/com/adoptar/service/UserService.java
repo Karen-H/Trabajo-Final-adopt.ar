@@ -29,6 +29,9 @@ public class UserService {
                 .ciudad(user.getCiudad())
                 .role(user.getRole())
                 .activeProfile(user.getActiveProfile())
+                .tieneTienda(user.isTieneTienda())
+                .aceptaDonaciones(user.isAceptaDonaciones())
+                .descripcionDonacion(user.getDescripcionDonacion())
                 .createdAt(user.getCreatedAt())
                 .build();
     }
@@ -61,7 +64,13 @@ public class UserService {
         }
 
         if (request.getOrganizacion() != null) {
-            user.setOrganizacion(request.getOrganizacion().isBlank() ? null : request.getOrganizacion());
+            String org = request.getOrganizacion().isBlank() ? null : request.getOrganizacion().trim();
+            if (org != null && !org.equals(user.getOrganizacion())) {
+                if (userRepository.existsByOrganizacion(org)) {
+                    throw new IllegalArgumentException("Ya existe una cuenta con esa organización");
+                }
+            }
+            user.setOrganizacion(org);
         }
 
         if (request.getProvincia() != null) {

@@ -7,6 +7,7 @@ function leerUsuario() {
   if (!token) return null
   return {
     token,
+    id: Number(localStorage.getItem('id')),
     nombre: localStorage.getItem('nombre'),
     role: localStorage.getItem('role'),
     activeProfile: localStorage.getItem('activeProfile'),
@@ -19,12 +20,14 @@ export function AuthProvider({ children }) {
 
   function login(data) {
     localStorage.setItem('token', data.token)
+    localStorage.setItem('id', data.id)
     localStorage.setItem('nombre', data.nombre)
     localStorage.setItem('role', data.role)
     localStorage.setItem('activeProfile', data.activeProfile)
     localStorage.setItem('tieneTienda', data.tieneTienda ? 'true' : 'false')
     setUser({
       token: data.token,
+      id: data.id,
       nombre: data.nombre,
       role: data.role,
       activeProfile: data.activeProfile,

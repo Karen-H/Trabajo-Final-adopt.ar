@@ -3,9 +3,12 @@ import { useNavigate, Link } from 'react-router-dom'
 import { getProfile, updateProfile } from '../api/user'
 import { getProvincias, getMunicipios } from '../api/georef'
 import { getDisponibilidadPropia, agregarDisponibilidad, eliminarDisponibilidad } from '../api/tienda'
+import { configurarDonaciones, getMisDonaciones } from '../api/donacion'
+import { useAuth } from '../context/AuthContext'
 
 function Profile() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [perfil, setPerfil] = useState(null)
   const [editando, setEditando] = useState(false)
   const [form, setForm] = useState({ email: '', tel: '', organizacion: '', provincia: '', ciudad: '' })
@@ -18,6 +21,13 @@ function Profile() {
   const [disponibilidad, setDisponibilidad] = useState([])
   const [nuevaDisponibilidad, setNuevaDisponibilidad] = useState({ diaSemana: '', horaInicio: '', horaFin: '' })
   const [errorDisp, setErrorDisp] = useState('')
+
+  // donaciones (solo USER)
+  const [donConfig, setDonConfig] = useState({ aceptaDonaciones: false, descripcionDonacion: '' })
+  const [errorDon, setErrorDon] = useState('')
+  const [exitoDon, setExitoDon] = useState('')
+  const [misDonaciones, setMisDonaciones] = useState([])
+  const [cargandoDon, setCargandoDon] = useState(false)
 
   const HORAS_DISPONIBLES = Array.from({ length: 48 }, (_, i) => {
     const h = String(Math.floor(i / 2)).padStart(2, '0')
@@ -55,6 +65,13 @@ function Profile() {
           getDisponibilidadPropia()
             .then(r => setDisponibilidad(r.data))
             .catch(() => {})
+        }
+        if (res.data.role === 'USER') {
+          setDonConfig({
+            aceptaDonaciones: res.data.aceptaDonaciones || false,
+            descripcionDonacion: res.data.descripcionDonacion || '',
+          })
+          getMisDonaciones().then(r => setMisDonaciones(r.data)).catch(() => {})
         }
       })
       .catch(() => navigate('/login'))
@@ -102,7 +119,8 @@ function Profile() {
     } catch (err) {
       const status = err.response?.status
       if (status === 409) {
-        setError('Ya existe una cuenta con ese email o teléfono.')
+        const msg = err.response?.data?.error
+        setError(msg || 'Ya existe una cuenta con ese email o teléfono.')
       } else if (status === 400) {
         const violations = err.response?.data?.errors || err.response?.data
         if (Array.isArray(violations) && violations.length > 0) {
@@ -141,6 +159,22 @@ function Profile() {
     }
   }
 
+  async function handleGuardarDonaciones(e) {
+    e.preventDefault()
+    setErrorDon('')
+    setExitoDon('')
+    setCargandoDon(true)
+    try {
+      await configurarDonaciones(donConfig)
+      setPerfil(prev => ({ ...prev, aceptaDonaciones: donConfig.aceptaDonaciones }))
+      setExitoDon('Configuración guardada.')
+    } catch (err) {
+      setErrorDon(err.response?.data || 'Error al guardar.')
+    } finally {
+      setCargandoDon(false)
+    }
+  }
+
   function cancelar() {
     setEditando(false)
     setError('')
@@ -165,7 +199,7 @@ function Profile() {
         <p><strong>DNI:</strong> {perfil.dni}</p>
         <p><strong>Rol:</strong> {perfil.role}</p>
         {perfil.role === 'USER' && (
-          <p><strong>Perfil activo:</strong> {perfil.activeProfile}</p>
+          <p><strong>Perfil activo:</strong> {user?.activeProfile}</p>
         )}
         <p><strong>Miembro desde:</strong> {new Date(perfil.createdAt).toLocaleDateString('es-AR')}</p>
       </div>
@@ -262,6 +296,67 @@ function Profile() {
             <button onClick={handleAgregarDisponibilidad}>Agregar bloque</button>
           </div>
           {errorDisp && <p style={{ color: 'red' }}>{errorDisp}</p>}
+        </div>
+      )}
+
+      {user?.activeProfile === 'RESCATISTA' && (
+        <div style={{ marginTop: 32 }}>
+          <h3>Donaciones</h3>
+
+          {/* Configuracion de donaciones */}
+          <form onSubmit={handleGuardarDonaciones}>
+            <div style={{ marginBottom: 8 }}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={donConfig.aceptaDonaciones}
+                  onChange={e => setDonConfig(prev => ({ ...prev, aceptaDonaciones: e.target.checked }))}
+                  style={{ marginRight: 6 }}
+                />
+                Quiero aparecer en el listado de donaciones
+              </label>
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <label>Descripción (qué hacés con las donaciones)</label><br />
+              <textarea
+                value={donConfig.descripcionDonacion}
+                onChange={e => setDonConfig(prev => ({ ...prev, descripcionDonacion: e.target.value }))}
+                rows={3}
+                style={{ width: '100%', maxWidth: 500, boxSizing: 'border-box', marginTop: 4 }}
+                placeholder="Ej: Rescato perros callejeros en Córdoba y pago sus veterinarios..."
+              />
+            </div>
+            {errorDon && <p style={{ color: 'red' }}>{errorDon}</p>}
+            {exitoDon && <p>{exitoDon}</p>}
+            <button type="submit" disabled={cargandoDon}>Guardar configuración</button>
+          </form>
+
+          {/* Historial */}
+          {misDonaciones.length > 0 && (
+            <div style={{ marginTop: 24 }}>
+              <h4>Donaciones recibidas</h4>
+              <table style={{ borderCollapse: 'collapse', width: '100%', maxWidth: 600 }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid #ccc' }}>Donante</th>
+                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid #ccc' }}>Monto</th>
+                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid #ccc' }}>Estado</th>
+                    <th style={{ textAlign: 'left', padding: '4px 8px', borderBottom: '1px solid #ccc' }}>Fecha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {misDonaciones.map(d => (
+                    <tr key={d.id}>
+                      <td style={{ padding: '4px 8px' }}>{d.donanteNombre}</td>
+                      <td style={{ padding: '4px 8px' }}>${Number(d.monto).toLocaleString('es-AR')}</td>
+                      <td style={{ padding: '4px 8px' }}>{d.estado}</td>
+                      <td style={{ padding: '4px 8px' }}>{new Date(d.creadoEn).toLocaleDateString('es-AR')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

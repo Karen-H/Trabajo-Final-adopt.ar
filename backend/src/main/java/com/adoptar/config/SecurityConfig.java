@@ -54,6 +54,12 @@ public class SecurityConfig {
                 // vistas públicas de perdidos y encontrados
                 .requestMatchers(HttpMethod.GET, "/api/reportes/perdidos").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reportes/encontrados").permitAll()
+                // donaciones: listado público, webhook y preferencia son públicos
+                .requestMatchers(HttpMethod.GET, "/api/donaciones/rescatistas").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/donaciones/confirmar").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/donaciones/confirmar-donacion/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/donaciones/webhook").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/donaciones/preferencia").permitAll()
                 // favoritos requieren autenticación
                 .requestMatchers("/api/favoritos/**").authenticated()
                 // slots disponibles son públicos (cualquiera puede ver disponibilidad antes de loguearse)

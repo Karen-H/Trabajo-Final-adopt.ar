@@ -24,5 +24,8 @@ public class UserProfileResponse {
     private String ciudad;
     private UserRole role;
     private UserProfile activeProfile;
+    private boolean tieneTienda;
+    private boolean aceptaDonaciones;
+    private String descripcionDonacion;
     private LocalDateTime createdAt;
 }
