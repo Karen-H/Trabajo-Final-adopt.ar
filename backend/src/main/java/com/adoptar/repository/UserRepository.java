@@ -26,6 +26,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByTieneTiendaTrue();
 
+    List<User> findByAceptaDonacionesTrue();
+
     // nuevos usuarios por mes (último año)
     @Query("SELECT YEAR(u.createdAt), MONTH(u.createdAt), COUNT(u) FROM User u WHERE u.createdAt >= :desde " +
            "GROUP BY YEAR(u.createdAt), MONTH(u.createdAt) ORDER BY YEAR(u.createdAt), MONTH(u.createdAt)")

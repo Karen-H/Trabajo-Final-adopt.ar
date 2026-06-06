@@ -29,6 +29,9 @@ public class UserService {
                 .ciudad(user.getCiudad())
                 .role(user.getRole())
                 .activeProfile(user.getActiveProfile())
+                .tieneTienda(user.isTieneTienda())
+                .aceptaDonaciones(user.isAceptaDonaciones())
+                .descripcionDonacion(user.getDescripcionDonacion())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

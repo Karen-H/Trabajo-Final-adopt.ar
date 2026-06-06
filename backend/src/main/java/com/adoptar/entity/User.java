@@ -68,6 +68,14 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean tieneTienda = false;
 
+    // donaciones
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean aceptaDonaciones = false;
+
+    @Column(columnDefinition = "TEXT")
+    private String descripcionDonacion;
+
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

@@ -14,6 +14,8 @@ import Encontrados from './pages/Encontrados'
 import Favoritos from './pages/Favoritos'
 import SolicitarTienda from './pages/SolicitarTienda'
 import MiTienda from './pages/MiTienda'
+import Donar from './pages/Donar'
+import DonarResultado from './pages/DonarResultado'
 import './App.css'
 
 function Home() {
@@ -55,6 +57,10 @@ function App() {
         <Route path="/favoritos" element={<Favoritos />} />
         <Route path="/abrir-tienda" element={<SolicitarTienda />} />
         <Route path="/mi-tienda" element={<MiTienda />} />
+        <Route path="/donar" element={<Donar />} />
+        <Route path="/donar/exito" element={<DonarResultado estado="exito" />} />
+        <Route path="/donar/fallo" element={<DonarResultado estado="fallo" />} />
+        <Route path="/donar/pendiente" element={<DonarResultado estado="pendiente" />} />
       </Routes>
     </AuthProvider>
   )

@@ -27,6 +27,7 @@ function Header() {
       <Link to="/adopciones">Adopciones</Link>
       <Link to="/perdidos">Perdidos</Link>
       <Link to="/encontrados">Encontrados</Link>
+      <Link to="/donar">Donar</Link>
 
       {user ? (
         <>
