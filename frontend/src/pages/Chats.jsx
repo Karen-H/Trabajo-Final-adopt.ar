@@ -3,6 +3,15 @@ import { getMisChats, getMensajes, enviarMensaje } from '../api/chat'
 import { proponerReserva, aceptarReserva, rechazarReserva, concretarReserva, cancelarReserva, getReservaPendiente, getMisAnimalesDisponibles, getMisReservasActivas } from '../api/reserva'
 import { useAuth } from '../context/AuthContext'
 
+const ETIQUETA_TIPO = { PERRO: 'Perro', GATO: 'Gato', OTRO: 'Otro' }
+const ETIQUETA_EDAD = { CACHORRO: 'Cachorro', JOVEN: 'Joven', ADULTO: 'Adulto', SENIOR: 'Senior' }
+
+function etiquetaAnimal(a) {
+  const tipo = ETIQUETA_TIPO[a.tipo] || a.tipo
+  const edad = a.edad ? (ETIQUETA_EDAD[a.edad] || a.edad) : null
+  return edad ? `${a.nombre} (${tipo}, ${edad})` : `${a.nombre} (${tipo})`
+}
+
 function Chats() {
   const { user } = useAuth()
   const [chats, setChats] = useState([])
@@ -314,12 +323,18 @@ function Chats() {
                   </button>
                 ) : (
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <select value={animalSeleccionado} onChange={e => setAnimalSeleccionado(e.target.value)} style={{ fontSize: 13 }}>
-                      <option value="">Elegí un animal</option>
-                      {animalesDisponibles.map(a => (
-                        <option key={a.id} value={a.id}>{a.nombre}</option>
-                      ))}
-                    </select>
+                    {animalesDisponibles.length === 0 ? (
+                      <span style={{ fontSize: 13, color: '#666' }}>
+                        El adoptante no consultó por ningún animal disponible todavía.
+                      </span>
+                    ) : (
+                      <select value={animalSeleccionado} onChange={e => setAnimalSeleccionado(e.target.value)} style={{ fontSize: 13 }}>
+                        <option value="">Elegí un animal</option>
+                        {animalesDisponibles.map(a => (
+                          <option key={a.id} value={a.id}>{etiquetaAnimal(a)}</option>
+                        ))}
+                      </select>
+                    )}
                     <button onClick={handleProponer} disabled={!animalSeleccionado} style={{ fontSize: 13 }}>
                       Confirmar reserva
                     </button>

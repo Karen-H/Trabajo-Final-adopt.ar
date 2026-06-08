@@ -199,7 +199,7 @@ public class ReservaService {
         )).toList();
     }
 
-    // animales del rescatista disponibles para reservar (excluye bloqueados para el adoptante del chat)
+    // animales del chat que el adoptante consultó y siguen disponibles para reservar
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getAnimalesDisponibles(User rescatista, Long chatId) {
         Chat chat = chatRepository.findById(chatId)
@@ -213,12 +213,28 @@ public class ReservaService {
                 bloqueoRepository.findAnimalIdsBloquedosActivos(chat.getAdoptante(), LocalDateTime.now())
         );
 
+        // solo animales que el adoptante consultó en este chat
+        Set<Long> idsInteres = chat.getAnimales().stream()
+                .map(a -> a.getId())
+                .collect(java.util.stream.Collectors.toSet());
+        if (idsInteres.isEmpty()) {
+            return List.of();
+        }
+
         return animalRepository.findByPublicador(rescatista).stream()
-                .filter(a -> !idsBloqueados.contains(a.getId())
+                .filter(a -> idsInteres.contains(a.getId())
+                        && !idsBloqueados.contains(a.getId())
                         && a.getEstado() == EstadoAnimal.EN_ADOPCION
                         && a.isAprobado() && !a.isEliminado()
                         && com.adoptar.enums.CategoriaAnimal.ADOPCION.equals(a.getCategoria()))
-                .map(a -> Map.of("id", (Object) a.getId(), "nombre", a.getNombre()))
+                .map(a -> {
+                    Map<String, Object> m = new java.util.HashMap<>();
+                    m.put("id", a.getId());
+                    m.put("nombre", a.getNombre());
+                    m.put("tipo", a.getTipo().name());
+                    m.put("edad", a.getEdad() != null ? a.getEdad().name() : "");
+                    return m;
+                })
                 .toList();
     }
 
