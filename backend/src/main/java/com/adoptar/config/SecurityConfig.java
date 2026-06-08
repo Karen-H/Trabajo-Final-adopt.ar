@@ -62,6 +62,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/donaciones/preferencia").permitAll()
                 // favoritos requieren autenticación
                 .requestMatchers("/api/favoritos/**").authenticated()
+                // reservas requieren autenticación
+                .requestMatchers("/api/reservas/**").authenticated()
                 // slots disponibles son públicos (cualquiera puede ver disponibilidad antes de loguearse)
                 .requestMatchers(HttpMethod.GET, "/api/tienda/slots").permitAll()
                 // resto de tienda requiere autenticación

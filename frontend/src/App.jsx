@@ -16,6 +16,7 @@ import SolicitarTienda from './pages/SolicitarTienda'
 import MiTienda from './pages/MiTienda'
 import Donar from './pages/Donar'
 import DonarResultado from './pages/DonarResultado'
+import Chats from './pages/Chats'
 import './App.css'
 
 function Home() {
@@ -61,6 +62,7 @@ function App() {
         <Route path="/donar/exito" element={<DonarResultado estado="exito" />} />
         <Route path="/donar/fallo" element={<DonarResultado estado="fallo" />} />
         <Route path="/donar/pendiente" element={<DonarResultado estado="pendiente" />} />
+        <Route path="/chats" element={<Chats />} />
       </Routes>
     </AuthProvider>
   )

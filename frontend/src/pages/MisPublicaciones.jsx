@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { getMisAnimales, cambiarEstadoAnimal, agregarFotosAnimal, eliminarAnimal, republicarAnimal, eliminarFotoAnimal } from '../api/animal'
 import { getMisReportes, resolverReporte } from '../api/reporte'
+import { getMisReservasActivas, concretarReserva, cancelarReserva } from '../api/reserva'
 
 const ETIQUETA_TIPO = { PERRO: 'Perro', GATO: 'Gato', OTRO: 'Otro' }
 const ETIQUETA_SEXO = { MACHO: 'Macho', HEMBRA: 'Hembra' }
@@ -96,6 +97,8 @@ function MisPublicaciones() {
   const [tab, setTab] = useState(esRescatista ? 'en_revision' : 'perdidos')
   const [animales, setAnimales] = useState([])
   const [reportes, setReportes] = useState([])
+  const [reservas, setReservas] = useState([])
+  const [cancelandoReservaId, setCancelandoReservaId] = useState(null)
   const [error, setError] = useState('')
   const [fotosNuevas, setFotosNuevas] = useState({})
 
@@ -108,11 +111,46 @@ function MisPublicaciones() {
       getMisAnimales()
         .then(res => setAnimales(res.data))
         .catch(() => setError('No se pudieron cargar tus animales.'))
+      getMisReservasActivas()
+        .then(res => setReservas(res.data))
+        .catch(() => {})
     }
     getMisReportes()
       .then(res => setReportes(res.data))
       .catch(() => setError('No se pudieron cargar tus reportes.'))
   }, [navigate, esRescatista])
+
+  function cargarReservas() {
+    getMisReservasActivas()
+      .then(res => setReservas(res.data))
+      .catch(() => {})
+  }
+
+  async function handleConcretar(reservaId) {
+    if (!window.confirm('¿Confirmar que la adopción se concretó?')) return
+    try {
+      await concretarReserva(reservaId)
+      cargarReservas()
+      getMisAnimales().then(res => setAnimales(res.data)).catch(() => {})
+    } catch (e) {
+      alert(e.response?.data || 'Error al concretar.')
+    }
+  }
+
+  function handleCancelarReserva(reservaId) {
+    setCancelandoReservaId(reservaId)
+  }
+
+  async function confirmarCancelacion(reservaId, motivo) {
+    setCancelandoReservaId(null)
+    try {
+      await cancelarReserva(reservaId, motivo)
+      cargarReservas()
+      getMisAnimales().then(res => setAnimales(res.data)).catch(() => {})
+    } catch (e) {
+      alert(e.response?.data || 'Error al cancelar.')
+    }
+  }
 
   async function handleCambiarEstado(id, estado) {
     setError('')
@@ -205,6 +243,7 @@ function MisPublicaciones() {
 
   const enRevision = animales.filter(a => !a.eliminado && !a.aprobado && !a.rechazado)
   const enAdopcion = animales.filter(a => !a.eliminado && a.aprobado && a.estado === 'EN_ADOPCION')
+  const reservados = reservas
   const adoptados = animales.filter(a => !a.eliminado && a.aprobado && a.estado === 'ADOPTADO')
 
   const perdidos = reportes.filter(r => !r.eliminado && r.estado === 'PERDIDO')
@@ -230,6 +269,9 @@ function MisPublicaciones() {
             </button>
             <button onClick={() => setTab('adopcion')} disabled={tab === 'adopcion'}>
               En adopcion ({enAdopcion.length})
+            </button>
+            <button onClick={() => setTab('reservados')} disabled={tab === 'reservados'}>
+              Reservados ({reservados.length})
             </button>
             <button onClick={() => setTab('adoptados')} disabled={tab === 'adoptados'}>
               Adoptados ({adoptados.length})
@@ -329,6 +371,54 @@ function MisPublicaciones() {
         </div>
       )}
 
+      {tab === 'reservados' && esRescatista && (
+        <div>
+          {reservados.length === 0 ? (
+            <p>No tenes animales reservados.</p>
+          ) : (
+            reservados.map(r => {
+              const animal = animales.find(a => a.id === r.animalId)
+              const activa = r.estado === 'ACTIVA'
+              return (
+                <div key={r.reservaId} style={{ border: `2px solid ${activa ? '#f0a500' : '#bbb'}`, borderRadius: 6, margin: '1rem 0', padding: '1rem', background: activa ? '#fffbf0' : '#fafafa', color: '#222' }}>
+                  <h3>{r.animalNombre}</h3>
+                  {animal && (
+                    <>
+                      <p>Tipo: {ETIQUETA_TIPO[animal.tipo]}</p>
+                      {animal.sexo && <p>Sexo: {ETIQUETA_SEXO[animal.sexo]}</p>}
+                      {animal.edad && <p>Edad: {ETIQUETA_EDAD[animal.edad]}</p>}
+                      <p>Ubicación: {animal.ciudad}, {animal.provincia}</p>
+                      <FotosList fotos={animal.fotos} />
+                    </>
+                  )}
+                  <p style={{ margin: '8px 0', fontSize: 13, color: '#555' }}>
+                    {activa
+                      ? <>✅ Reservado para: <strong>{r.adoptanteNombre}</strong></>
+                      : <>⏳ Propuesta enviada a <strong>{r.adoptanteNombre}</strong> — esperando confirmación</>}
+                  </p>
+                  {activa && (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={() => handleConcretar(r.reservaId)}
+                        style={{ fontSize: 13, background: '#2e7d32', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer' }}
+                      >
+                        ✅ Adopción concretada
+                      </button>
+                      <button
+                        onClick={() => handleCancelarReserva(r.reservaId)}
+                        style={{ fontSize: 13, background: '#c62828', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer' }}
+                      >
+                        ❌ Cancelar reserva
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+      )}
+
       {tab === 'adoptados' && esRescatista && (
         <div>
           {adoptados.length === 0 ? (
@@ -413,6 +503,34 @@ function MisPublicaciones() {
 
       <br />
       <Link to="/">Volver al inicio</Link>
+
+      {cancelandoReservaId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', color: '#222', padding: '2rem', borderRadius: 8, width: 360, maxWidth: '90%' }}>
+            <h3 style={{ marginTop: 0 }}>¿Por qué cancelás la reserva?</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button onClick={() => confirmarCancelacion(cancelandoReservaId, 'NO_CONCRETA')}
+                style={{ padding: '10px 14px', textAlign: 'left', background: '#fff3e0', border: '1px solid #f0a500', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
+                <strong>El adoptante no concretó la adopción</strong>
+                <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>El adoptante no podrá reservar este animal por 1 mes.</div>
+              </button>
+              <button onClick={() => confirmarCancelacion(cancelandoReservaId, 'ERROR_RESERVA')}
+                style={{ padding: '10px 14px', textAlign: 'left', background: '#f5f5f5', border: '1px solid #ccc', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
+                <strong>Error al reservar</strong>
+                <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>El animal vuelve a estar disponible, sin consecuencias para el adoptante.</div>
+              </button>
+              <button onClick={() => confirmarCancelacion(cancelandoReservaId, 'PROBLEMA_ANIMAL')}
+                style={{ padding: '10px 14px', textAlign: 'left', background: '#f5f5f5', border: '1px solid #ccc', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
+                <strong>Problema con el animal</strong>
+                <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>El animal vuelve a estar disponible, sin consecuencias para el adoptante.</div>
+              </button>
+              <button onClick={() => setCancelandoReservaId(null)} style={{ marginTop: 4, fontSize: 13 }}>
+                Volver
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {tab === 'eliminados' && (
         <div>

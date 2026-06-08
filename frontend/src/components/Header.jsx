@@ -1,10 +1,22 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { switchProfile } from '../api/user'
+import { getNoLeidos } from '../api/chat'
+import { useState, useEffect } from 'react'
 
 function Header() {
   const { user, logout, setActiveProfile } = useAuth()
   const navigate = useNavigate()
+  const [noLeidos, setNoLeidos] = useState(0)
+
+  // polling de mensajes no leídos cada 10 segundos
+  useEffect(() => {
+    if (!user) return
+    const cargar = () => getNoLeidos().then(r => setNoLeidos(r.data)).catch(() => {})
+    cargar()
+    const intervalo = setInterval(cargar, 10000)
+    return () => clearInterval(intervalo)
+  }, [user])
 
   async function handleSwitch() {
     try {
@@ -57,6 +69,18 @@ function Header() {
           )}
 
           <Link to="/favoritos">Favoritos</Link>
+          <Link to="/chats" style={{ position: 'relative' }}>
+            Chats
+            {noLeidos > 0 && (
+              <span style={{
+                position: 'absolute', top: -6, right: -10,
+                background: '#e53935', color: '#fff',
+                borderRadius: 10, fontSize: 10, padding: '1px 5px', lineHeight: 1.4
+              }}>
+                {noLeidos}
+              </span>
+            )}
+          </Link>
 
           {user.role === 'USER' && (
             <span style={{ fontSize: 13, color: '#555' }}>
