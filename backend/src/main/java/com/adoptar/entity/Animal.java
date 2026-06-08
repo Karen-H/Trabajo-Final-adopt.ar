@@ -108,6 +108,11 @@ public class Animal {
     @Builder.Default
     private boolean eliminadoPorAdmin = false;
 
+    // true si el publicador lo eliminó de forma permanente (no se puede reactivar)
+    @Column(columnDefinition = "boolean not null default false")
+    @Builder.Default
+    private boolean eliminadoPermanente = false;
+
     @Column(columnDefinition = "TEXT")
     private String motivoEliminacion;
 

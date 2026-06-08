@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { getMisAnimales, cambiarEstadoAnimal, agregarFotosAnimal, eliminarAnimal, republicarAnimal, eliminarFotoAnimal } from '../api/animal'
+import { getMisAnimales, cambiarEstadoAnimal, agregarFotosAnimal, pausarPublicacion, eliminarPublicacionPermanente, reactivarPublicacion, eliminarFotoAnimal } from '../api/animal'
 import { getMisReportes, resolverReporte } from '../api/reporte'
 import { getMisReservasActivas, concretarReserva, cancelarReserva } from '../api/reserva'
 
@@ -99,6 +99,7 @@ function MisPublicaciones() {
   const [reportes, setReportes] = useState([])
   const [reservas, setReservas] = useState([])
   const [cancelandoReservaId, setCancelandoReservaId] = useState(null)
+  const [modalPausarEliminarId, setModalPausarEliminarId] = useState(null)
   const [error, setError] = useState('')
   const [fotosNuevas, setFotosNuevas] = useState({})
 
@@ -202,26 +203,38 @@ function MisPublicaciones() {
     }
   }
 
-  async function handleEliminar(id) {
-    if (!window.confirm('\u00bfSegúro que querés eliminar esta publicación?')) return
+  async function handlePausar(id) {
+    setModalPausarEliminarId(null)
     setError('')
     try {
-      await eliminarAnimal(id)
-      // actualizar en ambas listas
+      await pausarPublicacion(id)
       setAnimales(prev => prev.map(a => a.id === id ? { ...a, eliminado: true } : a))
       setReportes(prev => prev.map(r => r.id === id ? { ...r, eliminado: true } : r))
+    } catch (err) {
+      setError(err.response?.data || 'No se pudo pausar la publicación.')
+    }
+  }
+
+  async function handleEliminarPermanente(id) {
+    setModalPausarEliminarId(null)
+    setError('')
+    try {
+      await eliminarPublicacionPermanente(id)
+      setAnimales(prev => prev.filter(a => a.id !== id))
+      setReportes(prev => prev.filter(r => r.id !== id))
     } catch (err) {
       setError(err.response?.data || 'No se pudo eliminar la publicación.')
     }
   }
 
-  async function handleRepublicar(id) {
+  async function handleReactivar(id) {
     setError('')
     try {
-      const res = await republicarAnimal(id)
+      const res = await reactivarPublicacion(id)
       setAnimales(prev => prev.map(a => a.id === id ? res.data : a))
+      setReportes(prev => prev.map(r => r.id === id ? res.data : r))
     } catch (err) {
-      setError(err.response?.data || 'No se pudo republicar.')
+      setError(err.response?.data || 'No se pudo reactivar la publicación.')
     }
   }
 
@@ -250,9 +263,9 @@ function MisPublicaciones() {
   const encontrados = reportes.filter(r => !r.eliminado && r.estado === 'ENCONTRADO')
   const resueltos = reportes.filter(r => !r.eliminado && r.estado === 'RESUELTO')
 
-  const eliminados = [
-    ...animales.filter(a => a.eliminado),
-    ...reportes.filter(r => r.eliminado),
+  const pausados = [
+    ...animales.filter(a => a.eliminado && !a.eliminadoPermanente),
+    ...reportes.filter(r => r.eliminado && !r.eliminadoPermanente),
   ]
 
   return (
@@ -287,8 +300,8 @@ function MisPublicaciones() {
         <button onClick={() => setTab('resueltos')} disabled={tab === 'resueltos'}>
           Resueltos ({resueltos.length})
         </button>
-        <button onClick={() => setTab('eliminados')} disabled={tab === 'eliminados'}>
-          Eliminados ({eliminados.length})
+        <button onClick={() => setTab('pausados')} disabled={tab === 'pausados'}>
+          Pausados ({pausados.length})
         </button>
       </div>
 
@@ -321,8 +334,8 @@ function MisPublicaciones() {
                   onAgregar={handleAgregarFotosAnimal}
                 />
                 <div style={{ marginTop: '0.5rem' }}>
-                  <button onClick={() => handleEliminar(animal.id)} style={{ color: '#c00' }}>
-                    Eliminar publicación
+                  <button onClick={() => setModalPausarEliminarId(animal.id)} style={{ color: '#c00' }}>
+                    Pausar / eliminar publicación
                   </button>
                 </div>
               </div>
@@ -361,8 +374,8 @@ function MisPublicaciones() {
                   <button onClick={() => handleCambiarEstado(animal.id, 'ADOPTADO')}>
                     Marcar como adoptado
                   </button>
-                  <button onClick={() => handleEliminar(animal.id)} style={{ color: '#c00' }}>
-                    Eliminar publicación
+                  <button onClick={() => setModalPausarEliminarId(animal.id)} style={{ color: '#c00' }}>
+                    Pausar / eliminar publicación
                   </button>
                 </div>
               </div>
@@ -489,8 +502,8 @@ function MisPublicaciones() {
                       </button>
                     )}
                     {!resuelto && (
-                      <button onClick={() => handleEliminar(reporte.id)} style={{ color: '#c00' }}>
-                        Eliminar publicación
+                      <button onClick={() => setModalPausarEliminarId(reporte.id)} style={{ color: '#c00' }}>
+                        Pausar / eliminar publicación
                       </button>
                     )}
                   </div>
@@ -501,8 +514,78 @@ function MisPublicaciones() {
         </div>
       )}
 
+      {tab === 'pausados' && (
+        <div>
+          {pausados.length === 0 ? (
+            <p>No tenés publicaciones pausadas.</p>
+          ) : (
+            pausados.map(item => {
+              const esReporte = item.categoria === 'PERDIDO_ENCONTRADO'
+              const titulo = esReporte ? ETIQUETA_TIPO[item.tipo] : item.nombre
+              return (
+                <div
+                  key={item.id}
+                  style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem', opacity: 0.7 }}
+                >
+                  <h3>{titulo}</h3>
+                  {item.eliminadoPorAdmin ? (
+                    <p style={{ color: '#c00' }}>
+                      Eliminada por un administrador
+                      {item.motivoEliminacion && `: ${item.motivoEliminacion}`}
+                    </p>
+                  ) : (
+                    <p style={{ color: '#888' }}>Pausada por vos</p>
+                  )}
+                  {item.fotos?.length > 0 && (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0.5rem 0' }}>
+                      {item.fotos.slice(0, 1).map(f => (
+                        <img key={f.id} src={f.url} alt="foto" style={{ width: 80, height: 80, objectFit: 'cover' }} />
+                      ))}
+                    </div>
+                  )}
+                  {!item.eliminadoPorAdmin && (
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <button onClick={() => handleReactivar(item.id)}>
+                        Reactivar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+      )}
+
       <br />
       <Link to="/">Volver al inicio</Link>
+
+      {modalPausarEliminarId && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', color: '#222', padding: '2rem', borderRadius: 8, width: 400, maxWidth: '90%' }}>
+            <h3 style={{ marginTop: 0 }}>¿Deseas pausar o eliminar?</h3>
+            <p style={{ fontSize: 14, color: '#555', marginBottom: 16 }}>
+              Si planeás reactivar la publicación más adelante, elegí <strong>Pausar</strong>.
+              Si elegís <strong>Eliminar</strong>, la publicación se borra de forma permanente y no podrás recuperarla.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button onClick={() => handlePausar(modalPausarEliminarId)}
+                style={{ padding: '10px 14px', textAlign: 'left', background: '#fff3e0', border: '1px solid #f0a500', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
+                <strong>Pausar publicación</strong>
+                <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>Dejará de verse en la plataforma, pero podés reactivarla después.</div>
+              </button>
+              <button onClick={() => handleEliminarPermanente(modalPausarEliminarId)}
+                style={{ padding: '10px 14px', textAlign: 'left', background: '#ffebee', border: '1px solid #c62828', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
+                <strong>Eliminar permanentemente</strong>
+                <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>Esta acción no se puede deshacer.</div>
+              </button>
+              <button onClick={() => setModalPausarEliminarId(null)} style={{ marginTop: 4, fontSize: 13 }}>
+                Volver
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {cancelandoReservaId && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
@@ -529,51 +612,6 @@ function MisPublicaciones() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {tab === 'eliminados' && (
-        <div>
-          {eliminados.length === 0 ? (
-            <p>No tenés publicaciones eliminadas.</p>
-          ) : (
-            eliminados.map(item => {
-              const esReporte = item.categoria === 'PERDIDO_ENCONTRADO'
-              const titulo = esReporte
-                ? ETIQUETA_TIPO[item.tipo]
-                : item.nombre
-              return (
-                <div
-                  key={item.id}
-                  style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem', opacity: 0.7 }}
-                >
-                  <h3>{titulo}</h3>
-                  {item.eliminadoPorAdmin ? (
-                    <p style={{ color: '#c00' }}>
-                      Eliminada por un administrador
-                      {item.motivoEliminacion && `: ${item.motivoEliminacion}`}
-                    </p>
-                  ) : (
-                    <p style={{ color: '#888' }}>Eliminada por vos</p>
-                  )}
-                  {item.fotos?.length > 0 && (
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0.5rem 0' }}>
-                      {item.fotos.slice(0, 1).map(f => (
-                        <img key={f.id} src={f.url} alt="foto" style={{ width: 80, height: 80, objectFit: 'cover' }} />
-                      ))}
-                    </div>
-                  )}
-                  {!item.eliminadoPorAdmin && !esReporte && (
-                    <div style={{ marginTop: '0.5rem' }}>
-                      <button onClick={() => handleRepublicar(item.id)}>
-                        Republicar
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )
-            })
-          )}
         </div>
       )}
     </div>

@@ -112,7 +112,7 @@ public class ReporteService {
     public List<AnimalResponse> getMisReportes(User publicador) {
         return animalRepository.findByPublicador(publicador)
                 .stream()
-                .filter(a -> a.getCategoria() == CategoriaAnimal.PERDIDO_ENCONTRADO)
+                .filter(a -> a.getCategoria() == CategoriaAnimal.PERDIDO_ENCONTRADO && !a.isEliminadoPermanente())
                 .map(this::toResponse)
                 .toList();
     }
@@ -155,7 +155,7 @@ public class ReporteService {
             throw new IllegalArgumentException("Este endpoint es solo para reportes");
         }
         if (animal.isEliminado()) {
-            throw new IllegalArgumentException("El reporte ya fue eliminado");
+            throw new IllegalArgumentException("El reporte ya está pausado o eliminado");
         }
         animal.setEliminado(true);
         animalRepository.save(animal);
@@ -209,6 +209,7 @@ public class ReporteService {
                 .motivoRechazo(animal.getMotivoRechazo())
                 .eliminado(animal.isEliminado())
                 .eliminadoPorAdmin(animal.isEliminadoPorAdmin())
+                .eliminadoPermanente(animal.isEliminadoPermanente())
                 .motivoEliminacion(animal.getMotivoEliminacion())
                 .creadoEn(animal.getCreadoEn())
                 .build();

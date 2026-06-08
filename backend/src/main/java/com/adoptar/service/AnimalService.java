@@ -9,6 +9,7 @@ import com.adoptar.entity.User;
 import com.adoptar.enums.CategoriaAnimal;
 import com.adoptar.enums.EstadoAnimal;
 import com.adoptar.enums.EstadoFoto;
+import com.adoptar.enums.EstadoReserva;
 import com.adoptar.enums.RangoEdad;
 import com.adoptar.enums.SexoAnimal;
 import com.adoptar.enums.TipoAdopcion;
@@ -36,6 +37,7 @@ public class AnimalService {
 
     private final AnimalRepository animalRepository;
     private final AnimalFotoRepository animalFotoRepository;
+    private final com.adoptar.repository.ReservaRepository reservaRepository;
 
     @Value("${uploads.path}")
     private String uploadsPath;
@@ -94,7 +96,7 @@ public class AnimalService {
     public List<AnimalResponse> getMisAnimales(User publicador) {
         return animalRepository.findByPublicador(publicador)
                 .stream()
-                .filter(a -> a.getCategoria() == CategoriaAnimal.ADOPCION)
+                .filter(a -> a.getCategoria() == CategoriaAnimal.ADOPCION && !a.isEliminadoPermanente())
                 .map(this::toResponse)
                 .toList();
     }
@@ -171,31 +173,39 @@ public class AnimalService {
     }
 
     @Transactional
-    public void eliminarAnimal(Long animalId, User user) {
-        Animal animal = animalRepository.findById(animalId)
-                .orElseThrow(() -> new IllegalArgumentException("Animal no encontrado"));
-        if (!animal.getPublicador().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("No tenes permiso para eliminar este animal");
-        }
+    public void pausarPublicacion(Long animalId, User user) {
+        Animal animal = getPublicacionDelUsuario(animalId, user);
         if (animal.isEliminado()) {
-            throw new IllegalArgumentException("El animal ya fue eliminado");
+            throw new IllegalArgumentException("La publicación ya está pausada o eliminada");
         }
+        verificarSinReservaActiva(animal);
         animal.setEliminado(true);
         animalRepository.save(animal);
     }
 
     @Transactional
-    public AnimalResponse republicarAnimal(Long animalId, User user) {
-        Animal animal = animalRepository.findById(animalId)
-                .orElseThrow(() -> new IllegalArgumentException("Animal no encontrado"));
-        if (!animal.getPublicador().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("No tenes permiso para republicar este animal");
+    public void eliminarPublicacionPermanente(Long animalId, User user) {
+        Animal animal = getPublicacionDelUsuario(animalId, user);
+        if (animal.isEliminadoPermanente()) {
+            throw new IllegalArgumentException("La publicación ya fue eliminada permanentemente");
         }
+        verificarSinReservaActiva(animal);
+        animal.setEliminado(true);
+        animal.setEliminadoPermanente(true);
+        animalRepository.save(animal);
+    }
+
+    @Transactional
+    public AnimalResponse reactivarPublicacion(Long animalId, User user) {
+        Animal animal = getPublicacionDelUsuario(animalId, user);
         if (!animal.isEliminado()) {
-            throw new IllegalArgumentException("El animal no está eliminado");
+            throw new IllegalArgumentException("La publicación no está pausada");
+        }
+        if (animal.isEliminadoPermanente()) {
+            throw new IllegalArgumentException("No podés reactivar una publicación eliminada permanentemente");
         }
         if (animal.isEliminadoPorAdmin()) {
-            throw new IllegalArgumentException("No podes republicar un animal eliminado por un administrador");
+            throw new IllegalArgumentException("No podés reactivar una publicación eliminada por un administrador");
         }
         animal.setEliminado(false);
         animal.setAprobado(false);
@@ -203,6 +213,30 @@ public class AnimalService {
         animal.setMotivoRechazo(null);
         animalRepository.save(animal);
         return toResponse(animal);
+    }
+
+    private Animal getPublicacionDelUsuario(Long animalId, User user) {
+        Animal animal = animalRepository.findById(animalId)
+                .orElseThrow(() -> new IllegalArgumentException("Publicación no encontrada"));
+        if (!animal.getPublicador().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("No tenes permiso para modificar esta publicación");
+        }
+        return animal;
+    }
+
+    private void verificarSinReservaActiva(Animal animal) {
+        if (animal.getCategoria() != CategoriaAnimal.ADOPCION) {
+            return;
+        }
+        reservaRepository.findByAnimalAndEstadoIn(animal, List.of(EstadoReserva.PENDIENTE, EstadoReserva.ACTIVA))
+                .ifPresent(r -> {
+                    throw new IllegalArgumentException("No podés pausar ni eliminar un animal con reserva activa o pendiente");
+                });
+    }
+
+    @Transactional
+    public AnimalResponse republicarAnimal(Long animalId, User user) {
+        return reactivarPublicacion(animalId, user);
     }
 
     @Transactional
@@ -275,6 +309,7 @@ public class AnimalService {
                 .motivoRechazo(animal.getMotivoRechazo())
                 .eliminado(animal.isEliminado())
                 .eliminadoPorAdmin(animal.isEliminadoPorAdmin())
+                .eliminadoPermanente(animal.isEliminadoPermanente())
                 .motivoEliminacion(animal.getMotivoEliminacion())
                 .creadoEn(animal.getCreadoEn())
                 .adoptadoEn(animal.getAdoptadoEn())

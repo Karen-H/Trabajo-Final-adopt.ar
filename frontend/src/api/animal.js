@@ -24,11 +24,15 @@ export function agregarFotosAnimal(id, formData) {
   })
 }
 
-export function eliminarAnimal(id) {
+export function pausarPublicacion(id) {
+  return api.post(`/animales/${id}/pausar`)
+}
+
+export function eliminarPublicacionPermanente(id) {
   return api.delete(`/animales/${id}`)
 }
 
-export function republicarAnimal(id) {
+export function reactivarPublicacion(id) {
   return api.post(`/animales/${id}/republicar`)
 }
 
