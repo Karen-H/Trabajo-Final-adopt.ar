@@ -4,6 +4,8 @@ import { getAdopciones } from '../api/animal'
 import { getFavoritos, agregarFavorito, quitarFavorito } from '../api/favorito'
 import FiltroUbicacion from '../components/FiltroUbicacion'
 import ModalDenuncia from '../components/ModalDenuncia'
+import { iniciarChat } from '../api/chat'
+import { getMisBloqueos, getMisReservasAdoptante } from '../api/reserva'
 import { useAuth } from '../context/AuthContext'
 
 const TIPOS = ['PERRO', 'GATO', 'OTRO']
@@ -60,6 +62,8 @@ function Adopciones() {
   const [favoritoIds, setFavoritoIds] = useState(new Set())
   const [denunciaAnimalId, setDenunciaAnimalId] = useState(null)
   const [denunciadoIds, setDenunciadoIds] = useState(new Set())
+  const [bloqueoIds, setBloqueoIds] = useState(new Set())
+  const [misReservas, setMisReservas] = useState([])
 
   useEffect(() => {
     getAdopciones()
@@ -70,8 +74,19 @@ function Adopciones() {
       getFavoritos()
         .then(r => setFavoritoIds(new Set(r.data.map(f => f.animalId))))
         .catch(() => {})
+      getMisBloqueos()
+        .then(r => setBloqueoIds(new Set(r.data)))
+        .catch(() => {})
     }
   }, [])
+
+  // cargar reservas del adoptante cuando el user ya está disponible
+  useEffect(() => {
+    if (!estaLogueado || user?.activeProfile !== 'ADOPTANTE') return
+    getMisReservasAdoptante()
+      .then(r => setMisReservas(r.data))
+      .catch(() => {})
+  }, [user?.activeProfile])
 
   function toggleTipo(tipo) {
     setTipos(prev => prev.includes(tipo) ? prev.filter(t => t !== tipo) : [...prev, tipo])
@@ -113,6 +128,35 @@ function Adopciones() {
   return (
     <div>
       <h2>Animales en adopcion</h2>
+
+      {/* mis reservas (solo adoptante) */}
+      {estaLogueado && user?.activeProfile === 'ADOPTANTE' && misReservas.length > 0 && (
+        <div style={{ margin: '0 0 1.5rem' }}>
+          <h3 style={{ color: '#1a6e2e' }}>🔒 Mis animales con reserva</h3>
+          {misReservas.map(r => {
+            const activa = r.estado === 'ACTIVA'
+            return (
+                <div key={r.reservaId} style={{ border: `2px solid ${activa ? '#4caf50' : '#f0a500'}`, borderRadius: 6, marginBottom: 12, padding: '1rem', background: activa ? '#f1f8f4' : '#fffbf0', color: '#222', display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                {r.fotos?.length > 0 && (
+                  <img src={r.fotos[0].url} alt={r.animalNombre} style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} />
+                )}
+                <div>
+                  <p style={{ margin: '0 0 4px', fontWeight: 600, fontSize: 15 }}>{r.animalNombre}</p>
+                  <p style={{ margin: '0 0 2px', fontSize: 13, color: '#555' }}>
+                    {r.tipo && ETIQUETA_TIPO[r.tipo]}{r.sexo ? ' · ' + ETIQUETA_SEXO[r.sexo] : ''}{r.edad ? ' · ' + ETIQUETA_EDAD[r.edad] : ''}
+                  </p>
+                  {(r.ciudad || r.provincia) && (
+                    <p style={{ margin: '0 0 2px', fontSize: 13, color: '#666' }}>{r.ciudad}{r.ciudad && r.provincia ? ', ' : ''}{r.provincia}</p>
+                  )}
+                  <p style={{ margin: '4px 0 0', fontSize: 13, color: activa ? '#1a6e2e' : '#c47f00' }}>
+                    {activa ? '✅ Reserva confirmada' : '⏳ Reserva pendiente de tu confirmación'} · {r.rescatistaNombre}
+                  </p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       <div style={{ marginBottom: '1rem', display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <div>
@@ -229,6 +273,25 @@ function Adopciones() {
               >
                 {favoritoIds.has(a.id) ? '❤️' : '🤍'}
               </button>
+            )}
+            {estaLogueado && a.usuarioId !== user?.id && user?.activeProfile === 'ADOPTANTE' && (
+              bloqueoIds.has(a.id) ? (
+                <span style={{ fontSize: 12, color: '#999', marginLeft: 8 }}>🚫 No disponible para vos (reserva cancelada)</span>
+              ) : (
+                <button
+                  onClick={async () => {
+                    try {
+                      await iniciarChat(a.usuarioId, a.id, a.nombre)
+                      navigate('/chats')
+                    } catch (e) {
+                      alert(e.response?.data || 'No se pudo iniciar el chat.')
+                    }
+                  }}
+                  style={{ fontSize: 13, marginLeft: 8 }}
+                >
+                  💬 Consultar al rescatista
+                </button>
+              )
             )}
             {estaLogueado && a.usuarioId !== user?.id && (
               <button
