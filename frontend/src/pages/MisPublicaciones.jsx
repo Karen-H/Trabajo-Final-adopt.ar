@@ -21,6 +21,15 @@ const ETIQUETA_FOTO_ESTADO = {
 
 
 
+function StatsAnimal({ animal }) {
+  if (animal.vistas == null) return null
+  return (
+    <p style={{ margin: '6px 0 0', fontSize: 12, color: '#666' }}>
+      👁 {animal.vistas} vistas · ❤️ {animal.cantidadFavoritos} favoritos · 💬 {animal.cantidadChats} chats
+    </p>
+  )
+}
+
 function estadoRevision(item) {
   if (item.rechazado) return { texto: 'Rechazado', color: '#c00' }
   if (item.aprobado) return { texto: 'Aprobado', color: '#080' }
@@ -315,6 +324,7 @@ function MisPublicaciones() {
             enRevision.map(animal => (
               <div key={animal.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
                 <h3>{animal.nombre} <span style={{ fontSize: '0.85rem', color: '#888' }}>[En revision]</span></h3>
+                <StatsAnimal animal={animal} />
                 <p>Tipo: {ETIQUETA_TIPO[animal.tipo]}</p>
                 {animal.sexo && <p>Sexo: {ETIQUETA_SEXO[animal.sexo]}</p>}
                 {animal.edad && <p>Edad: {ETIQUETA_EDAD[animal.edad]}</p>}
@@ -352,6 +362,7 @@ function MisPublicaciones() {
             enAdopcion.map(animal => (
               <div key={animal.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
                 <h3>{animal.nombre}</h3>
+                <StatsAnimal animal={animal} />
                 <p>Tipo: {ETIQUETA_TIPO[animal.tipo]}</p>
                 {animal.sexo && <p>Sexo: {ETIQUETA_SEXO[animal.sexo]}</p>}
                 {animal.edad && <p>Edad: {ETIQUETA_EDAD[animal.edad]}</p>}
@@ -440,6 +451,7 @@ function MisPublicaciones() {
             adoptados.map(animal => (
               <div key={animal.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
                 <h3>{animal.nombre}</h3>
+                <StatsAnimal animal={animal} />
                 <p>Tipo: {ETIQUETA_TIPO[animal.tipo]}</p>
                 {animal.sexo && <p>Sexo: {ETIQUETA_SEXO[animal.sexo]}</p>}
                 {animal.edad && <p>Edad: {ETIQUETA_EDAD[animal.edad]}</p>}

@@ -43,3 +43,7 @@ export function reactivarPublicacion(id) {
 export function eliminarFotoAnimal(animalId, fotoId) {
   return api.delete(`/animales/${animalId}/fotos/${fotoId}`)
 }
+
+export function registrarVista(id) {
+  return api.post(`/animales/${id}/vista`)
+}

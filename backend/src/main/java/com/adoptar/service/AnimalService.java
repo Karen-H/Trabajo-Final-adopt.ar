@@ -16,6 +16,8 @@ import com.adoptar.enums.TipoAdopcion;
 import com.adoptar.enums.TipoAnimal;
 import com.adoptar.repository.AnimalFotoRepository;
 import com.adoptar.repository.AnimalRepository;
+import com.adoptar.repository.ChatRepository;
+import com.adoptar.repository.FavoritoRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,6 +40,8 @@ public class AnimalService {
     private final AnimalRepository animalRepository;
     private final AnimalFotoRepository animalFotoRepository;
     private final com.adoptar.repository.ReservaRepository reservaRepository;
+    private final FavoritoRepository favoritoRepository;
+    private final ChatRepository chatRepository;
 
     @Value("${uploads.path}")
     private String uploadsPath;
@@ -97,8 +101,22 @@ public class AnimalService {
         return animalRepository.findByPublicador(publicador)
                 .stream()
                 .filter(a -> a.getCategoria() == CategoriaAnimal.ADOPCION && !a.isEliminadoPermanente())
-                .map(this::toResponse)
+                .map(this::toResponseConStats)
                 .toList();
+    }
+
+    @Transactional
+    public void registrarVista(Long id, User caller) {
+        Animal animal = animalRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Animal no encontrado"));
+        if (!animal.isAprobado() || animal.getCategoria() != CategoriaAnimal.ADOPCION) {
+            return;
+        }
+        if (caller != null && animal.getPublicador().getId().equals(caller.getId())) {
+            return;
+        }
+        animal.setVistas(animal.getVistas() + 1);
+        animalRepository.save(animal);
     }
 
     @Transactional
@@ -270,6 +288,14 @@ public class AnimalService {
     }
 
     private AnimalResponse toResponse(Animal animal) {
+        return buildResponse(animal, false);
+    }
+
+    private AnimalResponse toResponseConStats(Animal animal) {
+        return buildResponse(animal, true);
+    }
+
+    private AnimalResponse buildResponse(Animal animal, boolean conStats) {
         List<FotoResponse> fotos = animal.getFotos().stream()
                 .map(f -> FotoResponse.builder()
                         .id(f.getId())
@@ -278,7 +304,7 @@ public class AnimalService {
                         .motivoRechazo(f.getMotivoRechazo())
                         .build())
                 .toList();
-        return AnimalResponse.builder()
+        AnimalResponse.AnimalResponseBuilder builder = AnimalResponse.builder()
                 .id(animal.getId())
                 .usuarioId(animal.getPublicador().getId())
                 .categoria(animal.getCategoria())
@@ -309,8 +335,14 @@ public class AnimalService {
                 .eliminadoPermanente(animal.isEliminadoPermanente())
                 .motivoEliminacion(animal.getMotivoEliminacion())
                 .creadoEn(animal.getCreadoEn())
-                .adoptadoEn(animal.getAdoptadoEn())
-                .build();
+                .adoptadoEn(animal.getAdoptadoEn());
+        if (conStats) {
+            builder
+                .vistas(animal.getVistas())
+                .cantidadFavoritos(favoritoRepository.countByAnimalId(animal.getId()))
+                .cantidadChats(chatRepository.countByAnimalId(animal.getId()));
+        }
+        return builder.build();
     }
 
     private AnimalResponse toPublicResponse(Animal animal) {

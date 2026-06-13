@@ -47,6 +47,14 @@ public class AnimalController {
         }
     }
 
+    @PostMapping("/{id}/vista")
+    public ResponseEntity<?> registrarVista(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id) {
+        animalService.registrarVista(id, user);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> crear(
             @AuthenticationPrincipal User user,

@@ -140,5 +140,9 @@ public class Animal {
     // se setea cuando el estado de un reporte cambia a RESUELTO
     @Column
     private LocalDateTime resueltoEn;
+
+    @Column(columnDefinition = "bigint not null default 0")
+    @Builder.Default
+    private long vistas = 0L;
 }
 

@@ -47,4 +47,8 @@ public class AnimalResponse {
     private String motivoEliminacion;
     private LocalDateTime creadoEn;
     private LocalDateTime adoptadoEn;
+    // stats solo para el dueño (getMisAnimales)
+    private Long vistas;
+    private Long cantidadFavoritos;
+    private Long cantidadChats;
 }

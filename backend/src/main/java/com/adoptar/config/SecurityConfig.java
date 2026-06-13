@@ -51,6 +51,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/animales/mis-animales").authenticated()
                 // detalle de un animal por id
                 .requestMatchers(HttpMethod.GET, "/api/animales/*").permitAll()
+                // registro de vista (auth opcional: el backend excluye al dueño)
+                .requestMatchers(HttpMethod.POST, "/api/animales/*/vista").permitAll()
                 // vistas públicas de perdidos y encontrados
                 .requestMatchers(HttpMethod.GET, "/api/reportes/perdidos").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reportes/encontrados").permitAll()

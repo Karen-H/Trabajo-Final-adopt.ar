@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getAnimalById } from '../api/animal'
+import { getAnimalById, registrarVista } from '../api/animal'
 import { getFavoritos, agregarFavorito, quitarFavorito } from '../api/favorito'
 import { getMisBloqueos } from '../api/reserva'
 import { iniciarChat } from '../api/chat'
@@ -38,6 +38,9 @@ function AnimalDetalle() {
         else navigate(-1)
       })
       .finally(() => setCargando(false))
+
+    // el backend no cuenta la vista si el caller es el dueño
+    registrarVista(id).catch(() => {})
 
     if (estaLogueado) {
       getFavoritos()
@@ -160,7 +163,7 @@ function AnimalDetalle() {
           <button
             onClick={async () => {
               try {
-                const label = ETIQUETA_TIPO[animal.tipo] + (animal.estado === 'PERDIDO' ? ' (perdido)' : ' (encontrado)')
+                const label = (animal.nombre || ETIQUETA_TIPO[animal.tipo]) + (animal.estado === 'PERDIDO' ? ' (perdido)' : ' (encontrado)')
                 await iniciarChat(animal.usuarioId, animal.id, label)
                 navigate('/chats')
               } catch (e) {

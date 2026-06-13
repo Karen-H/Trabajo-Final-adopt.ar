@@ -15,4 +15,7 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
 
     @Query("SELECT c FROM Chat c WHERE c.adoptante = :user OR c.rescatista = :user ORDER BY c.creadoEn DESC")
     List<Chat> findByParticipante(@Param("user") User user);
+
+    @Query("SELECT COUNT(DISTINCT c) FROM Chat c JOIN c.animales a WHERE a.id = :animalId")
+    long countByAnimalId(@Param("animalId") Long animalId);
 }
