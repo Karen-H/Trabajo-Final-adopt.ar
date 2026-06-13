@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { getPerdidos } from '../api/reporte'
-import { getFavoritos, agregarFavorito, quitarFavorito } from '../api/favorito'
 import FiltroUbicacion from '../components/FiltroUbicacion'
-import ModalDenuncia from '../components/ModalDenuncia'
-import { useAuth } from '../context/AuthContext'
+import Paginacion from '../components/Paginacion'
 
 const TIPOS = ['PERRO', 'GATO', 'OTRO']
 const ETIQUETA_TIPO = { PERRO: 'Perro', GATO: 'Gato', OTRO: 'Otro' }
@@ -19,51 +17,31 @@ function filtrar(reportes, tipos, provincia, ciudad) {
 }
 
 function Perdidos() {
-  const navigate = useNavigate()
-  const { user } = useAuth()
-  const estaLogueado = !!localStorage.getItem('token')
   const [reportes, setReportes] = useState([])
   const [cargando, setCargando] = useState(true)
   const [tipos, setTipos] = useState([])
   const [provincia, setProvincia] = useState('')
   const [ciudad, setCiudad] = useState('')
-  const [favoritoIds, setFavoritoIds] = useState(new Set())
-  const [denunciaAnimalId, setDenunciaAnimalId] = useState(null)
-  const [denunciadoIds, setDenunciadoIds] = useState(new Set())
+  const [pagina, setPagina] = useState(1)
 
   useEffect(() => {
     getPerdidos()
       .then(r => setReportes(r.data))
       .catch(() => {})
       .finally(() => setCargando(false))
-    if (estaLogueado) {
-      getFavoritos()
-        .then(r => setFavoritoIds(new Set(r.data.map(f => f.animalId))))
-        .catch(() => {})
-    }
   }, [])
 
   function toggleTipo(tipo) {
     setTipos(prev => prev.includes(tipo) ? prev.filter(t => t !== tipo) : [...prev, tipo])
   }
 
-  async function toggleFavorito(animalId) {
-    if (!estaLogueado) {
-      localStorage.setItem('pendingFavorito', animalId)
-      navigate('/login')
-      return
-    }
-    if (favoritoIds.has(animalId)) {
-      await quitarFavorito(animalId)
-      setFavoritoIds(prev => { const s = new Set(prev); s.delete(animalId); return s })
-    } else {
-      await agregarFavorito(animalId)
-      setFavoritoIds(prev => new Set([...prev, animalId]))
-    }
-  }
-
   const hayFiltros = tipos.length > 0 || provincia || ciudad
   const visibles = filtrar(reportes, tipos, provincia, ciudad)
+
+  useEffect(() => { setPagina(1) }, [tipos, provincia, ciudad])
+
+  const POR_PAGINA = 10
+  const paginados = visibles.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
 
   if (cargando) return <p>Cargando...</p>
 
@@ -105,53 +83,20 @@ function Perdidos() {
       ) : visibles.length === 0 ? (
         <p>No hay resultados para los filtros seleccionados.</p>
       ) : (
-        visibles.map(r => (
-          <div key={r.id} style={{ border: '1px solid #ccc', marginBottom: 12, padding: 12 }}>
-            {r.fotos?.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '6px 0' }}>
-                {r.fotos.map(f => (
-                  <img key={f.id} src={f.url} alt="foto" style={{ width: 120, height: 120, objectFit: 'cover' }} />
-                ))}
-              </div>
-            )}
-            <p>Tipo: {ETIQUETA_TIPO[r.tipo]}</p>
-            {r.direccion && <p>Visto en: {r.direccion}</p>}
-            {r.fechaAvistamiento && <p>Fecha: {r.fechaAvistamiento}</p>}
-            {r.descripcion && <p>Descripción: {r.descripcion}</p>}
-            <p style={{ fontSize: 12, color: '#666' }}>
-              Publicado por {r.rescatistaNombre} en {r.ciudad}, {r.provincia}
-            </p>
-            {(!estaLogueado || r.usuarioId !== user?.id) && (
-              <button
-                onClick={() => toggleFavorito(r.id)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: '4px 0' }}
-                title={favoritoIds.has(r.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-              >
-                {favoritoIds.has(r.id) ? '❤️' : '🤍'}
-              </button>
-            )}
-            {estaLogueado && r.usuarioId !== user?.id && (
-              <button
-                onClick={() => {
-                    if (denunciadoIds.has(r.id)) { alert('Ya denunciaste esta publicación'); return }
-                    setDenunciaAnimalId(r.id)
-                  }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#999', padding: '4px 0', marginLeft: 8 }}
-                title="Reportar publicación"
-              >
-                🚩 Reportar
-              </button>
-            )}
-          </div>
-        ))
-      )}
-
-      {denunciaAnimalId && (
-        <ModalDenuncia
-          animalId={denunciaAnimalId}
-          onClose={() => setDenunciaAnimalId(null)}
-          onSuccess={() => { setDenunciadoIds(prev => new Set([...prev, denunciaAnimalId])); setDenunciaAnimalId(null); alert('Denuncia enviada. El administrador la revisará.') }}
-        />
+        <>
+          {paginados.map(r => (
+            <Link key={r.id} to={`/animal/${r.id}`} style={{ display: 'block', border: '1px solid #ccc', marginBottom: 12, padding: 12, color: 'inherit', textDecoration: 'none' }}>
+              {r.fotos?.length > 0 && (
+                <img src={r.fotos[0].url} alt="foto" style={{ width: 120, height: 120, objectFit: 'cover', display: 'block', marginBottom: 8 }} />
+              )}
+              <p style={{ margin: '2px 0', fontWeight: 600 }}>{ETIQUETA_TIPO[r.tipo]}</p>
+              {(r.ciudad || r.provincia) && (
+                <p style={{ margin: '2px 0', fontSize: 12, color: '#666' }}>{[r.ciudad, r.provincia].filter(Boolean).join(', ')}</p>
+              )}
+            </Link>
+          ))}
+          <Paginacion total={visibles.length} porPagina={POR_PAGINA} pagina={pagina} onChange={setPagina} />
+        </>
       )}
     </div>
   )

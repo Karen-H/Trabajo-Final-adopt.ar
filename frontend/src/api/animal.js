@@ -10,6 +10,10 @@ export function getAdopciones() {
   return api.get('/animales')
 }
 
+export function getAnimalById(id) {
+  return api.get(`/animales/${id}`)
+}
+
 export function getMisAnimales() {
   return api.get('/animales/mis-animales')
 }

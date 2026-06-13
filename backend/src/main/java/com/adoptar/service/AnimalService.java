@@ -161,7 +161,7 @@ public class AnimalService {
     public AnimalResponse getAnimalById(Long id) {
         Animal animal = animalRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Animal no encontrado"));
-        if (!animal.isAprobado() || animal.getCategoria() != CategoriaAnimal.ADOPCION) {
+        if (!animal.isAprobado()) {
             throw new IllegalArgumentException("Animal no encontrado");
         }
         return toPublicResponse(animal);

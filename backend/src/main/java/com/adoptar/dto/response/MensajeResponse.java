@@ -14,4 +14,5 @@ public class MensajeResponse {
     private String contenido;
     private LocalDateTime creadoEn;
     private boolean esPropio;
+    private AnimalPreviewResponse animalPreview;
 }

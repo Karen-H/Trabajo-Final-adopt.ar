@@ -1,5 +1,6 @@
 package com.adoptar.dto.request;
 
+import com.adoptar.enums.PreferenciaRol;
 import jakarta.validation.constraints.Email;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,4 +19,6 @@ public class UpdateProfileRequest {
     private String provincia;
 
     private String ciudad;
+
+    private PreferenciaRol preferencia;
 }

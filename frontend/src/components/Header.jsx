@@ -82,7 +82,7 @@ function Header() {
             )}
           </Link>
 
-          {user.role === 'USER' && (
+          {user.role === 'USER' && user.preferencia === 'AMBOS' && (
             <span style={{ fontSize: 13, color: '#555' }}>
               Perfil: <strong>{user.activeProfile}</strong>
               {' '}

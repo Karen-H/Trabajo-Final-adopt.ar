@@ -1,12 +1,16 @@
 package com.adoptar.service;
 
 import com.adoptar.dto.request.IniciarChatRequest;
+import com.adoptar.dto.response.AnimalPreviewResponse;
 import com.adoptar.dto.response.ChatResumenResponse;
 import com.adoptar.dto.response.MensajeResponse;
 import com.adoptar.entity.Animal;
+import com.adoptar.entity.AnimalFoto;
 import com.adoptar.entity.Chat;
 import com.adoptar.entity.Mensaje;
 import com.adoptar.entity.User;
+import com.adoptar.enums.CategoriaAnimal;
+import com.adoptar.enums.EstadoFoto;
 import com.adoptar.repository.AnimalRepository;
 import com.adoptar.repository.BloqueoAdopcionRepository;
 import com.adoptar.repository.ChatRepository;
@@ -39,13 +43,15 @@ public class ChatService {
         Animal animal = animalRepository.findById(req.getAnimalId())
                 .orElseThrow(() -> new RuntimeException("Animal no encontrado"));
 
-        // verificar bloqueo para este adoptante + animal
-        bloqueoRepository.findByAdoptanteAndAnimal(adoptante, animal).ifPresent(b -> {
-            if (b.getBloqueadoHasta().isAfter(LocalDateTime.now())) {
-                throw new RuntimeException("Tenés una restricción para adoptar este animal hasta "
-                        + b.getBloqueadoHasta().toLocalDate());
-            }
-        });
+        // el bloqueo solo aplica a animales en adopcion
+        if (animal.getCategoria() == CategoriaAnimal.ADOPCION) {
+            bloqueoRepository.findByAdoptanteAndAnimal(adoptante, animal).ifPresent(b -> {
+                if (b.getBloqueadoHasta().isAfter(LocalDateTime.now())) {
+                    throw new RuntimeException("Tenés una restricción para adoptar este animal hasta "
+                            + b.getBloqueadoHasta().toLocalDate());
+                }
+            });
+        }
 
         boolean esNuevo = false;
         Chat chat = chatRepository.findByAdoptanteAndRescatista(adoptante, rescatista)
@@ -76,6 +82,7 @@ public class ChatService {
                 .chat(chatFinal)
                 .emisor(null)
                 .contenido(textoSistema)
+                .animal(animal)
                 .leido(false)
                 .build());
 
@@ -97,6 +104,9 @@ public class ChatService {
                     .filter(m -> !m.isLeido() && (m.getEmisor() == null || !m.getEmisor().getId().equals(user.getId())))
                     .count();
 
+            boolean esChatReporte = chat.getAnimales().stream()
+                    .anyMatch(a -> a.getCategoria() == CategoriaAnimal.PERDIDO_ENCONTRADO);
+
             return ChatResumenResponse.builder()
                     .id(chat.getId())
                     .otroUsuarioId(otro.getId())
@@ -105,6 +115,7 @@ public class ChatService {
                     .ultimoMensajeEn(ultimo != null ? ultimo.getCreadoEn() : chat.getCreadoEn())
                     .noLeidos(noLeidos)
                     .rolEnChat(esAdoptante ? "ADOPTANTE" : "RESCATISTA")
+                    .esChatReporte(esChatReporte)
                     .build();
         }).toList();
     }
@@ -132,6 +143,7 @@ public class ChatService {
                         .contenido(m.getContenido())
                         .creadoEn(m.getCreadoEn())
                         .esPropio(m.getEmisor() != null && m.getEmisor().getId().equals(user.getId()))
+                        .animalPreview(m.getAnimal() != null ? toAnimalPreview(m.getAnimal()) : null)
                         .build())
                 .toList();
     }
@@ -167,5 +179,22 @@ public class ChatService {
     @Transactional(readOnly = true)
     public long getNoLeidos(User user) {
         return mensajeRepository.countNoLeidosByUser(user);
+    }
+
+    private AnimalPreviewResponse toAnimalPreview(Animal animal) {
+        String primeraFotoUrl = animal.getFotos().stream()
+                .filter(f -> f.getEstado() == EstadoFoto.APROBADA)
+                .map(f -> "/uploads/" + f.getNombreArchivo())
+                .findFirst()
+                .orElse(null);
+        return AnimalPreviewResponse.builder()
+                .id(animal.getId())
+                .categoria(animal.getCategoria().name())
+                .tipo(animal.getTipo().name())
+                .estado(animal.getEstado().name())
+                .nombre(animal.getNombre())
+                .descripcion(animal.getDescripcion())
+                .primeraFotoUrl(primeraFotoUrl)
+                .build();
     }
 }

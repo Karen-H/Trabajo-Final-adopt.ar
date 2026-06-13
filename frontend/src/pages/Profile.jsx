@@ -6,9 +6,15 @@ import { getDisponibilidadPropia, agregarDisponibilidad, eliminarDisponibilidad 
 import { configurarDonaciones, getMisDonaciones } from '../api/donacion'
 import { useAuth } from '../context/AuthContext'
 
+const ETIQUETA_PREFERENCIA = {
+  ADOPTANTE: 'Solo adoptar',
+  RESCATISTA: 'Solo publicar',
+  AMBOS: 'Adoptar y publicar',
+}
+
 function Profile() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, setActiveProfile, setPreferencia, setTieneTienda } = useAuth()
   const [perfil, setPerfil] = useState(null)
   const [editando, setEditando] = useState(false)
   const [form, setForm] = useState({ email: '', tel: '', organizacion: '', provincia: '', ciudad: '' })
@@ -21,6 +27,13 @@ function Profile() {
   const [disponibilidad, setDisponibilidad] = useState([])
   const [nuevaDisponibilidad, setNuevaDisponibilidad] = useState({ diaSemana: '', horaInicio: '', horaFin: '' })
   const [errorDisp, setErrorDisp] = useState('')
+
+  // preferencia de rol
+  const [editandoPreferencia, setEditandoPreferencia] = useState(false)
+  const [nuevaPreferencia, setNuevaPreferencia] = useState('')
+  const [confirmPref1, setConfirmPref1] = useState(false)
+  const [confirmPref2, setConfirmPref2] = useState(false)
+  const [errorPref, setErrorPref] = useState('')
 
   // donaciones (solo USER)
   const [donConfig, setDonConfig] = useState({ aceptaDonaciones: false, descripcionDonacion: '' })
@@ -156,6 +169,32 @@ function Profile() {
       setDisponibilidad(prev => prev.filter(d => d.id !== id))
     } catch {
       setErrorDisp('Error al eliminar la disponibilidad')
+    }
+  }
+
+  // 'rescatista' = pierde rol rescatista, 'adoptante' = pierde rol adoptante, null = no destructivo
+  function tipoCambio(nueva) {
+    const vieja = perfil?.preferencia
+    if (nueva === 'ADOPTANTE' && vieja !== 'ADOPTANTE') return 'rescatista'
+    if (nueva === 'RESCATISTA' && vieja !== 'RESCATISTA') return 'adoptante'
+    return null
+  }
+
+  async function handleGuardarPreferencia() {
+    setErrorPref('')
+    try {
+      const res = await updateProfile({ preferencia: nuevaPreferencia })
+      setPerfil(res.data)
+      setPreferencia(res.data.preferencia)
+      setActiveProfile(res.data.activeProfile)
+      if (res.data.preferencia === 'ADOPTANTE') setTieneTienda(false)
+      setEditandoPreferencia(false)
+      setNuevaPreferencia('')
+      setConfirmPref1(false)
+      setConfirmPref2(false)
+      setExito('Preferencia actualizada.')
+    } catch {
+      setErrorPref('No se pudo guardar la preferencia.')
     }
   }
 
@@ -296,6 +335,86 @@ function Profile() {
             <button onClick={handleAgregarDisponibilidad}>Agregar bloque</button>
           </div>
           {errorDisp && <p style={{ color: 'red' }}>{errorDisp}</p>}
+        </div>
+      )}
+
+      {perfil.role === 'USER' && (
+        <div style={{ marginTop: 24 }}>
+          <h3>Preferencia de rol</h3>
+          {!editandoPreferencia ? (
+            <div>
+              <p><strong>Rol actual:</strong> {ETIQUETA_PREFERENCIA[perfil.preferencia] || perfil.preferencia}</p>
+              <button onClick={() => { setEditandoPreferencia(true); setNuevaPreferencia(perfil.preferencia); setErrorPref('') }}>
+                Cambiar preferencia
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div style={{ marginBottom: 8 }}>
+                <label>Nueva preferencia:</label><br />
+                <select
+                  value={nuevaPreferencia}
+                  onChange={e => { setNuevaPreferencia(e.target.value); setConfirmPref1(false); setConfirmPref2(false) }}
+                >
+                  <option value="ADOPTANTE">Solo adoptar</option>
+                  <option value="RESCATISTA">Solo publicar</option>
+                  <option value="AMBOS">Adoptar y publicar</option>
+                </select>
+              </div>
+
+              {tipoCambio(nuevaPreferencia) === 'rescatista' && (
+                <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 6, padding: 12, marginBottom: 8 }}>
+                  <p style={{ margin: '0 0 8px', fontWeight: 600 }}>⚠️ Atención: esta acción es irreversible</p>
+                  <p style={{ margin: '0 0 8px', fontSize: 14 }}>
+                    Al cambiar a "Solo adoptar" se eliminarán permanentemente todos tus animales publicados en adopción,
+                    se cancelarán sus reservas activas, y se eliminará tu tienda (si tenías una).
+                  </p>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 14 }}>
+                    <input type="checkbox" checked={confirmPref1} onChange={e => setConfirmPref1(e.target.checked)} style={{ marginRight: 6 }} />
+                    Entiendo que mis publicaciones en adopción y mi tienda serán eliminadas permanentemente.
+                  </label>
+                  <label style={{ display: 'block', fontSize: 14 }}>
+                    <input type="checkbox" checked={confirmPref2} onChange={e => setConfirmPref2(e.target.checked)} style={{ marginRight: 6 }} />
+                    Confirmo que esta acción no tiene vuelta atrás.
+                  </label>
+                </div>
+              )}
+
+              {tipoCambio(nuevaPreferencia) === 'adoptante' && (
+                <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 6, padding: 12, marginBottom: 8 }}>
+                  <p style={{ margin: '0 0 8px', fontWeight: 600 }}>⚠️ Atención</p>
+                  <p style={{ margin: '0 0 8px', fontSize: 14 }}>
+                    Al cambiar a "Solo publicar" se cancelarán automáticamente tus reservas activas como adoptante
+                    y no podrás iniciar nuevas adopciones.
+                  </p>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 14 }}>
+                    <input type="checkbox" checked={confirmPref1} onChange={e => setConfirmPref1(e.target.checked)} style={{ marginRight: 6 }} />
+                    Entiendo que mis reservas de adopción activas serán canceladas.
+                  </label>
+                  <label style={{ display: 'block', fontSize: 14 }}>
+                    <input type="checkbox" checked={confirmPref2} onChange={e => setConfirmPref2(e.target.checked)} style={{ marginRight: 6 }} />
+                    Confirmo que acepto estos términos.
+                  </label>
+                </div>
+              )}
+
+              {errorPref && <p style={{ color: 'red' }}>{errorPref}</p>}
+
+              <button
+                onClick={handleGuardarPreferencia}
+                disabled={tipoCambio(nuevaPreferencia) !== null && (!confirmPref1 || !confirmPref2)}
+              >
+                Guardar
+              </button>
+              <button
+                type="button"
+                style={{ marginLeft: 8 }}
+                onClick={() => { setEditandoPreferencia(false); setNuevaPreferencia(''); setConfirmPref1(false); setConfirmPref2(false); setErrorPref('') }}
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
         </div>
       )}
 

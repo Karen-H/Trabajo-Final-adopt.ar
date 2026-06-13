@@ -27,6 +27,11 @@ public class Mensaje {
     @JoinColumn(name = "emisor_id")
     private User emisor;
 
+    // animal que motivó este mensaje del sistema (null para mensajes normales)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "animal_id")
+    private Animal animal;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String contenido;
 

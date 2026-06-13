@@ -19,6 +19,8 @@ public interface AnimalRepository extends JpaRepository<Animal, Long> {
 
     List<Animal> findByPublicador(User publicador);
 
+    List<Animal> findByPublicadorAndCategoriaAndEliminadoPermanenteFalse(User publicador, CategoriaAnimal categoria);
+
     // animales pendientes de aprobación (excluye eliminados)
     List<Animal> findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal categoria);
 

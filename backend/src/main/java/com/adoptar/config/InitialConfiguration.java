@@ -83,7 +83,11 @@ public class InitialConfiguration implements CommandLineRunner {
                 .pass(passwordEncoder.encode("admin123"))
                 .role(UserRole.USER)
                 .provincia("Ciudad Aut\u00f3noma de Buenos Aires")
-                .ciudad("Belgrano")                .organizacion("Patitas Felices CABA")                .build());
+                .ciudad("Belgrano")
+                .organizacion("Patitas Felices CABA")
+                .preferencia(PreferenciaRol.AMBOS)
+                .activeProfile(UserProfile.RESCATISTA)
+                .build());
 
         userRepository.save(User.builder()
                 .nombre("Karen")
@@ -94,7 +98,8 @@ public class InitialConfiguration implements CommandLineRunner {
                 .pass(passwordEncoder.encode("admin123"))
                 .role(UserRole.USER)
                 .provincia("Ciudad Aut\u00f3noma de Buenos Aires")
-                .ciudad("Retiro")                .organizacion("Amigos Peludos")                .build());
+                .ciudad("Retiro")
+                .build());
 
         // 48 usuarios con ubicaciones y fechas diversas de toda Argentina
         crearUsuario("Valentina", "Gonz\u00e1lez",  1000006L, "valentina.gonzalez@adoptar.com", "1100000006", "Buenos Aires",                    "La Plata",                            LocalDateTime.of(2024,  1, 15, 10,  0));
@@ -706,6 +711,14 @@ public class InitialConfiguration implements CommandLineRunner {
             "Mayor pero muy dulce. Busca un hogar tranquilo.",
             "Energético y divertido. Ideal para personas activas."
         };
+
+        // usuarios con animales en adopción → preferencia AMBOS, perfil activo RESCATISTA
+        for (String email : emailsAdopcion) {
+            User u = userRepository.findByEmail(email).orElseThrow();
+            u.setPreferencia(PreferenciaRol.AMBOS);
+            u.setActiveProfile(UserProfile.RESCATISTA);
+            userRepository.save(u);
+        }
 
         // primeros 25 usuarios: 4 animales adoptados cada uno (25×4 = 100); resto: EN_ADOPCION
         for (int u = 0; u < emailsAdopcion.length; u++) {

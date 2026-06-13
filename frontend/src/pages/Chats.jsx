@@ -20,6 +20,7 @@ function Chats() {
   const [reservasPendientes, setReservasPendientes] = useState([]) // adoptante
   const [reservasActivasChat, setReservasActivasChat] = useState([]) // rescatista, reservas activas de este chat
   const [cancelandoReservaId, setCancelAndoReservaId] = useState(null) // ID de reserva que se está cancelando
+  const [hoveredMsgId, setHoveredMsgId] = useState(null)
 
   // cargar lista de chats
   useEffect(() => {
@@ -209,7 +210,7 @@ function Chats() {
           Mis chats
         </div>
         {(() => {
-          const chatsFiltrados = chats.filter(c => c.rolEnChat === user?.activeProfile)
+          const chatsFiltrados = chats.filter(c => c.rolEnChat === user?.activeProfile || c.esChatReporte)
           if (chatsFiltrados.length === 0) return (
             <p style={{ padding: 16, color: '#888', fontSize: 14 }}>No tenés chats todavía.</p>
           )
@@ -259,10 +260,35 @@ function Chats() {
                     (() => {
                       const match = m.contenido.match(/^RESERVA:(\d+):(.*)$/)
                       const texto = match ? match[2] : m.contenido
+                      const preview = m.animalPreview
                       return (
-                        <span style={{ fontSize: 12, color: '#888', background: '#f0f0f0', padding: '4px 10px', borderRadius: 10, display: 'inline-block' }}>
-                          {texto}
-                        </span>
+                        <div
+                          style={{ position: 'relative', display: 'inline-block' }}
+                          onMouseEnter={() => preview && setHoveredMsgId(m.id)}
+                          onMouseLeave={() => setHoveredMsgId(null)}
+                        >
+                          <span style={{ fontSize: 12, color: '#888', background: '#f0f0f0', padding: '4px 10px', borderRadius: 10, display: 'inline-block', cursor: preview ? 'default' : undefined }}>
+                            {texto}
+                          </span>
+                          {preview && hoveredMsgId === m.id && (
+                            <div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 6, background: '#fff', border: '1px solid #ddd', borderRadius: 8, padding: 10, width: 200, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 10, textAlign: 'left' }}>
+                              {preview.primeraFotoUrl && (
+                                <img src={preview.primeraFotoUrl} alt="animal" style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 4, marginBottom: 6 }} />
+                              )}
+                              <div style={{ fontSize: 13, fontWeight: 600, color: '#222' }}>
+                                {preview.nombre || (preview.tipo === 'PERRO' ? 'Perro' : preview.tipo === 'GATO' ? 'Gato' : 'Otro')}
+                              </div>
+                              <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
+                                {preview.estado === 'PERDIDO' ? 'Perdido' : preview.estado === 'ENCONTRADO' ? 'Encontrado' : preview.estado === 'EN_ADOPCION' ? 'En adopción' : preview.estado}
+                              </div>
+                              {preview.descripcion && (
+                                <div style={{ fontSize: 11, color: '#888', marginTop: 4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                  {preview.descripcion}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       )
                     })()
                   ) : (
