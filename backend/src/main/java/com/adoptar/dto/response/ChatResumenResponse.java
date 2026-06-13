@@ -14,4 +14,5 @@ public class ChatResumenResponse {
     private String ultimoMensaje;
     private LocalDateTime ultimoMensajeEn;
     private long noLeidos;
+    private String rolEnChat; // "ADOPTANTE" o "RESCATISTA"
 }

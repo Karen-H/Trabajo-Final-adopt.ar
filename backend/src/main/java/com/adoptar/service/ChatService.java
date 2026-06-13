@@ -104,6 +104,7 @@ public class ChatService {
                     .ultimoMensaje(ultimo != null ? ultimo.getContenido() : "")
                     .ultimoMensajeEn(ultimo != null ? ultimo.getCreadoEn() : chat.getCreadoEn())
                     .noLeidos(noLeidos)
+                    .rolEnChat(esAdoptante ? "ADOPTANTE" : "RESCATISTA")
                     .build();
         }).toList();
     }

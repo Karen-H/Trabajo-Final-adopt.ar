@@ -208,10 +208,12 @@ function Chats() {
         <div style={{ padding: '12px 16px', borderBottom: '1px solid #eee', fontWeight: 600 }}>
           Mis chats
         </div>
-        {chats.length === 0 && (
-          <p style={{ padding: 16, color: '#888', fontSize: 14 }}>No tenés chats todavía.</p>
-        )}
-        {chats.map(c => (
+        {(() => {
+          const chatsFiltrados = chats.filter(c => c.rolEnChat === user?.activeProfile)
+          if (chatsFiltrados.length === 0) return (
+            <p style={{ padding: 16, color: '#888', fontSize: 14 }}>No tenés chats todavía.</p>
+          )
+          return chatsFiltrados.map(c => (
           <div
             key={c.id}
             onClick={() => setChatActivo(c.id)}
@@ -237,7 +239,8 @@ function Chats() {
               )}
             </div>
           </div>
-        ))}
+          ))
+        })()}
       </div>
 
       {/* panel de mensajes */}
