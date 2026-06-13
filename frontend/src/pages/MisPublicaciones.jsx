@@ -335,7 +335,7 @@ function MisPublicaciones() {
                 />
                 <div style={{ marginTop: '0.5rem' }}>
                   <button onClick={() => setModalPausarEliminarId(animal.id)} style={{ color: '#c00' }}>
-                    Pausar / eliminar publicación
+                    Eliminar publicación
                   </button>
                 </div>
               </div>
@@ -560,32 +560,40 @@ function MisPublicaciones() {
       <br />
       <Link to="/">Volver al inicio</Link>
 
-      {modalPausarEliminarId && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', color: '#222', padding: '2rem', borderRadius: 8, width: 400, maxWidth: '90%' }}>
-            <h3 style={{ marginTop: 0 }}>¿Deseas pausar o eliminar?</h3>
-            <p style={{ fontSize: 14, color: '#555', marginBottom: 16 }}>
-              Si planeás reactivar la publicación más adelante, elegí <strong>Pausar</strong>.
-              Si elegís <strong>Eliminar</strong>, la publicación se borra de forma permanente y no podrás recuperarla.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <button onClick={() => handlePausar(modalPausarEliminarId)}
-                style={{ padding: '10px 14px', textAlign: 'left', background: '#fff3e0', border: '1px solid #f0a500', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
-                <strong>Pausar publicación</strong>
-                <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>Dejará de verse en la plataforma, pero podés reactivarla después.</div>
-              </button>
-              <button onClick={() => handleEliminarPermanente(modalPausarEliminarId)}
-                style={{ padding: '10px 14px', textAlign: 'left', background: '#ffebee', border: '1px solid #c62828', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
-                <strong>Eliminar permanentemente</strong>
-                <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>Esta acción no se puede deshacer.</div>
-              </button>
-              <button onClick={() => setModalPausarEliminarId(null)} style={{ marginTop: 4, fontSize: 13 }}>
-                Volver
-              </button>
+      {modalPausarEliminarId && (() => {
+        const animalModal = animales.find(a => a.id === modalPausarEliminarId);
+        const enRevisionModal = animalModal && !animalModal.aprobado && !animalModal.rechazado;
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ background: '#fff', color: '#222', padding: '2rem', borderRadius: 8, width: 400, maxWidth: '90%' }}>
+              <h3 style={{ marginTop: 0 }}>{enRevisionModal ? '¿Eliminar publicación?' : '¿Deseas pausar o eliminar?'}</h3>
+              <p style={{ fontSize: 14, color: '#555', marginBottom: 16 }}>
+                {enRevisionModal
+                  ? 'Esta publicación está pendiente de revisión. Si la eliminás, no podrás recuperarla.'
+                  : <>Si planeás reactivar la publicación más adelante, elegí <strong>Pausar</strong>. Si elegís <strong>Eliminar</strong>, la publicación se borra de forma permanente y no podrás recuperarla.</>
+                }
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {!enRevisionModal && (
+                  <button onClick={() => handlePausar(modalPausarEliminarId)}
+                    style={{ padding: '10px 14px', textAlign: 'left', background: '#fff3e0', border: '1px solid #f0a500', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
+                    <strong>Pausar publicación</strong>
+                    <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>Dejará de verse en la plataforma, pero podés reactivarla después.</div>
+                  </button>
+                )}
+                <button onClick={() => handleEliminarPermanente(modalPausarEliminarId)}
+                  style={{ padding: '10px 14px', textAlign: 'left', background: '#ffebee', border: '1px solid #c62828', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
+                  <strong>Eliminar permanentemente</strong>
+                  <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>Esta acción no se puede deshacer.</div>
+                </button>
+                <button onClick={() => setModalPausarEliminarId(null)} style={{ marginTop: 4, fontSize: 13 }}>
+                  Volver
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {cancelandoReservaId && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>

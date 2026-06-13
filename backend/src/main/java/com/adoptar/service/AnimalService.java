@@ -208,9 +208,6 @@ public class AnimalService {
             throw new IllegalArgumentException("No podés reactivar una publicación eliminada por un administrador");
         }
         animal.setEliminado(false);
-        animal.setAprobado(false);
-        animal.setRechazado(false);
-        animal.setMotivoRechazo(null);
         animalRepository.save(animal);
         return toResponse(animal);
     }
