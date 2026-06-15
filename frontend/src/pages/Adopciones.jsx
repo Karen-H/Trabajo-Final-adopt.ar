@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { getAdopciones } from '../api/animal'
 import FiltroUbicacion from '../components/FiltroUbicacion'
 import Paginacion from '../components/Paginacion'
-import { getMisReservasAdoptante } from '../api/reserva'
+import { getMisReservasAdoptante, aceptarReserva, rechazarReserva } from '../api/reserva'
 import { getFavoritos, agregarFavorito, quitarFavorito } from '../api/favorito'
 import ModalDenuncia from '../components/ModalDenuncia'
 import { useAuth } from '../context/AuthContext'
@@ -79,6 +79,33 @@ function Adopciones() {
       .then(r => setMisReservas(r.data))
       .catch(() => {})
   }, [user?.activeProfile])
+
+  async function handleAceptarReserva(reservaId, animalNombre) {
+    if (!window.confirm(
+      `¿Querés aceptar la reserva de ${animalNombre}?\n\n` +
+      `Al aceptar, el animal quedará reservado exclusivamente para vos y no estará disponible para otras personas. ` +
+      `Te comprometés a concretar la adopción. ` +
+      `Si la adopción no se concreta por razones que te sean imputables, puede quedar un registro en tu cuenta ` +
+      `que limite nuevas reservas durante 1 mes.`
+    )) return
+    try {
+      await aceptarReserva(reservaId)
+      const r = await getMisReservasAdoptante()
+      setMisReservas(r.data)
+    } catch (e) {
+      alert(e.response?.data || 'Error al aceptar.')
+    }
+  }
+
+  async function handleRechazarReserva(reservaId) {
+    try {
+      await rechazarReserva(reservaId)
+      const r = await getMisReservasAdoptante()
+      setMisReservas(r.data)
+    } catch (e) {
+      alert(e.response?.data || 'Error al rechazar.')
+    }
+  }
 
   function toggleTipo(tipo) {
     setTipos(prev => prev.includes(tipo) ? prev.filter(t => t !== tipo) : [...prev, tipo])
@@ -157,6 +184,22 @@ function Adopciones() {
                   <p style={{ margin: '4px 0 0', fontSize: 13, color: activa ? '#1a6e2e' : '#c47f00' }}>
                     {activa ? '✅ Reserva confirmada' : '⏳ Reserva pendiente de tu confirmación'} · {r.rescatistaNombre}
                   </p>
+                  {!activa && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                      <button
+                        onClick={() => handleAceptarReserva(r.reservaId, r.animalNombre)}
+                        style={{ fontSize: 13, background: '#2e7d32', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer' }}
+                      >
+                        Aceptar
+                      </button>
+                      <button
+                        onClick={() => handleRechazarReserva(r.reservaId)}
+                        style={{ fontSize: 13, background: '#c62828', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer' }}
+                      >
+                        Rechazar
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )
