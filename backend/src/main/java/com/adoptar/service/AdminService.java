@@ -21,6 +21,7 @@ import com.adoptar.enums.EstadoFoto;
 import com.adoptar.enums.EstadoItem;
 import com.adoptar.enums.TipoAdopcion;
 import com.adoptar.enums.TipoAnimal;
+import com.adoptar.enums.TipoNotificacion;
 import com.adoptar.enums.UserRole;
 import com.adoptar.repository.AnimalFotoRepository;
 import com.adoptar.repository.AnimalRepository;
@@ -54,6 +55,7 @@ public class AdminService {
     private final FavoritoRepository favoritoRepository;
     private final DenunciaRepository denunciaRepository;
     private final SolicitudTiendaRepository solicitudTiendaRepository;
+    private final NotificacionService notificacionService;
 
     @Transactional(readOnly = true)
     public List<AnimalResponse> getAnimalesPendientes() {
@@ -82,6 +84,10 @@ public class AdminService {
             }
         });
         animalRepository.save(animal);
+        String nombreAnimal = animal.getNombre() != null ? animal.getNombre() : animal.getTipo().name();
+        notificacionService.crear(animal.getPublicador(), TipoNotificacion.PUBLICACION_APROBADA,
+                "Tu publicación \"" + nombreAnimal + "\" fue aprobada",
+                "/mis-publicaciones");
         return toAnimalResponse(animal);
     }
 
@@ -95,6 +101,10 @@ public class AdminService {
         animal.setRechazado(true);
         animal.setMotivoRechazo(motivo);
         animalRepository.save(animal);
+        String nombreAnimal = animal.getNombre() != null ? animal.getNombre() : animal.getTipo().name();
+        notificacionService.crear(animal.getPublicador(), TipoNotificacion.PUBLICACION_RECHAZADA,
+                "Tu publicación \"" + nombreAnimal + "\" fue rechazada: " + motivo,
+                "/mis-publicaciones");
         return toAnimalResponse(animal);
     }
 
@@ -151,6 +161,11 @@ public class AdminService {
         animal.setEliminadoPorAdmin(true);
         animal.setMotivoEliminacion(motivo);
         animalRepository.save(animal);
+        notificacionService.crearParaFavoritosDeAnimal(
+                id,
+                TipoNotificacion.ANIMAL_FAVORITO_NO_DISPONIBLE,
+                "Un animal en tus favoritos ya no está disponible",
+                "/favoritos");
     }
 
     @Transactional

@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { switchProfile } from '../api/user'
 import { getNoLeidos } from '../api/chat'
 import { useState, useEffect } from 'react'
+import NotificacionBell from './NotificacionBell'
 
 function Header() {
   const { user, logout, setActiveProfile } = useAuth()
@@ -92,6 +93,7 @@ function Header() {
             </span>
           )}
 
+          <NotificacionBell />
           <Link to="/perfil">{user.nombre}</Link>
           <button onClick={handleLogout}>Cerrar sesión</button>
         </>

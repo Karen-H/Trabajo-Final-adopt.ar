@@ -11,6 +11,7 @@ import com.adoptar.entity.Mensaje;
 import com.adoptar.entity.User;
 import com.adoptar.enums.CategoriaAnimal;
 import com.adoptar.enums.EstadoFoto;
+import com.adoptar.enums.TipoNotificacion;
 import com.adoptar.repository.AnimalRepository;
 import com.adoptar.repository.BloqueoAdopcionRepository;
 import com.adoptar.repository.ChatRepository;
@@ -33,6 +34,7 @@ public class ChatService {
     private final UserRepository userRepository;
     private final AnimalRepository animalRepository;
     private final BloqueoAdopcionRepository bloqueoRepository;
+    private final NotificacionService notificacionService;
 
     // inicia o recupera un chat; agrega mensaje del sistema indicando el animal
     @Transactional
@@ -164,6 +166,12 @@ public class ChatService {
                 .contenido(contenido)
                 .leido(false)
                 .build());
+
+        boolean emisorEsAdoptante = chat.getAdoptante().getId().equals(emisor.getId());
+        User receptor = emisorEsAdoptante ? chat.getRescatista() : chat.getAdoptante();
+        notificacionService.crearSiNoExisteNoLeida(receptor, TipoNotificacion.NUEVO_MENSAJE,
+                emisor.getNombre() + " " + emisor.getApellido() + " te envió un mensaje",
+                "/chats");
 
         return MensajeResponse.builder()
                 .id(m.getId())

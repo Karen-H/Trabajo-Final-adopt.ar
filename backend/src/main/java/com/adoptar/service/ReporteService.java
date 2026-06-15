@@ -9,6 +9,7 @@ import com.adoptar.entity.User;
 import com.adoptar.enums.CategoriaAnimal;
 import com.adoptar.enums.EstadoAnimal;
 import com.adoptar.enums.EstadoFoto;
+import com.adoptar.enums.TipoNotificacion;
 import com.adoptar.enums.UserRole;
 import com.adoptar.repository.AnimalFotoRepository;
 import com.adoptar.repository.AnimalRepository;
@@ -31,6 +32,7 @@ public class ReporteService {
 
     private final AnimalRepository animalRepository;
     private final AnimalFotoRepository animalFotoRepository;
+    private final NotificacionService notificacionService;
 
     @Value("${uploads.path}")
     private String uploadsPath;
@@ -85,6 +87,11 @@ public class ReporteService {
         // si es admin, aprobar las fotos automaticamente
         if (esAdmin) {
             animal.getFotos().forEach(f -> f.setEstado(EstadoFoto.APROBADA));
+        } else {
+            notificacionService.crearParaAdminsYMods(
+                    TipoNotificacion.PUBLICACION_PENDIENTE,
+                    publicador.getNombre() + " " + publicador.getApellido() + " publicó un reporte pendiente de revisión",
+                    "/admin");
         }
 
         return toResponse(animal);

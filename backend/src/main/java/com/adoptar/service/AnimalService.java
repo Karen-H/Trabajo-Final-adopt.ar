@@ -14,6 +14,7 @@ import com.adoptar.enums.RangoEdad;
 import com.adoptar.enums.SexoAnimal;
 import com.adoptar.enums.TipoAdopcion;
 import com.adoptar.enums.TipoAnimal;
+import com.adoptar.enums.TipoNotificacion;
 import com.adoptar.repository.AnimalFotoRepository;
 import com.adoptar.repository.AnimalRepository;
 import com.adoptar.repository.ChatRepository;
@@ -42,6 +43,7 @@ public class AnimalService {
     private final com.adoptar.repository.ReservaRepository reservaRepository;
     private final FavoritoRepository favoritoRepository;
     private final ChatRepository chatRepository;
+    private final NotificacionService notificacionService;
 
     @Value("${uploads.path}")
     private String uploadsPath;
@@ -93,6 +95,10 @@ public class AnimalService {
 
         animalRepository.save(animal);
         guardarFotos(animal, fotos);
+        notificacionService.crearParaAdminsYMods(
+                TipoNotificacion.PUBLICACION_PENDIENTE,
+                publicador.getNombre() + " " + publicador.getApellido() + " publicó un animal en adopción pendiente de revisión",
+                "/admin");
         return toResponse(animal);
     }
 
@@ -199,6 +205,11 @@ public class AnimalService {
         verificarSinReservaActiva(animal);
         animal.setEliminado(true);
         animalRepository.save(animal);
+        notificacionService.crearParaFavoritosDeAnimal(
+                animalId,
+                TipoNotificacion.ANIMAL_FAVORITO_NO_DISPONIBLE,
+                "Un animal en tus favoritos ya no está disponible",
+                "/favoritos");
     }
 
     @Transactional
@@ -211,6 +222,11 @@ public class AnimalService {
         animal.setEliminado(true);
         animal.setEliminadoPermanente(true);
         animalRepository.save(animal);
+        notificacionService.crearParaFavoritosDeAnimal(
+                animalId,
+                TipoNotificacion.ANIMAL_FAVORITO_NO_DISPONIBLE,
+                "Un animal en tus favoritos ya no está disponible",
+                "/favoritos");
     }
 
     @Transactional
@@ -357,6 +373,7 @@ public class AnimalService {
         return AnimalResponse.builder()
                 .id(animal.getId())
                 .usuarioId(animal.getPublicador().getId())
+                .categoria(animal.getCategoria())
                 .nombre(animal.getNombre())
                 .sexo(animal.getSexo())
                 .edad(animal.getEdad())

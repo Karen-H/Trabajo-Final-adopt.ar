@@ -271,7 +271,7 @@ function Chats() {
                             {texto}
                           </span>
                           {preview && hoveredMsgId === m.id && (
-                            <div style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 6, background: '#fff', border: '1px solid #ddd', borderRadius: 8, padding: 10, width: 200, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 10, textAlign: 'left' }}>
+                            <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 6, background: '#fff', border: '1px solid #ddd', borderRadius: 8, padding: 10, width: 200, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 10, textAlign: 'left' }}>
                               {preview.primeraFotoUrl && (
                                 <img src={preview.primeraFotoUrl} alt="animal" style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 4, marginBottom: 6 }} />
                               )}

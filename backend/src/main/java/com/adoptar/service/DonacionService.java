@@ -8,6 +8,7 @@ import com.adoptar.dto.response.RescatistaDonacionResponse;
 import com.adoptar.entity.Donacion;
 import com.adoptar.entity.User;
 import com.adoptar.enums.EstadoDonacion;
+import com.adoptar.enums.TipoNotificacion;
 import com.adoptar.enums.UserRole;
 import com.adoptar.repository.DonacionRepository;
 import com.adoptar.repository.UserRepository;
@@ -38,6 +39,7 @@ public class DonacionService {
     private final DonacionRepository donacionRepository;
     private final UserRepository userRepository;
     private final RestTemplate restTemplate;
+    private final NotificacionService notificacionService;
 
     @Value("${mp.access.token}")
     private String appAccessToken;
@@ -168,6 +170,12 @@ public class DonacionService {
 
                     donacionRepository.findById(donacionId).ifPresent(donacion -> {
                         if ("approved".equals(status)) {
+                            if (donacion.getEstado() != EstadoDonacion.COMPLETADA) {
+                                notificacionService.crear(donacion.getRescatista(),
+                                        TipoNotificacion.NUEVA_DONACION,
+                                        "Recibiste una donación de $" + donacion.getMonto(),
+                                        "/perfil");
+                            }
                             donacion.setEstado(EstadoDonacion.COMPLETADA);
                         } else if ("rejected".equals(status) || "cancelled".equals(status)) {
                             donacion.setEstado(EstadoDonacion.FALLIDA);
@@ -200,6 +208,12 @@ public class DonacionService {
             donacionRepository.findById(Long.parseLong(externalRef)).ifPresent(donacion -> {
                 String status = payment.getStatus();
                 if ("approved".equals(status)) {
+                    if (donacion.getEstado() != EstadoDonacion.COMPLETADA) {
+                        notificacionService.crear(donacion.getRescatista(),
+                                TipoNotificacion.NUEVA_DONACION,
+                                "Recibiste una donación de $" + donacion.getMonto(),
+                                "/perfil");
+                    }
                     donacion.setEstado(EstadoDonacion.COMPLETADA);
                 } else if ("rejected".equals(status) || "cancelled".equals(status)) {
                     donacion.setEstado(EstadoDonacion.FALLIDA);
@@ -235,6 +249,12 @@ public class DonacionService {
             donacionRepository.findById(Long.parseLong(externalRef)).ifPresent(donacion -> {
                 String status = payment.getStatus();
                 if ("approved".equals(status)) {
+                    if (donacion.getEstado() != EstadoDonacion.COMPLETADA) {
+                        notificacionService.crear(donacion.getRescatista(),
+                                TipoNotificacion.NUEVA_DONACION,
+                                "Recibiste una donación de $" + donacion.getMonto(),
+                                "/perfil");
+                    }
                     donacion.setEstado(EstadoDonacion.COMPLETADA);
                 } else if ("rejected".equals(status) || "cancelled".equals(status)) {
                     donacion.setEstado(EstadoDonacion.FALLIDA);
