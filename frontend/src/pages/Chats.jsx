@@ -85,6 +85,11 @@ function Chats() {
     }
   }
 
+  // al cambiar de perfil, cerrar el chat abierto
+  useEffect(() => {
+    setChatActivo(null)
+  }, [user?.activeProfile])
+
   // al cambiar de chat activo, resetear estado y cargar reservas
   useEffect(() => {
     if (!chatActivo) { setChatActivoData(null); setReservasPendientes([]); setReservasActivasChat([]); return }
