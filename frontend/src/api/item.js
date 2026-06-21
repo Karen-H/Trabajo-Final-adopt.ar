@@ -1,5 +1,12 @@
 import api from './api'
 
+// catalogo publico
+export const getTiendas = (params) =>
+  api.get('/items/tiendas', { params })
+
+export const getItemsDeTienda = (rescatistaId) =>
+  api.get(`/items/tiendas/${rescatistaId}`)
+
 export const getMisItems = () =>
   api.get('/items/mis-items')
 
@@ -17,22 +24,3 @@ export const eliminarFotoItem = (itemId, fotoId) =>
 
 export const eliminarItem = (id) =>
   api.delete(`/items/${id}`)
-
-// admin
-export const getItemsPendientesAdmin = () =>
-  api.get('/admin/items/pendientes')
-
-export const aprobarItemAdmin = (id) =>
-  api.put(`/admin/items/${id}/aprobar`)
-
-export const rechazarItemAdmin = (id, motivo) =>
-  api.put(`/admin/items/${id}/rechazar`, { motivo })
-
-export const getFotosItemPendientesAdmin = () =>
-  api.get('/admin/items/fotos/pendientes')
-
-export const aprobarFotoItemAdmin = (id) =>
-  api.put(`/admin/items/fotos/${id}/aprobar`)
-
-export const rechazarFotoItemAdmin = (id, motivo) =>
-  api.put(`/admin/items/fotos/${id}/rechazar`, { motivo })

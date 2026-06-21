@@ -17,4 +17,5 @@ public class TiendaActivaResponse {
     private String organizacion;
     private String provincia;
     private String ciudad;
+    private boolean aceptaDonaciones;
 }

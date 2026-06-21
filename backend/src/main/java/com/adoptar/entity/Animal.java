@@ -86,10 +86,10 @@ public class Animal {
     @Column
     private String ciudad;
 
-    // false hasta que el admin lo apruebe
+    // las publicaciones se publican directo, sin aprobacion previa; la moderacion es post-publicacion (denuncias)
     @Column(nullable = false)
     @Builder.Default
-    private boolean aprobado = false;
+    private boolean aprobado = true;
 
     // true si el admin lo rechazó
     @Column(nullable = false)
@@ -107,6 +107,11 @@ public class Animal {
     @Column(columnDefinition = "boolean not null default false")
     @Builder.Default
     private boolean eliminadoPorAdmin = false;
+
+    // true si el publicador lo eliminó de forma permanente (no se puede reactivar)
+    @Column(columnDefinition = "boolean not null default false")
+    @Builder.Default
+    private boolean eliminadoPermanente = false;
 
     @Column(columnDefinition = "TEXT")
     private String motivoEliminacion;
@@ -135,5 +140,9 @@ public class Animal {
     // se setea cuando el estado de un reporte cambia a RESUELTO
     @Column
     private LocalDateTime resueltoEn;
+
+    @Column(columnDefinition = "bigint not null default 0")
+    @Builder.Default
+    private long vistas = 0L;
 }
 

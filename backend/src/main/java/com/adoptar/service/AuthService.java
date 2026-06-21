@@ -35,6 +35,10 @@ public class AuthService {
             throw new TelAlreadyExistsException("Ya existe una cuenta con ese teléfono");
         }
 
+        com.adoptar.enums.UserProfile perfil = request.getPreferencia() == com.adoptar.enums.PreferenciaRol.RESCATISTA
+                ? com.adoptar.enums.UserProfile.RESCATISTA
+                : com.adoptar.enums.UserProfile.ADOPTANTE;
+
         User user = User.builder()
                 .nombre(request.getNombre())
                 .apellido(request.getApellido())
@@ -45,6 +49,8 @@ public class AuthService {
                 .organizacion(request.getOrganizacion())
                 .provincia(request.getProvincia())
                 .ciudad(request.getCiudad())
+                .preferencia(request.getPreferencia())
+                .activeProfile(perfil)
                 .build();
 
         userRepository.save(user);
@@ -74,6 +80,7 @@ public class AuthService {
                 .email(user.getEmail())
                 .role(user.getRole())
                 .activeProfile(user.getActiveProfile())
+                .preferencia(user.getPreferencia())
                 .provincia(user.getProvincia())
                 .ciudad(user.getCiudad())
                 .tieneTienda(user.isTieneTienda())

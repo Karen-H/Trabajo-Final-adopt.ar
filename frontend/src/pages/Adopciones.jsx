@@ -1,11 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { getAdopciones } from '../api/animal'
-import { getFavoritos, agregarFavorito, quitarFavorito } from '../api/favorito'
 import FiltroUbicacion from '../components/FiltroUbicacion'
-import ModalDenuncia from '../components/ModalDenuncia'
-import { iniciarChat } from '../api/chat'
-import { getMisBloqueos, getMisReservasAdoptante } from '../api/reserva'
+import Paginacion from '../components/Paginacion'
+import { getMisReservasAdoptante, aceptarReserva, rechazarReserva } from '../api/reserva'
 import { useAuth } from '../context/AuthContext'
 
 const TIPOS = ['PERRO', 'GATO', 'OTRO']
@@ -47,7 +45,6 @@ function filtrar(animales, tipos, provincia, ciudad, edades, tipoAdopcion, amiga
 }
 
 function Adopciones() {
-  const navigate = useNavigate()
   const { user } = useAuth()
   const estaLogueado = !!localStorage.getItem('token')
   const [animales, setAnimales] = useState([])
@@ -59,25 +56,14 @@ function Adopciones() {
   const [tipoAdopcion, setTipoAdopcion] = useState('')
   const [amigableCon, setAmigableCon] = useState([])
   const [organizacion, setOrganizacion] = useState('')
-  const [favoritoIds, setFavoritoIds] = useState(new Set())
-  const [denunciaAnimalId, setDenunciaAnimalId] = useState(null)
-  const [denunciadoIds, setDenunciadoIds] = useState(new Set())
-  const [bloqueoIds, setBloqueoIds] = useState(new Set())
   const [misReservas, setMisReservas] = useState([])
+  const [pagina, setPagina] = useState(1)
 
   useEffect(() => {
     getAdopciones()
       .then(r => setAnimales(r.data))
       .catch(() => {})
       .finally(() => setCargando(false))
-    if (estaLogueado) {
-      getFavoritos()
-        .then(r => setFavoritoIds(new Set(r.data.map(f => f.animalId))))
-        .catch(() => {})
-      getMisBloqueos()
-        .then(r => setBloqueoIds(new Set(r.data)))
-        .catch(() => {})
-    }
   }, [])
 
   // cargar reservas del adoptante cuando el user ya está disponible
@@ -87,6 +73,33 @@ function Adopciones() {
       .then(r => setMisReservas(r.data))
       .catch(() => {})
   }, [user?.activeProfile])
+
+  async function handleAceptarReserva(reservaId, animalNombre) {
+    if (!window.confirm(
+      `¿Querés aceptar la reserva de ${animalNombre}?\n\n` +
+      `Al aceptar, el animal quedará reservado exclusivamente para vos y no estará disponible para otras personas. ` +
+      `Te comprometés a concretar la adopción. ` +
+      `Si la adopción no se concreta por razones que te sean imputables, puede quedar un registro en tu cuenta ` +
+      `que limite nuevas reservas durante 1 mes.`
+    )) return
+    try {
+      await aceptarReserva(reservaId)
+      const r = await getMisReservasAdoptante()
+      setMisReservas(r.data)
+    } catch (e) {
+      alert(e.response?.data || 'Error al aceptar.')
+    }
+  }
+
+  async function handleRechazarReserva(reservaId) {
+    try {
+      await rechazarReserva(reservaId)
+      const r = await getMisReservasAdoptante()
+      setMisReservas(r.data)
+    } catch (e) {
+      alert(e.response?.data || 'Error al rechazar.')
+    }
+  }
 
   function toggleTipo(tipo) {
     setTipos(prev => prev.includes(tipo) ? prev.filter(t => t !== tipo) : [...prev, tipo])
@@ -100,23 +113,13 @@ function Adopciones() {
     setAmigableCon(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])
   }
 
-  async function toggleFavorito(animalId) {
-    if (!estaLogueado) {
-      localStorage.setItem('pendingFavorito', animalId)
-      navigate('/login')
-      return
-    }
-    if (favoritoIds.has(animalId)) {
-      await quitarFavorito(animalId)
-      setFavoritoIds(prev => { const s = new Set(prev); s.delete(animalId); return s })
-    } else {
-      await agregarFavorito(animalId)
-      setFavoritoIds(prev => new Set([...prev, animalId]))
-    }
-  }
-
   const hayFiltros = tipos.length > 0 || provincia || ciudad || edades.length > 0 || tipoAdopcion || amigableCon.length > 0 || organizacion
   const visibles = filtrar(animales, tipos, provincia, ciudad, edades, tipoAdopcion, amigableCon, organizacion)
+
+  useEffect(() => { setPagina(1) }, [tipos, provincia, ciudad, edades, tipoAdopcion, amigableCon, organizacion])
+
+  const POR_PAGINA = 10
+  const paginados = visibles.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
 
   const organizaciones = useMemo(() => {
     const set = new Set(animales.map(a => a.organizacion).filter(Boolean))
@@ -132,7 +135,7 @@ function Adopciones() {
       {/* mis reservas (solo adoptante) */}
       {estaLogueado && user?.activeProfile === 'ADOPTANTE' && misReservas.length > 0 && (
         <div style={{ margin: '0 0 1.5rem' }}>
-          <h3 style={{ color: '#1a6e2e' }}>🔒 Mis animales con reserva</h3>
+          <h3 style={{ color: '#1a6e2e' }}>Mis animales con reserva</h3>
           {misReservas.map(r => {
             const activa = r.estado === 'ACTIVA'
             return (
@@ -149,8 +152,24 @@ function Adopciones() {
                     <p style={{ margin: '0 0 2px', fontSize: 13, color: '#666' }}>{r.ciudad}{r.ciudad && r.provincia ? ', ' : ''}{r.provincia}</p>
                   )}
                   <p style={{ margin: '4px 0 0', fontSize: 13, color: activa ? '#1a6e2e' : '#c47f00' }}>
-                    {activa ? '✅ Reserva confirmada' : '⏳ Reserva pendiente de tu confirmación'} · {r.rescatistaNombre}
+                    {activa ? 'Reserva confirmada' : 'Reserva pendiente de tu confirmación'} · {r.rescatistaNombre}
                   </p>
+                  {!activa && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                      <button
+                        onClick={() => handleAceptarReserva(r.reservaId, r.animalNombre)}
+                        style={{ fontSize: 13, background: '#2e7d32', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer' }}
+                      >
+                        Aceptar
+                      </button>
+                      <button
+                        onClick={() => handleRechazarReserva(r.reservaId)}
+                        style={{ fontSize: 13, background: '#c62828', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer' }}
+                      >
+                        Rechazar
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -244,81 +263,24 @@ function Adopciones() {
       ) : visibles.length === 0 ? (
         <p>No hay resultados para los filtros seleccionados.</p>
       ) : (
-        visibles.map(a => (
-          <div key={a.id} style={{ border: '1px solid #ccc', marginBottom: 12, padding: 12 }}>
-            {a.fotos?.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '6px 0' }}>
-                {a.fotos.map(f => (
-                  <img key={f.id} src={f.url} alt={a.nombre} style={{ width: 120, height: 120, objectFit: 'cover' }} />
-                ))}
-              </div>
-            )}
-            <p>Nombre: {a.nombre}</p>
-            <p>Tipo: {ETIQUETA_TIPO[a.tipo]}</p>
-            {a.sexo && <p>Sexo: {ETIQUETA_SEXO[a.sexo]}</p>}
-            {a.edad && <p>Edad: {ETIQUETA_EDAD[a.edad]}</p>}
-            {a.tipoAdopcion && <p>Tipo de adopción: {a.tipoAdopcion === 'PERMANENTE' ? 'Permanente' : 'Tránsito'}</p>}
-            {(a.amigableConGatos || a.amigableConPerros || a.amigableConNinos) && (
-              <p>Amigable con: {[a.amigableConGatos && 'gatos', a.amigableConPerros && 'perros', a.amigableConNinos && 'niños'].filter(Boolean).join(', ')}</p>
-            )}
-            {a.descripcion && <p>Descripción: {a.descripcion}</p>}
-            <p style={{ fontSize: 12, color: '#666' }}>
-              Publicado por {a.rescatistaNombre} en {a.ciudad}, {a.provincia}
-            </p>
-            {(!estaLogueado || a.usuarioId !== user?.id) && (
-              <button
-                onClick={() => toggleFavorito(a.id)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, padding: '4px 0' }}
-                title={favoritoIds.has(a.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-              >
-                {favoritoIds.has(a.id) ? '❤️' : '🤍'}
-              </button>
-            )}
-            {estaLogueado && a.usuarioId !== user?.id && user?.activeProfile === 'ADOPTANTE' && (
-              bloqueoIds.has(a.id) ? (
-                <span style={{ fontSize: 12, color: '#999', marginLeft: 8 }}>🚫 No disponible para vos (reserva cancelada)</span>
-              ) : (
-                <button
-                  onClick={async () => {
-                    try {
-                      await iniciarChat(a.usuarioId, a.id, a.nombre)
-                      navigate('/chats')
-                    } catch (e) {
-                      alert(e.response?.data || 'No se pudo iniciar el chat.')
-                    }
-                  }}
-                  style={{ fontSize: 13, marginLeft: 8 }}
-                >
-                  💬 Consultar al rescatista
-                </button>
-              )
-            )}
-            {estaLogueado && a.usuarioId !== user?.id && (
-              <button
-                onClick={() => {
-                    if (denunciadoIds.has(a.id)) { alert('Ya denunciaste esta publicación'); return }
-                    setDenunciaAnimalId(a.id)
-                  }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#999', padding: '4px 0', marginLeft: 8 }}
-                title="Reportar publicación"
-              >
-                🚩 Reportar
-              </button>
-            )}
-          </div>
-        ))
+        <>
+          {paginados.map(a => (
+            <div key={a.id} style={{ border: '1px solid #ccc', marginBottom: 12 }}>
+              <Link to={`/animal/${a.id}`} style={{ display: 'block', padding: 12, color: 'inherit', textDecoration: 'none' }}>
+                {a.fotos?.length > 0 && (
+                  <img src={a.fotos[0].url} alt={a.nombre} style={{ width: 120, height: 120, objectFit: 'cover', display: 'block', marginBottom: 8 }} />
+                )}
+                <p style={{ margin: '2px 0', fontWeight: 600 }}>{a.nombre}</p>
+                <p style={{ margin: '2px 0', fontSize: 13 }}>{ETIQUETA_TIPO[a.tipo]}{a.sexo ? ' · ' + ETIQUETA_SEXO[a.sexo] : ''}{a.edad ? ' · ' + ETIQUETA_EDAD[a.edad] : ''}</p>
+                {(a.ciudad || a.provincia) && (
+                  <p style={{ margin: '2px 0', fontSize: 12, color: '#666' }}>{[a.ciudad, a.provincia].filter(Boolean).join(', ')}</p>
+                )}
+              </Link>
+            </div>
+          ))}
+          <Paginacion total={visibles.length} porPagina={POR_PAGINA} pagina={pagina} onChange={setPagina} />
+        </>
       )}
-
-      {denunciaAnimalId && (
-        <ModalDenuncia
-          animalId={denunciaAnimalId}
-          onClose={() => setDenunciaAnimalId(null)}
-          onSuccess={() => { setDenunciadoIds(prev => new Set([...prev, denunciaAnimalId])); setDenunciaAnimalId(null); alert('Denuncia enviada. El administrador la revisará.') }}
-        />
-      )}
-
-      <br />
-      <Link to="/">Volver al inicio</Link>
     </div>
   )
 }

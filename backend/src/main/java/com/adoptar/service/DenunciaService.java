@@ -5,6 +5,7 @@ import com.adoptar.dto.response.DenunciaResponse;
 import com.adoptar.entity.Animal;
 import com.adoptar.entity.Denuncia;
 import com.adoptar.entity.User;
+import com.adoptar.enums.TipoNotificacion;
 import com.adoptar.repository.AnimalRepository;
 import com.adoptar.repository.DenunciaRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class DenunciaService {
 
     private final DenunciaRepository denunciaRepository;
     private final AnimalRepository animalRepository;
+    private final NotificacionService notificacionService;
 
     @Transactional
     public void denunciar(Long animalId, User usuario, DenunciaRequest request) {
@@ -40,6 +42,10 @@ public class DenunciaService {
                 .descripcion(request.getDescripcion())
                 .build();
         denunciaRepository.save(denuncia);
+        notificacionService.crearParaAdminsYMods(
+                TipoNotificacion.NUEVA_DENUNCIA,
+                "Nueva denuncia sobre una publicación de " + animal.getPublicador().getNombre() + " " + animal.getPublicador().getApellido(),
+                "/admin");
     }
 
     public List<DenunciaResponse> listarPendientes() {
@@ -69,6 +75,11 @@ public class DenunciaService {
         List<Denuncia> pendientes = denunciaRepository.findByAnimalIdAndResueltoFalse(animal.getId());
         pendientes.forEach(d -> d.setResuelto(true));
         denunciaRepository.saveAll(pendientes);
+        notificacionService.crearParaFavoritosDeAnimal(
+                animal.getId(),
+                TipoNotificacion.ANIMAL_FAVORITO_NO_DISPONIBLE,
+                "Un animal en tus favoritos ya no está disponible",
+                "/favoritos");
     }
 
     private DenunciaResponse toResponse(Denuncia d) {

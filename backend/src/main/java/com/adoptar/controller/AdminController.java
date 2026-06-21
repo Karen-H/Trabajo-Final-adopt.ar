@@ -19,82 +19,9 @@ public class AdminController {
 
     private final AdminService adminService;
 
-    @GetMapping("/animales/pendientes")
-    public ResponseEntity<?> getAnimalesPendientes(@AuthenticationPrincipal User user) {
-        if (user.getRole() != UserRole.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        return ResponseEntity.ok(adminService.getAnimalesPendientes());
-    }
-
-    @PutMapping("/animales/{id}/aprobar")
-    public ResponseEntity<?> aprobarAnimal(@AuthenticationPrincipal User user, @PathVariable Long id) {
-        if (user.getRole() != UserRole.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        try {
-            return ResponseEntity.ok(adminService.aprobarAnimal(id));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @PutMapping("/animales/{id}/rechazar")
-    public ResponseEntity<?> rechazarAnimal(
-            @AuthenticationPrincipal User user,
-            @PathVariable Long id,
-            @Valid @RequestBody RechazarRequest request) {
-        if (user.getRole() != UserRole.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        try {
-            return ResponseEntity.ok(adminService.rechazarAnimal(id, request.getMotivo()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @GetMapping("/fotos/pendientes")
-    public ResponseEntity<?> getFotosPendientes(@AuthenticationPrincipal User user) {
-        if (user.getRole() != UserRole.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        return ResponseEntity.ok(adminService.getFotosPendientes());
-    }
-
-    @PutMapping("/fotos/{id}/aprobar")
-    public ResponseEntity<?> aprobarFoto(@AuthenticationPrincipal User user, @PathVariable Long id) {
-        if (user.getRole() != UserRole.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        try {
-            return ResponseEntity.ok(adminService.aprobarFoto(id));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @PutMapping("/fotos/{id}/rechazar")
-    public ResponseEntity<?> rechazarFoto(
-            @AuthenticationPrincipal User user,
-            @PathVariable Long id,
-            @Valid @RequestBody RechazarRequest request) {
-        if (user.getRole() != UserRole.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        try {
-            return ResponseEntity.ok(adminService.rechazarFoto(id, request.getMotivo()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @GetMapping("/animales/publicados")
-    public ResponseEntity<?> getPublicaciones(@AuthenticationPrincipal User user) {
-        if (user.getRole() != UserRole.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        return ResponseEntity.ok(adminService.getPublicaciones());
+    // animales/fotos/items/tiendas son moderacion de contenido: admin y moderador
+    private boolean noEsModerador(User user) {
+        return user.getRole() != UserRole.ADMIN && user.getRole() != UserRole.MODERADOR;
     }
 
     @DeleteMapping("/animales/{id}")
@@ -102,7 +29,7 @@ public class AdminController {
             @AuthenticationPrincipal User user,
             @PathVariable Long id,
             @Valid @RequestBody RechazarRequest request) {
-        if (user.getRole() != UserRole.ADMIN) {
+        if (noEsModerador(user)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {
@@ -118,7 +45,7 @@ public class AdminController {
             @AuthenticationPrincipal User user,
             @PathVariable Long id,
             @Valid @RequestBody RechazarRequest request) {
-        if (user.getRole() != UserRole.ADMIN) {
+        if (noEsModerador(user)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {
@@ -129,83 +56,11 @@ public class AdminController {
         }
     }
 
-    // --- items de tienda ---
-
-    @GetMapping("/items/pendientes")
-    public ResponseEntity<?> getItemsPendientes(@AuthenticationPrincipal User user) {
-        if (user.getRole() != UserRole.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        return ResponseEntity.ok(adminService.getItemsPendientes());
-    }
-
-    @PutMapping("/items/{id}/aprobar")
-    public ResponseEntity<?> aprobarItem(@AuthenticationPrincipal User user, @PathVariable Long id) {
-        if (user.getRole() != UserRole.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        try {
-            return ResponseEntity.ok(adminService.aprobarItem(id));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @PutMapping("/items/{id}/rechazar")
-    public ResponseEntity<?> rechazarItem(
-            @AuthenticationPrincipal User user,
-            @PathVariable Long id,
-            @Valid @RequestBody RechazarRequest request) {
-        if (user.getRole() != UserRole.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        try {
-            return ResponseEntity.ok(adminService.rechazarItem(id, request.getMotivo()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @GetMapping("/items/fotos/pendientes")
-    public ResponseEntity<?> getFotosItemPendientes(@AuthenticationPrincipal User user) {
-        if (user.getRole() != UserRole.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        return ResponseEntity.ok(adminService.getFotosItemPendientes());
-    }
-
-    @PutMapping("/items/fotos/{id}/aprobar")
-    public ResponseEntity<?> aprobarFotoItem(@AuthenticationPrincipal User user, @PathVariable Long id) {
-        if (user.getRole() != UserRole.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        try {
-            return ResponseEntity.ok(adminService.aprobarFotoItem(id));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @PutMapping("/items/fotos/{id}/rechazar")
-    public ResponseEntity<?> rechazarFotoItem(
-            @AuthenticationPrincipal User user,
-            @PathVariable Long id,
-            @Valid @RequestBody RechazarRequest request) {
-        if (user.getRole() != UserRole.ADMIN) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        try {
-            return ResponseEntity.ok(adminService.rechazarFotoItem(id, request.getMotivo()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    // --- tiendas activas ---
+    // tiendas activas
 
     @GetMapping("/tiendas/activas")
     public ResponseEntity<?> listarTiendasActivas(@AuthenticationPrincipal User user) {
-        if (user.getRole() != UserRole.ADMIN) {
+        if (noEsModerador(user)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return ResponseEntity.ok(adminService.listarTiendasActivas());
@@ -213,7 +68,7 @@ public class AdminController {
 
     @DeleteMapping("/tiendas/{usuarioId}")
     public ResponseEntity<?> revocarTienda(@AuthenticationPrincipal User user, @PathVariable Long usuarioId) {
-        if (user.getRole() != UserRole.ADMIN) {
+        if (noEsModerador(user)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         try {
@@ -224,7 +79,7 @@ public class AdminController {
         }
     }
 
-    // --- usuarios ---
+    // usuarios
 
     @GetMapping("/usuarios")
     public ResponseEntity<?> listarUsuarios(@AuthenticationPrincipal User user) {
@@ -268,7 +123,7 @@ public class AdminController {
         }
     }
 
-    // --- dashboard ---
+    // dashboard
 
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboardStats(@AuthenticationPrincipal User user) {

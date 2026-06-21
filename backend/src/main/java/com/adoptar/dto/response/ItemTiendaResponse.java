@@ -20,6 +20,7 @@ public class ItemTiendaResponse {
     private TipoItem tipo;
     private String descripcion;
     private BigDecimal precio;
+    private Integer stock;
     private List<FotoResponse> fotos;
     private EstadoItem estado;
     private String motivoRechazo;

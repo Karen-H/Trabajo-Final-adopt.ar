@@ -3,11 +3,14 @@ package com.adoptar.controller;
 import com.adoptar.dto.request.ConfigurarDonacionRequest;
 import com.adoptar.dto.request.DonacionRequest;
 import com.adoptar.entity.User;
+import com.adoptar.enums.UserProfile;
+import com.adoptar.enums.UserRole;
 import com.adoptar.service.DonacionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,13 +27,15 @@ public class DonacionController {
     // listado publico de rescatistas que aceptan donaciones
     @GetMapping("/rescatistas")
     public ResponseEntity<?> listarRescatistas(
+            @AuthenticationPrincipal User user,
             @RequestParam(required = false) String provincia,
             @RequestParam(required = false) String q) {
-        return ResponseEntity.ok(donacionService.listarRescatistas(provincia, q));
+        return ResponseEntity.ok(donacionService.listarRescatistas(provincia, q, user));
     }
 
     // configurar si acepta donaciones y descripcion
     @PutMapping("/configurar")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> configurar(
             @AuthenticationPrincipal User user,
             @RequestBody ConfigurarDonacionRequest request) {
@@ -42,11 +47,17 @@ public class DonacionController {
         }
     }
 
-    // crear preferencia de pago (publica, con auth opcional)
+    // crear preferencia de pago (publica, con auth opcional; admin y moderador no pueden donar)
     @PostMapping("/preferencia")
     public ResponseEntity<?> crearPreferencia(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody DonacionRequest request) {
+        if (user != null && user.getRole() != UserRole.USER) {
+            return ResponseEntity.status(403).build();
+        }
+        if (user != null && user.getActiveProfile() != UserProfile.ADOPTANTE) {
+            return ResponseEntity.badRequest().body("Solo podés donar con el perfil de adoptante activo");
+        }
         try {
             return ResponseEntity.ok(donacionService.crearPreferencia(request, user));
         } catch (com.mercadopago.exceptions.MPApiException e) {
@@ -83,6 +94,7 @@ public class DonacionController {
 
     // historial de donaciones recibidas (solo el rescatista autenticado)
     @GetMapping("/mis-donaciones")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> getMisDonaciones(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(donacionService.getMisDonaciones(user));
     }

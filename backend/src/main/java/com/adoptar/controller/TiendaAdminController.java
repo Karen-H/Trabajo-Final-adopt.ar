@@ -21,14 +21,14 @@ public class TiendaAdminController {
 
     // ver todas las solicitudes
     @GetMapping("/solicitudes")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MODERADOR')")
     public ResponseEntity<?> listar() {
         return ResponseEntity.ok(solicitudService.listarTodas());
     }
 
     // aceptar la llamada + completar link
     @PutMapping("/{id}/aceptar")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MODERADOR')")
     public ResponseEntity<?> aceptar(
             @AuthenticationPrincipal User admin,
             @PathVariable Long id,
@@ -42,7 +42,7 @@ public class TiendaAdminController {
 
     // editar solo el link de llamada
     @PutMapping("/{id}/link")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MODERADOR')")
     public ResponseEntity<?> editarLink(
             @AuthenticationPrincipal User admin,
             @PathVariable Long id,
@@ -56,7 +56,7 @@ public class TiendaAdminController {
 
     // aprobar la tienda tras la llamada
     @PutMapping("/{id}/aprobar")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MODERADOR')")
     public ResponseEntity<?> aprobar(
             @AuthenticationPrincipal User admin,
             @PathVariable Long id) {
@@ -69,7 +69,7 @@ public class TiendaAdminController {
 
     // rechazar la solicitud + motivo + bloqueo 1 mes
     @PutMapping("/{id}/rechazar")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MODERADOR')")
     public ResponseEntity<?> rechazar(
             @AuthenticationPrincipal User admin,
             @PathVariable Long id,
@@ -83,7 +83,7 @@ public class TiendaAdminController {
 
     // reprogramar: el admin marca que hay que volver a coordinar
     @PutMapping("/{id}/reprogramar")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MODERADOR')")
     public ResponseEntity<?> reprogramar(
             @AuthenticationPrincipal User admin,
             @PathVariable Long id,

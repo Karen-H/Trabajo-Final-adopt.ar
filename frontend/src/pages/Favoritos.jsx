@@ -71,10 +71,9 @@ function Favoritos() {
                 </div>
                 <button
                   onClick={() => handleQuitar(fav.animalId)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, zIndex: 2, position: 'relative' }}
-                  title="Quitar de favoritos"
+                  style={{ zIndex: 2, position: 'relative' }}
                 >
-                  ❤️
+                  Quitar de favoritos
                 </button>
               </div>
 

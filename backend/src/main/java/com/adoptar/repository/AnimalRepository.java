@@ -19,14 +19,10 @@ public interface AnimalRepository extends JpaRepository<Animal, Long> {
 
     List<Animal> findByPublicador(User publicador);
 
-    // animales pendientes de aprobación (excluye eliminados)
-    List<Animal> findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal categoria);
+    List<Animal> findByPublicadorAndCategoriaAndEliminadoPermanenteFalse(User publicador, CategoriaAnimal categoria);
 
     // reportes por estado para vista pública (excluye eliminados)
     List<Animal> findByCategoriaAndAprobadoTrueAndEstadoAndEliminadoFalse(CategoriaAnimal categoria, EstadoAnimal estado);
-
-    // todos los publicados (aprobados y no eliminados) para gestión admin
-    List<Animal> findByAprobadoTrueAndEliminadoFalse();
 
     // búsqueda pública de adopción: solo aprobados y no eliminados, con filtros opcionales
     @Query("SELECT a FROM Animal a JOIN a.publicador r WHERE a.categoria = 'ADOPCION' AND a.aprobado = true AND a.eliminado = false AND a.estado = 'EN_ADOPCION' " +
@@ -42,7 +38,7 @@ public interface AnimalRepository extends JpaRepository<Animal, Long> {
             @Param("tipoAdopcion") TipoAdopcion tipoAdopcion,
             @Param("provincia") String provincia);
 
-    // --- dashboard ---
+    // dashboard
 
     // total adoptados histórico
     long countByCategoriaAndEstado(CategoriaAnimal categoria, EstadoAnimal estado);
@@ -79,7 +75,7 @@ public interface AnimalRepository extends JpaRepository<Animal, Long> {
     @Query("SELECT a.tipo, COUNT(a) FROM Animal a WHERE a.categoria = 'ADOPCION' AND a.eliminado = false AND a.aprobado = true AND a.estado = 'EN_ADOPCION' GROUP BY a.tipo")
     List<Object[]> countPublicadosByTipo();
 
-    // --- tasa de éxito ---
+    // tasa de éxito
 
     @Query("SELECT COUNT(a) FROM Animal a WHERE a.categoria = 'ADOPCION'")
     long countTotalHistoricoAdopcion();

@@ -43,6 +43,10 @@ public class Donacion {
     @Column
     private String mpPaymentId;
 
+    // external_reference para MP, no usar el id porque se recicla
+    @Column(unique = true)
+    private String externalRef;
+
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime creadoEn = LocalDateTime.now();

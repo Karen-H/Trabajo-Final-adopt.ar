@@ -10,7 +10,6 @@ import com.adoptar.enums.TipoAdopcion;
 import com.adoptar.enums.TipoAnimal;
 import com.adoptar.enums.UserProfile;
 import com.adoptar.service.AnimalService;
-import com.adoptar.service.ReporteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,7 +27,6 @@ import java.util.List;
 public class AnimalController {
 
     private final AnimalService animalService;
-    private final ReporteService reporteService;
 
     @GetMapping
     public ResponseEntity<List<AnimalResponse>> buscar(
@@ -47,6 +45,14 @@ public class AnimalController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @PostMapping("/{id}/vista")
+    public ResponseEntity<?> registrarVista(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id) {
+        animalService.registrarVista(id, user);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -102,21 +108,27 @@ public class AnimalController {
         }
     }
 
+    @PostMapping("/{id}/pausar")
+    public ResponseEntity<?> pausar(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id) {
+        try {
+            animalService.pausarPublicacion(id, user);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(
             @AuthenticationPrincipal User user,
             @PathVariable Long id) {
         try {
-            // intenta eliminar como animal de adopción primero, si no como reporte
-            animalService.eliminarAnimal(id, user);
+            animalService.eliminarPublicacionPermanente(id, user);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
-            try {
-                reporteService.eliminarReporte(id, user);
-                return ResponseEntity.noContent().build();
-            } catch (IllegalArgumentException e2) {
-                return ResponseEntity.badRequest().body(e2.getMessage());
-            }
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
@@ -125,7 +137,7 @@ public class AnimalController {
             @AuthenticationPrincipal User user,
             @PathVariable Long id) {
         try {
-            return ResponseEntity.ok(animalService.republicarAnimal(id, user));
+            return ResponseEntity.ok(animalService.reactivarPublicacion(id, user));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

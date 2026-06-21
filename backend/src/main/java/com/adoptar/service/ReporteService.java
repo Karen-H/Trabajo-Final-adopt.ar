@@ -9,7 +9,6 @@ import com.adoptar.entity.User;
 import com.adoptar.enums.CategoriaAnimal;
 import com.adoptar.enums.EstadoAnimal;
 import com.adoptar.enums.EstadoFoto;
-import com.adoptar.enums.UserRole;
 import com.adoptar.repository.AnimalFotoRepository;
 import com.adoptar.repository.AnimalRepository;
 import lombok.RequiredArgsConstructor;
@@ -57,8 +56,6 @@ public class ReporteService {
             }
         }
 
-        boolean esAdmin = publicador.getRole() == UserRole.ADMIN;
-
         Animal animal = Animal.builder()
                 .categoria(CategoriaAnimal.PERDIDO_ENCONTRADO)
                 .tipo(request.getTipo())
@@ -75,17 +72,8 @@ public class ReporteService {
                 .publicador(publicador)
                 .build();
 
-        if (esAdmin) {
-            animal.setAprobado(true);
-        }
-
         animalRepository.save(animal);
         guardarFotos(animal, fotos);
-
-        // si es admin, aprobar las fotos automaticamente
-        if (esAdmin) {
-            animal.getFotos().forEach(f -> f.setEstado(EstadoFoto.APROBADA));
-        }
 
         return toResponse(animal);
     }
@@ -112,7 +100,7 @@ public class ReporteService {
     public List<AnimalResponse> getMisReportes(User publicador) {
         return animalRepository.findByPublicador(publicador)
                 .stream()
-                .filter(a -> a.getCategoria() == CategoriaAnimal.PERDIDO_ENCONTRADO)
+                .filter(a -> a.getCategoria() == CategoriaAnimal.PERDIDO_ENCONTRADO && !a.isEliminadoPermanente())
                 .map(this::toResponse)
                 .toList();
     }
@@ -138,12 +126,6 @@ public class ReporteService {
         return toResponse(animal);
     }
 
-    // fotos pendientes de aprobación (solo perdido/encontrado)
-    @Transactional(readOnly = true)
-    public List<Animal> getPendientesAdmin() {
-        return animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal.PERDIDO_ENCONTRADO);
-    }
-
     @Transactional
     public void eliminarReporte(Long id, User user) {
         Animal animal = animalRepository.findById(id)
@@ -155,7 +137,7 @@ public class ReporteService {
             throw new IllegalArgumentException("Este endpoint es solo para reportes");
         }
         if (animal.isEliminado()) {
-            throw new IllegalArgumentException("El reporte ya fue eliminado");
+            throw new IllegalArgumentException("El reporte ya está pausado o eliminado");
         }
         animal.setEliminado(true);
         animalRepository.save(animal);
@@ -209,6 +191,7 @@ public class ReporteService {
                 .motivoRechazo(animal.getMotivoRechazo())
                 .eliminado(animal.isEliminado())
                 .eliminadoPorAdmin(animal.isEliminadoPorAdmin())
+                .eliminadoPermanente(animal.isEliminadoPermanente())
                 .motivoEliminacion(animal.getMotivoEliminacion())
                 .creadoEn(animal.getCreadoEn())
                 .build();

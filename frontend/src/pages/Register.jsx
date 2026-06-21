@@ -18,6 +18,7 @@ function Register() {
     organizacion: '',
     provincia: '',
     ciudad: '',
+    preferencia: '',
   })
   const [provincias, setProvincias] = useState([])
   const [municipios, setMunicipios] = useState([])
@@ -45,6 +46,10 @@ function Register() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    if (!form.preferencia) {
+      setError('Debés indicar tu intención de uso.')
+      return
+    }
     try {
       const data = { ...form, dni: Number(form.dni) }
       if (!data.organizacion) delete data.organizacion
@@ -131,6 +136,18 @@ function Register() {
             </select>
           </div>
         )}
+        <div>
+          <label>¿Qué querés hacer en adopt.ar?</label><br />
+          <select name="preferencia" value={form.preferencia} onChange={handleChange} required>
+            <option value="">Seleccioná una opción</option>
+            <option value="ADOPTANTE">Quiero adoptar animales</option>
+            <option value="RESCATISTA">Quiero publicar animales</option>
+            <option value="AMBOS">Quiero adoptar y publicar</option>
+          </select>
+          <p style={{ fontSize: 12, color: '#666', margin: '4px 0 0' }}>
+            Podés cambiar esta preferencia más adelante desde tu perfil.
+          </p>
+        </div>
         {error && <p>{error}</p>}
         <button type="submit">Registrarse</button>
       </form>

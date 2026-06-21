@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,12 +22,33 @@ public class ItemTiendaController {
 
     private final ItemTiendaService itemTiendaService;
 
+    // catalogo publico de tiendas con items en venta
+    @GetMapping("/tiendas")
+    public ResponseEntity<?> listarTiendas(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) String provincia,
+            @RequestParam(required = false) String q) {
+        return ResponseEntity.ok(itemTiendaService.listarTiendas(provincia, q, user));
+    }
+
+    // catalogo publico de items aprobados de una tienda
+    @GetMapping("/tiendas/{rescatistaId}")
+    public ResponseEntity<?> listarItemsDeTienda(@PathVariable Long rescatistaId) {
+        try {
+            return ResponseEntity.ok(itemTiendaService.listarItemsDeTienda(rescatistaId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @GetMapping("/mis-items")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> getMisItems(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(itemTiendaService.getMisItems(user));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> crear(
             @AuthenticationPrincipal User user,
             @Valid @ModelAttribute ItemTiendaRequest request,
@@ -39,6 +61,7 @@ public class ItemTiendaController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> editar(
             @AuthenticationPrincipal User user,
             @PathVariable Long id,
@@ -51,6 +74,7 @@ public class ItemTiendaController {
     }
 
     @PostMapping(value = "/{id}/fotos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> agregarFotos(
             @AuthenticationPrincipal User user,
             @PathVariable Long id,
@@ -63,6 +87,7 @@ public class ItemTiendaController {
     }
 
     @DeleteMapping("/{id}/fotos/{fotoId}")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> eliminarFoto(
             @AuthenticationPrincipal User user,
             @PathVariable Long id,
@@ -75,6 +100,7 @@ public class ItemTiendaController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> eliminar(
             @AuthenticationPrincipal User user,
             @PathVariable Long id) {

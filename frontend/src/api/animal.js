@@ -10,6 +10,10 @@ export function getAdopciones() {
   return api.get('/animales')
 }
 
+export function getAnimalById(id) {
+  return api.get(`/animales/${id}`)
+}
+
 export function getMisAnimales() {
   return api.get('/animales/mis-animales')
 }
@@ -24,14 +28,22 @@ export function agregarFotosAnimal(id, formData) {
   })
 }
 
-export function eliminarAnimal(id) {
+export function pausarPublicacion(id) {
+  return api.post(`/animales/${id}/pausar`)
+}
+
+export function eliminarPublicacionPermanente(id) {
   return api.delete(`/animales/${id}`)
 }
 
-export function republicarAnimal(id) {
+export function reactivarPublicacion(id) {
   return api.post(`/animales/${id}/republicar`)
 }
 
 export function eliminarFotoAnimal(animalId, fotoId) {
   return api.delete(`/animales/${animalId}/fotos/${fotoId}`)
+}
+
+export function registrarVista(id) {
+  return api.post(`/animales/${id}/vista`)
 }

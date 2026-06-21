@@ -17,6 +17,13 @@ import MiTienda from './pages/MiTienda'
 import Donar from './pages/Donar'
 import DonarResultado from './pages/DonarResultado'
 import Chats from './pages/Chats'
+import AnimalDetalle from './pages/AnimalDetalle'
+import Tiendas from './pages/Tiendas'
+import TiendaDetalle from './pages/TiendaDetalle'
+import Carrito from './pages/Carrito'
+import CompraResultado from './pages/CompraResultado'
+import MisVentas from './pages/MisVentas'
+import MisCompras from './pages/MisCompras'
 import './App.css'
 
 function Home() {
@@ -63,6 +70,15 @@ function App() {
         <Route path="/donar/fallo" element={<DonarResultado estado="fallo" />} />
         <Route path="/donar/pendiente" element={<DonarResultado estado="pendiente" />} />
         <Route path="/chats" element={<Chats />} />
+        <Route path="/animal/:id" element={<AnimalDetalle />} />
+        <Route path="/tiendas" element={<Tiendas />} />
+        <Route path="/tiendas/:rescatistaId" element={<TiendaDetalle />} />
+        <Route path="/carrito" element={<Carrito />} />
+        <Route path="/compra/exito" element={<CompraResultado estado="exito" />} />
+        <Route path="/compra/fallo" element={<CompraResultado estado="fallo" />} />
+        <Route path="/compra/pendiente" element={<CompraResultado estado="pendiente" />} />
+        <Route path="/mis-ventas" element={<MisVentas />} />
+        <Route path="/mis-compras" element={<MisCompras />} />
       </Routes>
     </AuthProvider>
   )

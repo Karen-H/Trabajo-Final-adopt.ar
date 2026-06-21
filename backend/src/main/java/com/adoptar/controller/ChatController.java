@@ -6,12 +6,15 @@ import com.adoptar.entity.User;
 import com.adoptar.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+// el chat es una funcion de uso normal de la plataforma: admin y moderador quedan afuera
 @RestController
 @RequestMapping("/api/chats")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('USER')")
 public class ChatController {
 
     private final ChatService chatService;

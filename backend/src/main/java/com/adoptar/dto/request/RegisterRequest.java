@@ -1,5 +1,6 @@
 package com.adoptar.dto.request;
 
+import com.adoptar.enums.PreferenciaRol;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,4 +36,7 @@ public class RegisterRequest {
     private String provincia;
 
     private String ciudad;
+
+    @NotNull(message = "Debés indicar tu intención de uso")
+    private PreferenciaRol preferencia;
 }

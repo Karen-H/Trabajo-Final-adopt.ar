@@ -11,6 +11,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Collection;
 
 public interface SolicitudTiendaRepository extends JpaRepository<SolicitudTienda, Long> {
 
@@ -48,4 +49,7 @@ public interface SolicitudTiendaRepository extends JpaRepository<SolicitudTienda
     List<Object[]> findSlotsOcupadosEnRango(@Param("desde") LocalDate desde,
                                              @Param("hasta") LocalDate hasta,
                                              @Param("estadoExcluido") EstadoSolicitudTienda estadoExcluido);
+
+    @Query("SELECT s FROM SolicitudTienda s WHERE s.estado = 'ACEPTADA' AND s.fechaPreferida IN :fechas")
+    List<SolicitudTienda> findAceptadasConFechaEn(@Param("fechas") Collection<LocalDate> fechas);
 }

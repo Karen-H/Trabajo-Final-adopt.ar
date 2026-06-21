@@ -3,6 +3,7 @@ package com.adoptar.service;
 import com.adoptar.entity.*;
 import com.adoptar.enums.EstadoAnimal;
 import com.adoptar.enums.EstadoReserva;
+import com.adoptar.enums.TipoNotificacion;
 import com.adoptar.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ public class ReservaService {
     private final ChatRepository chatRepository;
     private final MensajeRepository mensajeRepository;
     private final BloqueoAdopcionRepository bloqueoRepository;
+    private final NotificacionService notificacionService;
 
     // rescatista propone reserva de un animal para un adoptante
     @Transactional
@@ -77,6 +79,9 @@ public class ReservaService {
                     .build());
         });
 
+        notificacionService.crear(adoptante, TipoNotificacion.RESERVA_PROPUESTA,
+                rescatista.getNombre() + " " + rescatista.getApellido() + " quiere reservarte a " + animal.getNombre() + " para que lo adoptes",
+                "/adopciones");
         return Map.of("reservaId", reserva.getId());
     }
 
@@ -92,7 +97,6 @@ public class ReservaService {
         animalRepository.save(reserva.getAnimal());
         reservaRepository.save(reserva);
 
-        // mensaje de confirmación en el chat
         chatRepository.findByAdoptanteAndRescatista(adoptante, reserva.getRescatista()).ifPresent(chat -> {
             mensajeRepository.save(Mensaje.builder()
                     .chat(chat)
@@ -102,6 +106,9 @@ public class ReservaService {
                     .leido(false)
                     .build());
         });
+        notificacionService.crear(reserva.getRescatista(), TipoNotificacion.RESERVA_ACEPTADA,
+                adoptante.getNombre() + " " + adoptante.getApellido() + " aceptó la reserva de " + reserva.getAnimal().getNombre(),
+                "/chats");
     }
 
     // adoptante rechaza la reserva
@@ -123,6 +130,9 @@ public class ReservaService {
                     .leido(false)
                     .build());
         });
+        notificacionService.crear(reserva.getRescatista(), TipoNotificacion.RESERVA_RECHAZADA,
+                adoptante.getNombre() + " " + adoptante.getApellido() + " rechazó la reserva de " + reserva.getAnimal().getNombre(),
+                "/chats");
     }
 
     // rescatista marca la adopción como concretada
@@ -142,7 +152,7 @@ public class ReservaService {
             mensajeRepository.save(Mensaje.builder()
                     .chat(chat)
                     .emisor(null)
-                    .contenido("¡La adopción de " + reserva.getAnimal().getNombre() + " se concretó! Gracias por darle un hogar. 🎉")
+                    .contenido("La adopción de " + reserva.getAnimal().getNombre() + " se concretó. Gracias por darle un hogar.")
                     .leido(false)
                     .build());
         });
@@ -183,6 +193,9 @@ public class ReservaService {
                     .leido(false)
                     .build());
         });
+        notificacionService.crear(reserva.getAdoptante(), TipoNotificacion.RESERVA_CANCELADA,
+                "La reserva de " + reserva.getAnimal().getNombre() + " fue cancelada",
+                "/adopciones");
     }
 
     // reservas pendientes del adoptante con un rescatista (puede haber varias)

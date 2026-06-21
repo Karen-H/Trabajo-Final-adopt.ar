@@ -51,6 +51,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/animales/mis-animales").authenticated()
                 // detalle de un animal por id
                 .requestMatchers(HttpMethod.GET, "/api/animales/*").permitAll()
+                // registro de vista (auth opcional: el backend excluye al dueño)
+                .requestMatchers(HttpMethod.POST, "/api/animales/*/vista").permitAll()
                 // vistas públicas de perdidos y encontrados
                 .requestMatchers(HttpMethod.GET, "/api/reportes/perdidos").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/reportes/encontrados").permitAll()
@@ -70,9 +72,18 @@ public class SecurityConfig {
                 .requestMatchers("/api/tienda/**").authenticated()
                 .requestMatchers("/api/admin/tienda/**").authenticated()
                 .requestMatchers("/api/admin/disponibilidad/**").authenticated()
-                // items de tienda requieren autenticación
+                // items de tienda: catalogo publico antes del resto, que requiere autenticación
+                .requestMatchers(HttpMethod.GET, "/api/items/tiendas").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/items/tiendas/*").permitAll()
                 .requestMatchers("/api/items/**").authenticated()
                 .requestMatchers("/api/admin/items/**").authenticated()
+                // carrito requiere autenticación
+                .requestMatchers("/api/carrito/**").authenticated()
+                // ventas: confirmacion y webhook son publicos, el resto requiere autenticación
+                .requestMatchers(HttpMethod.GET, "/api/ventas/confirmar").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/ventas/confirmar-venta/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/ventas/webhook").permitAll()
+                .requestMatchers("/api/ventas/**").authenticated()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session

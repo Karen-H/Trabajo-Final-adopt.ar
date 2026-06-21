@@ -1,15 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { getMisChats, getMensajes, enviarMensaje } from '../api/chat'
 import { proponerReserva, aceptarReserva, rechazarReserva, concretarReserva, cancelarReserva, getReservaPendiente, getMisAnimalesDisponibles, getMisReservasActivas } from '../api/reserva'
+import { getEnvioPendiente, elegirMetodoEnvio, elegirHorarioRetiro, completarDomicilioEnvio, volverAElegirMetodoEnvio } from '../api/venta'
 import { useAuth } from '../context/AuthContext'
 
-const ETIQUETA_TIPO = { PERRO: 'Perro', GATO: 'Gato', OTRO: 'Otro' }
-const ETIQUETA_EDAD = { CACHORRO: 'Cachorro', JOVEN: 'Joven', ADULTO: 'Adulto', SENIOR: 'Senior' }
-
-function etiquetaAnimal(a) {
-  const tipo = ETIQUETA_TIPO[a.tipo] || a.tipo
-  const edad = a.edad ? (ETIQUETA_EDAD[a.edad] || a.edad) : null
-  return edad ? `${a.nombre} (${tipo}, ${edad})` : `${a.nombre} (${tipo})`
+const DIA_LABEL = {
+  LUNES: 'Lunes', MARTES: 'Martes', MIERCOLES: 'Miércoles', JUEVES: 'Jueves',
+  VIERNES: 'Viernes', SABADO: 'Sábado', DOMINGO: 'Domingo',
 }
 
 function Chats() {
@@ -29,6 +26,13 @@ function Chats() {
   const [reservasPendientes, setReservasPendientes] = useState([]) // adoptante
   const [reservasActivasChat, setReservasActivasChat] = useState([]) // rescatista, reservas activas de este chat
   const [cancelandoReservaId, setCancelAndoReservaId] = useState(null) // ID de reserva que se está cancelando
+  const [hoveredMsgId, setHoveredMsgId] = useState(null)
+
+  // bot de envio (comprador)
+  const [envioPendiente, setEnvioPendiente] = useState(null)
+  const [domicilioForm, setDomicilioForm] = useState({ calle: '', altura: '', piso: '', depto: '', descripcion: '' })
+  const [errorEnvio, setErrorEnvio] = useState('')
+  const [enviandoEnvio, setEnviandoEnvio] = useState(false)
 
   // cargar lista de chats
   useEffect(() => {
@@ -62,6 +66,14 @@ function Chats() {
     return () => clearInterval(intervalo)
   }, [chatActivo, chatActivoData, user?.activeProfile])
 
+  // refrescar estado del bot de envio cada 10 segundos (solo lado comprador)
+  useEffect(() => {
+    if (!chatActivo || !chatActivoData) return
+    cargarEnvioPendiente(chatActivoData)
+    const intervalo = setInterval(() => cargarEnvioPendiente(chatActivoData), 10000)
+    return () => clearInterval(intervalo)
+  }, [chatActivo, chatActivoData])
+
   // scroll al último mensaje
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -93,11 +105,19 @@ function Chats() {
     }
   }
 
+  // al cambiar de perfil, cerrar el chat abierto
+  useEffect(() => {
+    setChatActivo(null)
+  }, [user?.activeProfile])
+
   // al cambiar de chat activo, resetear estado y cargar reservas
   useEffect(() => {
-    if (!chatActivo) { setChatActivoData(null); setReservasPendientes([]); setReservasActivasChat([]); return }
+    if (!chatActivo) { setChatActivoData(null); setReservasPendientes([]); setReservasActivasChat([]); setEnvioPendiente(null); return }
     setMostrarProponer(false)
     setAnimalSeleccionado('')
+    setEnvioPendiente(null)
+    setDomicilioForm({ calle: '', altura: '', piso: '', depto: '', descripcion: '' })
+    setErrorEnvio('')
   }, [chatActivo])
 
   // actualizar chatActivoData cuando cambia la lista (sin resetear el panel)
@@ -130,6 +150,77 @@ function Chats() {
       }
     } catch {
       // ignorar
+    }
+  }
+
+  async function cargarEnvioPendiente(data) {
+    if (!data?.id || data.rolEnChat !== 'ADOPTANTE' || !data.otroUsuarioId) { setEnvioPendiente(null); return }
+    try {
+      const res = await getEnvioPendiente(data.otroUsuarioId)
+      setEnvioPendiente(res.status === 204 ? null : res.data)
+    } catch {
+      setEnvioPendiente(null)
+    }
+  }
+
+  async function handleElegirMetodoEnvio(metodo) {
+    if (!envioPendiente) return
+    setErrorEnvio('')
+    setEnviandoEnvio(true)
+    try {
+      const res = await elegirMetodoEnvio(envioPendiente.ventaId, metodo)
+      setEnvioPendiente(res.data)
+      cargarMensajes(chatActivo)
+    } catch (e) {
+      setErrorEnvio(e.response?.data || 'No se pudo guardar la opción.')
+    } finally {
+      setEnviandoEnvio(false)
+    }
+  }
+
+  async function handleElegirHorarioRetiro(bloqueId) {
+    if (!envioPendiente) return
+    setErrorEnvio('')
+    setEnviandoEnvio(true)
+    try {
+      const res = await elegirHorarioRetiro(envioPendiente.ventaId, bloqueId)
+      setEnvioPendiente(res.data)
+      cargarMensajes(chatActivo)
+    } catch (e) {
+      setErrorEnvio(e.response?.data || 'No se pudo guardar el horario.')
+    } finally {
+      setEnviandoEnvio(false)
+    }
+  }
+
+  async function handleVolverAElegirMetodo() {
+    if (!envioPendiente) return
+    setErrorEnvio('')
+    setEnviandoEnvio(true)
+    try {
+      const res = await volverAElegirMetodoEnvio(envioPendiente.ventaId)
+      setEnvioPendiente(res.data)
+      cargarMensajes(chatActivo)
+    } catch (e) {
+      setErrorEnvio(e.response?.data || 'No se pudo volver atrás.')
+    } finally {
+      setEnviandoEnvio(false)
+    }
+  }
+
+  async function handleSubmitDomicilio(e) {
+    e.preventDefault()
+    if (!envioPendiente || !domicilioForm.calle.trim()) { setErrorEnvio('La calle es obligatoria.'); return }
+    setErrorEnvio('')
+    setEnviandoEnvio(true)
+    try {
+      const res = await completarDomicilioEnvio(envioPendiente.ventaId, domicilioForm)
+      setEnvioPendiente(res.data)
+      cargarMensajes(chatActivo)
+    } catch (e) {
+      setErrorEnvio(e.response?.data || 'No se pudo guardar el domicilio.')
+    } finally {
+      setEnviandoEnvio(false)
     }
   }
 
@@ -217,10 +308,12 @@ function Chats() {
         <div style={{ padding: '12px 16px', borderBottom: '1px solid #eee', fontWeight: 600 }}>
           Mis chats
         </div>
-        {chats.length === 0 && (
-          <p style={{ padding: 16, color: '#888', fontSize: 14 }}>No tenés chats todavía.</p>
-        )}
-        {chats.map(c => (
+        {(() => {
+          const chatsFiltrados = chats.filter(c => c.rolEnChat === user?.activeProfile || c.esChatReporte)
+          if (chatsFiltrados.length === 0) return (
+            <p style={{ padding: 16, color: '#888', fontSize: 14 }}>No tenés chats todavía.</p>
+          )
+          return chatsFiltrados.map(c => (
           <div
             key={c.id}
             onClick={() => setChatActivo(c.id)}
@@ -246,7 +339,8 @@ function Chats() {
               )}
             </div>
           </div>
-        ))}
+          ))
+        })()}
       </div>
 
       {/* panel de mensajes */}
@@ -265,10 +359,35 @@ function Chats() {
                     (() => {
                       const match = m.contenido.match(/^RESERVA:(\d+):(.*)$/)
                       const texto = match ? match[2] : m.contenido
+                      const preview = m.animalPreview
                       return (
-                        <span style={{ fontSize: 12, color: '#888', background: '#f0f0f0', padding: '4px 10px', borderRadius: 10, display: 'inline-block' }}>
-                          {texto}
-                        </span>
+                        <div
+                          style={{ position: 'relative', display: 'inline-block' }}
+                          onMouseEnter={() => preview && setHoveredMsgId(m.id)}
+                          onMouseLeave={() => setHoveredMsgId(null)}
+                        >
+                          <span style={{ fontSize: 12, color: '#888', background: '#f0f0f0', padding: '4px 10px', borderRadius: 10, display: 'inline-block', cursor: preview ? 'default' : undefined }}>
+                            {texto}
+                          </span>
+                          {preview && hoveredMsgId === m.id && (
+                            <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 6, background: '#fff', border: '1px solid #ddd', borderRadius: 8, padding: 10, width: 200, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', zIndex: 10, textAlign: 'left' }}>
+                              {preview.primeraFotoUrl && (
+                                <img src={preview.primeraFotoUrl} alt="animal" style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 4, marginBottom: 6 }} />
+                              )}
+                              <div style={{ fontSize: 13, fontWeight: 600, color: '#222' }}>
+                                {preview.nombre || (preview.tipo === 'PERRO' ? 'Perro' : preview.tipo === 'GATO' ? 'Gato' : 'Otro')}
+                              </div>
+                              <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
+                                {preview.estado === 'PERDIDO' ? 'Perdido' : preview.estado === 'ENCONTRADO' ? 'Encontrado' : preview.estado === 'EN_ADOPCION' ? 'En adopción' : preview.estado}
+                              </div>
+                              {preview.descripcion && (
+                                <div style={{ fontSize: 11, color: '#888', marginTop: 4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                  {preview.descripcion}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       )
                     })()
                   ) : (
@@ -305,10 +424,10 @@ function Chats() {
                     </p>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={() => handleConcretar(r.reservaId)} style={{ fontSize: 13, background: '#2e7d32', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer' }}>
-                        ✅ Adopción concretada
+                        Adopción concretada
                       </button>
                       <button onClick={() => handleCancelar(r.reservaId)} style={{ fontSize: 13, background: '#c62828', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer' }}>
-                        ❌ Cancelar reserva
+                        Cancelar reserva
                       </button>
                     </div>
                   </div>
@@ -319,22 +438,16 @@ function Chats() {
               <div style={{ padding: '8px 12px', borderTop: '1px solid #eee', background: '#fafafa' }}>
                 {!mostrarProponer ? (
                   <button onClick={() => setMostrarProponer(true)} style={{ fontSize: 13 }}>
-                    📋 Reservar animal para {chatActivoData.otroUsuarioNombre}
+                    Reservar animal para {chatActivoData.otroUsuarioNombre}
                   </button>
                 ) : (
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    {animalesDisponibles.length === 0 ? (
-                      <span style={{ fontSize: 13, color: '#666' }}>
-                        El adoptante no consultó por ningún animal disponible todavía.
-                      </span>
-                    ) : (
-                      <select value={animalSeleccionado} onChange={e => setAnimalSeleccionado(e.target.value)} style={{ fontSize: 13 }}>
-                        <option value="">Elegí un animal</option>
-                        {animalesDisponibles.map(a => (
-                          <option key={a.id} value={a.id}>{etiquetaAnimal(a)}</option>
-                        ))}
-                      </select>
-                    )}
+                    <select value={animalSeleccionado} onChange={e => setAnimalSeleccionado(e.target.value)} style={{ fontSize: 13 }}>
+                      <option value="">Elegí un animal</option>
+                      {animalesDisponibles.map(a => (
+                        <option key={a.id} value={a.id}>{a.nombre}</option>
+                      ))}
+                    </select>
                     <button onClick={handleProponer} disabled={!animalSeleccionado} style={{ fontSize: 13 }}>
                       Confirmar reserva
                     </button>
@@ -362,6 +475,119 @@ function Chats() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* bot de envio (comprador) */}
+            {chatActivoData && envioPendiente && envioPendiente.estadoEnvio !== 'CONFIRMADO' && (
+              <div style={{ padding: '10px 12px', borderTop: '2px solid #1a73e8', background: '#f0f6ff' }}>
+                {errorEnvio && <p style={{ color: 'red', fontSize: 13, margin: '0 0 8px' }}>{errorEnvio}</p>}
+
+                {envioPendiente.estadoEnvio === 'PENDIENTE_METODO' && (() => {
+                  const opciones = [
+                    envioPendiente.retiroDisponible && { metodo: 'RETIRO_DOMICILIO', label: 'Retiro en el domicilio del vendedor' },
+                    { metodo: 'ENVIO_MOTO', label: 'Envío en moto en el día' },
+                    { metodo: 'CORREO_ARGENTINO', label: 'Correo Argentino' },
+                  ].filter(Boolean)
+                  return (
+                    <div>
+                      <p style={{ margin: '0 0 8px', fontSize: 13, color: '#333' }}>¿Cómo querés recibir tu pedido?</p>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {opciones.map((o, i) => (
+                          <button
+                            key={o.metodo}
+                            disabled={enviandoEnvio}
+                            onClick={() => handleElegirMetodoEnvio(o.metodo)}
+                            style={{ fontSize: 13, padding: '6px 12px', borderRadius: 4, border: '1px solid #1a73e8', background: '#fff', color: '#1a73e8', cursor: 'pointer' }}
+                          >
+                            {i + 1}. {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {envioPendiente.estadoEnvio === 'PENDIENTE_HORARIO' && (
+                  <div>
+                    <p style={{ margin: '0 0 8px', fontSize: 13, color: '#333' }}>Elegí el día y horario que te quede mejor para retirar:</p>
+                    {envioPendiente.bloquesRetiro.length === 0 ? (
+                      <p style={{ fontSize: 13, color: '#888' }}>El vendedor todavía no cargó horarios disponibles.</p>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {envioPendiente.bloquesRetiro.map(b => (
+                          <button
+                            key={b.id}
+                            disabled={enviandoEnvio}
+                            onClick={() => handleElegirHorarioRetiro(b.id)}
+                            style={{ fontSize: 13, padding: '6px 12px', borderRadius: 4, border: '1px solid #1a73e8', background: '#fff', color: '#1a73e8', cursor: 'pointer' }}
+                          >
+                            {DIA_LABEL[b.diaSemana]} {b.horaInicio.substring(0, 5)} a {b.horaFin.substring(0, 5)}hs
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      disabled={enviandoEnvio}
+                      onClick={handleVolverAElegirMetodo}
+                      style={{ fontSize: 12, marginTop: 8, background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: 0 }}
+                    >
+                      Volver a elegir método de envío
+                    </button>
+                  </div>
+                )}
+
+                {envioPendiente.estadoEnvio === 'PENDIENTE_DOMICILIO' && (
+                  <form onSubmit={handleSubmitDomicilio}>
+                    <p style={{ margin: '0 0 8px', fontSize: 13, color: '#333' }}>Completá tu domicilio para el envío:</p>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                      <input
+                        placeholder="Calle *"
+                        value={domicilioForm.calle}
+                        onChange={e => setDomicilioForm(prev => ({ ...prev, calle: e.target.value }))}
+                        style={{ fontSize: 13, padding: '6px 8px', width: 160 }}
+                        required
+                      />
+                      <input
+                        placeholder="Altura"
+                        value={domicilioForm.altura}
+                        onChange={e => setDomicilioForm(prev => ({ ...prev, altura: e.target.value }))}
+                        style={{ fontSize: 13, padding: '6px 8px', width: 90 }}
+                      />
+                      <input
+                        placeholder="Piso"
+                        value={domicilioForm.piso}
+                        onChange={e => setDomicilioForm(prev => ({ ...prev, piso: e.target.value }))}
+                        style={{ fontSize: 13, padding: '6px 8px', width: 70 }}
+                      />
+                      <input
+                        placeholder="Depto"
+                        value={domicilioForm.depto}
+                        onChange={e => setDomicilioForm(prev => ({ ...prev, depto: e.target.value }))}
+                        style={{ fontSize: 13, padding: '6px 8px', width: 70 }}
+                      />
+                    </div>
+                    <textarea
+                      placeholder="Descripción adicional (opcional)"
+                      value={domicilioForm.descripcion}
+                      onChange={e => setDomicilioForm(prev => ({ ...prev, descripcion: e.target.value }))}
+                      rows={2}
+                      style={{ fontSize: 13, padding: '6px 8px', width: '100%', maxWidth: 400, boxSizing: 'border-box', display: 'block', marginBottom: 8 }}
+                    />
+                    <button type="submit" disabled={enviandoEnvio || !domicilioForm.calle.trim()} style={{ fontSize: 13, padding: '6px 14px' }}>
+                      Confirmar domicilio
+                    </button>
+                    <button
+                      type="button"
+                      disabled={enviandoEnvio}
+                      onClick={handleVolverAElegirMetodo}
+                      style={{ fontSize: 12, marginLeft: 10, background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: 0 }}
+                    >
+                      Volver a elegir método de envío
+                    </button>
+                  </form>
+                )}
               </div>
             )}
 

@@ -4,15 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.math.BigDecimal;
+
 @Getter
 @Builder
 @AllArgsConstructor
-public class ItemFotoPendienteResponse {
-
+public class VentaResponse {
     private Long id;
-    private String url;
-    private Long itemId;
-    private String itemTitulo;
-    private String itemTipo;
+    private String checkoutUrl;
+    private BigDecimal montoTotal;
     private String rescatistaNombre;
 }

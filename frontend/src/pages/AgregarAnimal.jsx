@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { getProfile } from '../api/user'
 import { crearAnimal } from '../api/animal'
 import { buscarNominatim } from '../api/reporte'
@@ -18,6 +19,7 @@ const TIPOS_ADOPCION = [
 ]
 
 function AgregarAnimal() {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [perfil, setPerfil] = useState(null)
   const [form, setForm] = useState({
@@ -42,6 +44,10 @@ function AgregarAnimal() {
   useEffect(() => {
     if (!localStorage.getItem('token')) {
       navigate('/login')
+      return
+    }
+    if (user?.activeProfile !== 'RESCATISTA') {
+      navigate('/')
       return
     }
     getProfile()
@@ -69,7 +75,7 @@ function AgregarAnimal() {
         }
       })
       .catch(() => navigate('/login'))
-  }, [navigate])
+  }, [navigate, user])
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target

@@ -41,14 +41,19 @@ public class ItemTienda {
     @Column(precision = 10, scale = 2)
     private BigDecimal precio;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer stock = 0;
+
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ItemFoto> fotos = new ArrayList<>();
 
+    // los items se publican directo, sin aprobacion previa; la moderacion es post-publicacion
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private EstadoItem estado = EstadoItem.PENDIENTE;
+    private EstadoItem estado = EstadoItem.APROBADO;
 
     @Column(columnDefinition = "TEXT")
     private String motivoRechazo;

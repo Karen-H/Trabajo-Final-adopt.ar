@@ -27,7 +27,7 @@ public class AnimalFoto {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private EstadoFoto estado = EstadoFoto.PENDIENTE;
+    private EstadoFoto estado = EstadoFoto.APROBADA;
 
     // motivo si la foto fue rechazada
     @Column(columnDefinition = "TEXT")

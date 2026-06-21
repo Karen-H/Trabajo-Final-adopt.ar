@@ -4,12 +4,15 @@ import com.adoptar.entity.User;
 import com.adoptar.service.FavoritoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+// favoritos es uso normal de la plataforma: admin y moderador quedan afuera
 @RestController
 @RequestMapping("/api/favoritos")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('USER')")
 public class FavoritoController {
 
     private final FavoritoService favoritoService;

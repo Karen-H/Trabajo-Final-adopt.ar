@@ -9,6 +9,7 @@ import {
   eliminarFotoItem,
   eliminarItem,
 } from '../api/item'
+import { formatMonto } from '../utils/formatMonto'
 
 const TIPOS_ITEM = [
   { value: 'INDUMENTARIA', label: 'Indumentaria' },
@@ -21,20 +22,7 @@ const TIPOS_ITEM = [
   { value: 'OTRO', label: 'Otro' },
 ]
 
-const ESTADO_LABEL = {
-  PENDIENTE: 'Pendiente de aprobación',
-  APROBADO: 'Aprobado',
-  RECHAZADO: 'Rechazado',
-}
-
-const ESTADO_FOTO_LABEL = {
-  PENDIENTE: 'Pendiente',
-  APROBADA: 'Aprobada',
-  RECHAZADA: 'Rechazada',
-  ELIMINADA: 'Eliminada',
-}
-
-const formInicial = { titulo: '', tipo: '', descripcion: '', precio: '' }
+const formInicial = { titulo: '', tipo: '', descripcion: '', precio: '', stock: '' }
 
 function MiTienda() {
   const { user } = useAuth()
@@ -68,12 +56,16 @@ function MiTienda() {
       navigate('/login')
       return
     }
+    if (user?.activeProfile !== 'RESCATISTA') {
+      navigate('/')
+      return
+    }
     if (!user?.tieneTienda) {
       navigate('/abrir-tienda')
       return
     }
     cargarItems()
-  }, [])
+  }, [user])
 
   async function cargarItems() {
     try {
@@ -103,6 +95,7 @@ function MiTienda() {
     e.preventDefault()
     setErrorCrear('')
     if (!formCrear.tipo) { setErrorCrear('El tipo es obligatorio.'); return }
+    if (formCrear.stock === '') { setErrorCrear('El stock es obligatorio.'); return }
     if (fotosCrear.length < 1) { setErrorCrear('Tenés que subir al menos una foto.'); return }
     setCreando(true)
     try {
@@ -111,6 +104,7 @@ function MiTienda() {
       formData.append('tipo', formCrear.tipo)
       if (formCrear.descripcion) formData.append('descripcion', formCrear.descripcion)
       if (formCrear.precio) formData.append('precio', formCrear.precio)
+      formData.append('stock', formCrear.stock)
       fotosCrear.forEach(f => formData.append('fotos', f))
       const res = await crearItem(formData)
       setItems(prev => [res.data, ...prev])
@@ -133,6 +127,7 @@ function MiTienda() {
       tipo: item.tipo,
       descripcion: item.descripcion || '',
       precio: item.precio ?? '',
+      stock: item.stock ?? '',
     })
     setErrorEditar('')
   }
@@ -141,6 +136,7 @@ function MiTienda() {
     e.preventDefault()
     setErrorEditar('')
     if (!formEditar.tipo) { setErrorEditar('El tipo es obligatorio.'); return }
+    if (formEditar.stock === '') { setErrorEditar('El stock es obligatorio.'); return }
     setEditando(true)
     try {
       const body = {
@@ -148,6 +144,7 @@ function MiTienda() {
         tipo: formEditar.tipo,
         descripcion: formEditar.descripcion || null,
         precio: formEditar.precio !== '' ? Number(formEditar.precio) : null,
+        stock: Number(formEditar.stock),
       }
       const res = await editarItem(editandoId, body)
       setItems(prev => prev.map(it => it.id === editandoId ? res.data : it))
@@ -266,6 +263,17 @@ function MiTienda() {
             />
           </label>
 
+          <label>Stock *
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={formCrear.stock}
+              onChange={e => setFormCrear(f => ({ ...f, stock: e.target.value }))}
+              required
+            />
+          </label>
+
           <label>Fotos (1 a 5) *
             <input type="file" accept="image/*" multiple onChange={handleFotosCrear} />
           </label>
@@ -328,6 +336,17 @@ function MiTienda() {
                 />
               </label>
 
+              <label>Stock *
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={formEditar.stock}
+                  onChange={e => setFormEditar(f => ({ ...f, stock: e.target.value }))}
+                  required
+                />
+              </label>
+
               {errorEditar && <p style={{ color: 'red', margin: 0 }}>{errorEditar}</p>}
 
               <div style={{ display: 'flex', gap: 8 }}>
@@ -337,26 +356,15 @@ function MiTienda() {
             </form>
           ) : (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
-                <div>
-                  <strong>{item.titulo}</strong>
-                  {' · '}
-                  <span>{TIPOS_ITEM.find(t => t.value === item.tipo)?.label ?? item.tipo}</span>
-                  {item.precio != null && <span> · ${Number(item.precio).toLocaleString('es-AR')}</span>}
-                </div>
-                <span style={{
-                  fontSize: 13,
-                  color: item.estado === 'APROBADO' ? 'green' : item.estado === 'RECHAZADO' ? 'red' : '#888'
-                }}>
-                  {ESTADO_LABEL[item.estado]}
-                </span>
+              <div>
+                <strong>{item.titulo}</strong>
+                {' · '}
+                <span>{TIPOS_ITEM.find(t => t.value === item.tipo)?.label ?? item.tipo}</span>
+                {item.precio != null && <span> · ${formatMonto(item.precio)}</span>}
+                <span> · Stock: {item.stock}</span>
               </div>
 
               {item.descripcion && <p style={{ margin: '8px 0' }}>{item.descripcion}</p>}
-
-              {item.motivoRechazo && (
-                <p style={{ color: 'red', fontSize: 13 }}>Motivo de rechazo: {item.motivoRechazo}</p>
-              )}
 
               {/* fotos */}
               {item.fotos.filter(f => f.estado !== 'ELIMINADA').length > 0 && (
@@ -370,14 +378,11 @@ function MiTienda() {
                           alt="foto ítem"
                           style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4 }}
                         />
-                        <div style={{ fontSize: 11, textAlign: 'center', color: foto.estado === 'APROBADA' ? 'green' : foto.estado === 'RECHAZADA' ? 'red' : '#888' }}>
-                          {ESTADO_FOTO_LABEL[foto.estado]}
-                        </div>
                         <button
                           style={{ position: 'absolute', top: 2, right: 2, fontSize: 11, padding: '1px 4px' }}
                           onClick={() => handleEliminarFoto(item.id, foto.id)}
                         >
-                          ✕
+                          Eliminar
                         </button>
                       </div>
                     ))}
@@ -387,11 +392,9 @@ function MiTienda() {
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
                 <button onClick={() => abrirEditar(item)}>Editar</button>
 
-                {item.estado === 'APROBADO' && (
-                  <button onClick={() => { setAgregandoFotosId(item.id); setFotosNuevas([]); setErrorFotos('') }}>
-                    + Agregar fotos
-                  </button>
-                )}
+                <button onClick={() => { setAgregandoFotosId(item.id); setFotosNuevas([]); setErrorFotos('') }}>
+                  + Agregar fotos
+                </button>
 
                 <button
                   style={{ color: 'red' }}

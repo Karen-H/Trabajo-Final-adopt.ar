@@ -3,9 +3,6 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import AdminDashboard from './AdminDashboard'
 import {
-  getAnimalesPendientes, aprobarAnimal, rechazarAnimal,
-  getFotosPendientes, aprobarFoto, rechazarFoto,
-  getPublicaciones, eliminarAnimalAdmin, eliminarFotoAdmin,
   getUsuarios, eliminarUsuario, actualizarRol,
   getTiendasActivas, revocarTienda,
 } from '../api/admin'
@@ -13,16 +10,7 @@ import {
   getSolicitudesAdmin, aceptarSolicitud, editarLinkSolicitud,
   aprobarSolicitud, rechazarSolicitud, reprogramarSolicitudAdmin,
 } from '../api/tienda'
-import {
-  getItemsPendientesAdmin, aprobarItemAdmin, rechazarItemAdmin,
-  getFotosItemPendientesAdmin, aprobarFotoItemAdmin, rechazarFotoItemAdmin,
-} from '../api/item'
 import { getDenunciasPendientes, desestimar, eliminarPublicacionDenuncia } from '../api/denuncia'
-
-const TIPOS_ITEM_LABEL = {
-  INDUMENTARIA: 'Indumentaria', ACCESORIO: 'Accesorio', ALIMENTO: 'Alimento',
-  JUGUETE: 'Juguete', HIGIENE: 'Higiene', CAMA: 'Cama', TRANSPORTE: 'Transporte', OTRO: 'Otro',
-}
 
 const MOTIVO_REPROGRAMACION_OPCIONES = [
   { value: 'PROBLEMA_TECNICO', label: 'Problema técnico' },
@@ -67,96 +55,17 @@ function horaFinSlot(s) {
 
 
 const ETIQUETA_TIPO = { PERRO: 'Perro', GATO: 'Gato', OTRO: 'Otro' }
-const ETIQUETA_SEXO = { MACHO: 'Macho', HEMBRA: 'Hembra' }
-const ETIQUETA_EDAD = {
-  CACHORRO: 'Cachorro (0-6 meses)',
-  JOVEN: 'Joven (6 meses - 2 años)',
-  ADULTO: 'Adulto (2-7 años)',
-  SENIOR: 'Senior (7+ años)',
-}
 const ETIQUETA_ESTADO = { PERDIDO: 'Perdido', ENCONTRADO: 'Encontrado' }
-
-function AccionesAnimal({ id, motivoAnimal, setMotivoAnimal, onAprobar, onRechazar }) {
-  return (
-    <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-      <button onClick={() => onAprobar(id)}>Aprobar</button>
-      <input
-        type="text"
-        placeholder="Motivo de rechazo"
-        value={motivoAnimal[id] || ''}
-        onChange={e => setMotivoAnimal(prev => ({ ...prev, [id]: e.target.value }))}
-        style={{ width: 280 }}
-      />
-      <button onClick={() => onRechazar(id)}>Rechazar</button>
-    </div>
-  )
-}
-
-function CardAdopcion({ animal, motivoAnimal, setMotivoAnimal, onAprobar, onRechazar }) {
-  return (
-    <div style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
-      <h4>Nombre: {animal.nombre}</h4>
-      <p>Tipo: {ETIQUETA_TIPO[animal.tipo]}</p>
-      {animal.sexo && <p>Sexo: {ETIQUETA_SEXO[animal.sexo]}</p>}
-      {animal.edad && <p>Edad: {ETIQUETA_EDAD[animal.edad]}</p>}
-      {animal.tipoAdopcion && <p>Tipo de adopción: {animal.tipoAdopcion === 'PERMANENTE' ? 'Permanente' : 'Tránsito'}</p>}
-      <p>Ubicación: {animal.ciudad}, {animal.provincia}</p>
-      {(animal.amigableConGatos || animal.amigableConPerros || animal.amigableConNinos) && (
-        <p>Amigable con: {[animal.amigableConGatos && 'gatos', animal.amigableConPerros && 'perros', animal.amigableConNinos && 'niños'].filter(Boolean).join(', ')}</p>
-      )}
-      {animal.descripcion && <p>Descripción: {animal.descripcion}</p>}
-      <p>Publicado por: {animal.rescatistaNombre}</p>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
-        {animal.fotos.map(foto => (
-          <img key={foto.id} src={foto.url} alt="foto" style={{ width: 150, height: 150, objectFit: 'cover' }} />
-        ))}
-      </div>
-      <AccionesAnimal id={animal.id} motivoAnimal={motivoAnimal} setMotivoAnimal={setMotivoAnimal} onAprobar={onAprobar} onRechazar={onRechazar} />
-    </div>
-  )
-}
-
-function CardReporte({ animal, motivoAnimal, setMotivoAnimal, onAprobar, onRechazar }) {
-  return (
-    <div style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
-      <h4>Tipo: {ETIQUETA_TIPO[animal.tipo]} {ETIQUETA_ESTADO[animal.estado] ? `(${ETIQUETA_ESTADO[animal.estado]})` : ''}</h4>
-      {animal.direccion && <p>Visto en: {animal.direccion}</p>}
-      {animal.fechaAvistamiento && <p>Fecha: {animal.fechaAvistamiento}</p>}
-      {animal.estado === 'ENCONTRADO' && <p>En posesión del publicador: {animal.enPosesionDelPublicador ? 'Sí' : 'No'}</p>}
-      {animal.descripcion && <p>Descripción: {animal.descripcion}</p>}
-      <p>Publicado por: {animal.rescatistaNombre}</p>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
-        {animal.fotos.map(foto => (
-          <img key={foto.id} src={foto.url} alt="foto" style={{ width: 150, height: 150, objectFit: 'cover' }} />
-        ))}
-      </div>
-      <AccionesAnimal id={animal.id} motivoAnimal={motivoAnimal} setMotivoAnimal={setMotivoAnimal} onAprobar={onAprobar} onRechazar={onRechazar} />
-    </div>
-  )
-}
 
 function AdminPanel() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [tab, setTab] = useState('animales')
-  const [animales, setAnimales] = useState([])
-  const [fotos, setFotos] = useState([])
-  const [publicaciones, setPublicaciones] = useState([])
+  const [tab, setTab] = useState('tiendas')
   const [error, setError] = useState('')
-  const [motivoAnimal, setMotivoAnimal] = useState({})
-  const [motivoFoto, setMotivoFoto] = useState({})
-  const [motivoEliminar, setMotivoEliminar] = useState({})
-  const [motivoEliminarFoto, setMotivoEliminarFoto] = useState({})
 
   // tienda
   const [solicitudes, setSolicitudes] = useState([])
   const [linkMap, setLinkMap] = useState({})
-
-  // items
-  const [itemsPendientes, setItemsPendientes] = useState([])
-  const [fotosItemPendientes, setFotosItemPendientes] = useState([])
-  const [motivoRechazarItem, setMotivoRechazarItem] = useState({})
-  const [motivoRechazarFotoItem, setMotivoRechazarFotoItem] = useState({})
   const [motivoRechazarMap, setMotivoRechazarMap] = useState({})
   const [motivoReprogramarMap, setMotivoReprogramarMap] = useState({})
   const [llamadaEstado, setLlamadaEstado] = useState({})
@@ -170,33 +79,19 @@ function AdminPanel() {
   // tiendas activas
   const [tiendasActivas, setTiendasActivas] = useState([])
 
+  const esAdmin = user?.role === 'ADMIN'
+
   useEffect(() => {
-    if (localStorage.getItem('role') !== 'ADMIN') {
+    const role = localStorage.getItem('role')
+    if (role !== 'ADMIN' && role !== 'MODERADOR') {
       navigate('/')
       return
     }
-    cargarAnimales()
-    cargarFotos()
-    cargarPublicaciones()
     cargarSolicitudesTienda()
-    cargarItemsPendientes()
-    cargarFotosItemPendientes()
     cargarDenuncias()
-    cargarUsuarios()
     cargarTiendasActivas()
+    if (role === 'ADMIN') cargarUsuarios()
   }, [navigate])
-
-  function cargarItemsPendientes() {
-    getItemsPendientesAdmin()
-      .then(res => setItemsPendientes(res.data))
-      .catch(() => {})
-  }
-
-  function cargarFotosItemPendientes() {
-    getFotosItemPendientesAdmin()
-      .then(res => setFotosItemPendientes(res.data))
-      .catch(() => {})
-  }
 
   function cargarDenuncias() {
     getDenunciasPendientes()
@@ -213,24 +108,6 @@ function AdminPanel() {
   function cargarTiendasActivas() {
     getTiendasActivas()
       .then(res => setTiendasActivas(res.data))
-      .catch(() => {})
-  }
-
-  function cargarAnimales() {
-    getAnimalesPendientes()
-      .then(res => setAnimales(res.data))
-      .catch(() => setError('No se pudieron cargar los animales pendientes.'))
-  }
-
-  function cargarFotos() {
-    getFotosPendientes()
-      .then(res => setFotos(res.data))
-      .catch(() => setError('No se pudieron cargar las fotos pendientes.'))
-  }
-
-  function cargarPublicaciones() {
-    getPublicaciones()
-      .then(res => setPublicaciones(res.data))
       .catch(() => {})
   }
 
@@ -265,7 +142,7 @@ function AdminPanel() {
   }
 
   async function handleAprobarSolicitud(id) {
-    if (!confirm('¿Aprobar la tienda de este rescatista?')) return
+    if (!confirm('¿Verificar a este rescatista? Vas a habilitarle tanto la tienda como las donaciones.')) return
     setError('')
     try {
       const res = await aprobarSolicitud(id)
@@ -309,142 +186,6 @@ function AdminPanel() {
     }
   }
 
-  async function handleAprobarAnimal(id) {
-    setError('')
-    try {
-      await aprobarAnimal(id)
-      setAnimales(prev => prev.filter(a => a.id !== id))
-    } catch {
-      setError('No se pudo aprobar el animal.')
-    }
-  }
-
-  async function handleRechazarAnimal(id) {
-    setError('')
-    const motivo = motivoAnimal[id]
-    if (!motivo || !motivo.trim()) {
-      setError('Ingresa un motivo de rechazo antes de rechazar.')
-      return
-    }
-    try {
-      await rechazarAnimal(id, motivo)
-      setAnimales(prev => prev.filter(a => a.id !== id))
-    } catch {
-      setError('No se pudo rechazar el animal.')
-    }
-  }
-
-  async function handleAprobarFoto(id) {
-    setError('')
-    try {
-      await aprobarFoto(id)
-      setFotos(prev => prev.filter(f => f.id !== id))
-    } catch {
-      setError('No se pudo aprobar la foto.')
-    }
-  }
-
-  async function handleRechazarFoto(id) {
-    setError('')
-    const motivo = motivoFoto[id]
-    if (!motivo || !motivo.trim()) {
-      setError('Ingresa un motivo de rechazo antes de rechazar.')
-      return
-    }
-    try {
-      await rechazarFoto(id, motivo)
-      setFotos(prev => prev.filter(f => f.id !== id))
-    } catch {
-      setError('No se pudo rechazar la foto.')
-    }
-  }
-
-  async function handleEliminarPublicacion(id) {
-    setError('')
-    const motivo = motivoEliminar[id]
-    if (!motivo || !motivo.trim()) {
-      setError('Ingresá un motivo antes de eliminar.')
-      return
-    }
-    if (!window.confirm('¿Eliminear esta publicación? Esta acción no puede deshacerse por el usuario.')) return
-    try {
-      await eliminarAnimalAdmin(id, motivo)
-      setPublicaciones(prev => prev.filter(p => p.id !== id))
-    } catch {
-      setError('No se pudo eliminar la publicación.')
-    }
-  }
-
-  async function handleAprobarItem(id) {
-    setError('')
-    try {
-      await aprobarItemAdmin(id)
-      setItemsPendientes(prev => prev.filter(it => it.id !== id))
-    } catch {
-      setError('No se pudo aprobar el ítem.')
-    }
-  }
-
-  async function handleRechazarItem(id) {
-    setError('')
-    const motivo = motivoRechazarItem[id]
-    if (!motivo?.trim()) { setError('Ingresá un motivo de rechazo.'); return }
-    try {
-      await rechazarItemAdmin(id, motivo)
-      setItemsPendientes(prev => prev.filter(it => it.id !== id))
-    } catch {
-      setError('No se pudo rechazar el ítem.')
-    }
-  }
-
-  async function handleAprobarFotoItem(id) {
-    setError('')
-    try {
-      await aprobarFotoItemAdmin(id)
-      setFotosItemPendientes(prev => prev.filter(f => f.id !== id))
-    } catch {
-      setError('No se pudo aprobar la foto.')
-    }
-  }
-
-  async function handleRechazarFotoItem(id) {
-    setError('')
-    const motivo = motivoRechazarFotoItem[id]
-    if (!motivo?.trim()) { setError('Ingresá un motivo de rechazo.'); return }
-    try {
-      await rechazarFotoItemAdmin(id, motivo)
-      setFotosItemPendientes(prev => prev.filter(f => f.id !== id))
-    } catch {
-      setError('No se pudo rechazar la foto.')
-    }
-  }
-
-  async function handleEliminarFotoAdmin(id) {
-    setError('')
-    const motivo = motivoEliminarFoto[id]
-    if (!motivo || !motivo.trim()) {
-      setError('Ingresá un motivo antes de eliminar la foto.')
-      return
-    }
-    if (!window.confirm('¿Eliminar esta foto?')) return
-    try {
-      await eliminarFotoAdmin(id, motivo)
-      setPublicaciones(prev => prev.map(p => ({
-        ...p,
-        fotos: p.fotos.filter(f => f.id !== id)
-      })))
-    } catch {
-      setError('No se pudo eliminar la foto.')
-    }
-  }
-
-  const adopcionesPendientes = animales.filter(a => a.categoria === 'ADOPCION')
-  const reportesPendientes = animales.filter(a => a.categoria === 'PERDIDO_ENCONTRADO')
-
-  // fotos separadas por categoria del animal
-  const fotosAdopcion = fotos.filter(f => f.animalCategoria === 'ADOPCION')
-  const fotosReporte = fotos.filter(f => f.animalCategoria === 'PERDIDO_ENCONTRADO')
-
   return (
     <div>
       <h2>Panel de administracion</h2>
@@ -452,132 +193,26 @@ function AdminPanel() {
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
       <div>
-        <button onClick={() => setTab('animales')} disabled={tab === 'animales'}>
-          Animales pendientes ({animales.length})
-        </button>
-        {' '}
-        <button onClick={() => setTab('fotos')} disabled={tab === 'fotos'}>
-          Fotos pendientes ({fotos.length})
-        </button>
-        {' '}
-        <button onClick={() => setTab('publicaciones')} disabled={tab === 'publicaciones'}>
-          Gestionar publicaciones ({publicaciones.length})
-        </button>
-        {' '}
         <button onClick={() => setTab('tiendas')} disabled={tab === 'tiendas'}>
-          Tiendas ({tiendasActivas.length} activas · {solicitudes.length} solicitudes · {itemsPendientes.length} ítems)
+          Verificaciones ({tiendasActivas.length} verificados · {solicitudes.length} solicitudes)
         </button>
         {' '}
         <button onClick={() => setTab('denuncias')} disabled={tab === 'denuncias'}>
           Denuncias ({denuncias.length})
         </button>
-        {' '}
-        <button onClick={() => setTab('usuarios')} disabled={tab === 'usuarios'}>
-          Usuarios ({usuarios.length})
-        </button>
-        {' '}
-        <button onClick={() => setTab('dashboard')} disabled={tab === 'dashboard'}>
-          Dashboard
-        </button>
+        {esAdmin && (
+          <>
+            {' '}
+            <button onClick={() => setTab('usuarios')} disabled={tab === 'usuarios'}>
+              Usuarios ({usuarios.length})
+            </button>
+            {' '}
+            <button onClick={() => setTab('dashboard')} disabled={tab === 'dashboard'}>
+              Dashboard
+            </button>
+          </>
+        )}
       </div>
-
-      <br />
-
-      {tab === 'animales' && (
-        <div>
-          {animales.length === 0 && <p>No hay animales pendientes de aprobacion.</p>}
-
-          {adopcionesPendientes.length > 0 && (
-            <div>
-              <h3>En adopcion ({adopcionesPendientes.length})</h3>
-              {adopcionesPendientes.map(animal => (
-                <CardAdopcion
-                  key={animal.id}
-                  animal={animal}
-                  motivoAnimal={motivoAnimal}
-                  setMotivoAnimal={setMotivoAnimal}
-                  onAprobar={handleAprobarAnimal}
-                  onRechazar={handleRechazarAnimal}
-                />
-              ))}
-            </div>
-          )}
-
-          {reportesPendientes.length > 0 && (
-            <div>
-              <h3>Perdidos / encontrados ({reportesPendientes.length})</h3>
-              {reportesPendientes.map(animal => (
-                <CardReporte
-                  key={animal.id}
-                  animal={animal}
-                  motivoAnimal={motivoAnimal}
-                  setMotivoAnimal={setMotivoAnimal}
-                  onAprobar={handleAprobarAnimal}
-                  onRechazar={handleRechazarAnimal}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === 'fotos' && (
-        <div>
-          {fotos.length === 0 && <p>No hay fotos pendientes de aprobacion.</p>}
-
-          {fotosAdopcion.length > 0 && (
-            <div>
-              <h3>Fotos de animales en adopcion ({fotosAdopcion.length})</h3>
-              {fotosAdopcion.map(foto => (
-                <div key={foto.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                  <img src={foto.url} alt="foto" style={{ width: 150, height: 150, objectFit: 'cover', flexShrink: 0 }} />
-                  <div>
-                    <p><strong>{foto.animalNombre}</strong> ({ETIQUETA_TIPO[foto.animalTipo]})</p>
-                    <p>Publicado por: {foto.rescatistaNombre}</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <button onClick={() => handleAprobarFoto(foto.id)}>Aprobar</button>
-                      <input
-                        type="text"
-                        placeholder="Motivo de rechazo"
-                        value={motivoFoto[foto.id] || ''}
-                        onChange={e => setMotivoFoto(prev => ({ ...prev, [foto.id]: e.target.value }))}
-                        style={{ width: 250 }}
-                      />
-                      <button onClick={() => handleRechazarFoto(foto.id)}>Rechazar</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {fotosReporte.length > 0 && (
-            <div>
-              <h3>Fotos de reportes de perdidos / encontrados ({fotosReporte.length})</h3>
-              {fotosReporte.map(foto => (
-                <div key={foto.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                  <img src={foto.url} alt="foto" style={{ width: 150, height: 150, objectFit: 'cover', flexShrink: 0 }} />
-                  <div>
-                    <p><strong>{ETIQUETA_TIPO[foto.animalTipo]}</strong> ({foto.animalEstado ? ETIQUETA_ESTADO[foto.animalEstado] : ''})</p>
-                    <p>Publicado por: {foto.rescatistaNombre}</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <button onClick={() => handleAprobarFoto(foto.id)}>Aprobar</button>
-                      <input
-                        type="text"
-                        placeholder="Motivo de rechazo"
-                        value={motivoFoto[foto.id] || ''}
-                        onChange={e => setMotivoFoto(prev => ({ ...prev, [foto.id]: e.target.value }))}
-                        style={{ width: 250 }}
-                      />
-                      <button onClick={() => handleRechazarFoto(foto.id)}>Rechazar</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       <br />
       <Link to="/">Volver al inicio</Link>
@@ -585,99 +220,16 @@ function AdminPanel() {
       {tab === 'tiendas' && (
         <div>
 
-          {/* Tiendas activas */}
-          <h3>Tiendas activas ({tiendasActivas.length})</h3>
-          {tiendasActivas.length === 0 && <p>No hay tiendas activas.</p>}
-          {tiendasActivas.map(t => (
-            <div key={t.usuarioId} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
-              <p><strong>{t.nombre} {t.apellido}</strong> — {t.email} — {t.tel}</p>
-              {t.organizacion && <p>Organización: {t.organizacion}</p>}
-              {t.provincia && <p>Ubicación: {t.ciudad}, {t.provincia}</p>}
-              <button
-                style={{ color: '#c00', marginTop: 8 }}
-                onClick={async () => {
-                  if (!confirm(`¿Revocar la tienda de ${t.nombre} ${t.apellido}?`)) return
-                  try {
-                    await revocarTienda(t.usuarioId)
-                    setTiendasActivas(prev => prev.filter(x => x.usuarioId !== t.usuarioId))
-                  } catch {
-                    alert('No se pudo revocar la tienda')
-                  }
-                }}
-              >
-                Revocar tienda
-              </button>
-            </div>
-          ))}
-
-          <hr style={{ margin: '2rem 0' }} />
-
-          {/* Ítems pendientes */}
-          <h3>Ítems pendientes de aprobación ({itemsPendientes.length})</h3>
-          {itemsPendientes.length === 0 && <p>No hay ítems pendientes.</p>}
-          {itemsPendientes.map(item => (
-            <div key={item.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
-              <p><strong>{item.titulo}</strong> — {TIPOS_ITEM_LABEL[item.tipo] ?? item.tipo}</p>
-              {item.precio != null && <p>Precio: ${Number(item.precio).toLocaleString('es-AR')}</p>}
-              {item.descripcion && <p>Descripción: {item.descripcion}</p>}
-              <p>Publicado por: {item.rescatistaNombre}</p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0.5rem 0' }}>
-                {item.fotos.map(foto => (
-                  <img key={foto.id} src={foto.url} alt="foto" style={{ width: 120, height: 120, objectFit: 'cover' }} />
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                <button onClick={() => handleAprobarItem(item.id)}>Aprobar</button>
-                <input
-                  type="text"
-                  placeholder="Motivo de rechazo"
-                  value={motivoRechazarItem[item.id] || ''}
-                  onChange={e => setMotivoRechazarItem(prev => ({ ...prev, [item.id]: e.target.value }))}
-                  style={{ width: 260 }}
-                />
-                <button onClick={() => handleRechazarItem(item.id)}>Rechazar</button>
-              </div>
-            </div>
-          ))}
-
-          <hr style={{ margin: '2rem 0' }} />
-
-          {/* Fotos de ítems pendientes */}
-          <h3>Fotos de ítems pendientes ({fotosItemPendientes.length})</h3>
-          {fotosItemPendientes.length === 0 && <p>No hay fotos pendientes.</p>}
-          {fotosItemPendientes.map(foto => (
-            <div key={foto.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-              <img src={foto.url} alt="foto" style={{ width: 150, height: 150, objectFit: 'cover', flexShrink: 0 }} />
-              <div>
-                <p><strong>{foto.itemTitulo}</strong> ({TIPOS_ITEM_LABEL[foto.itemTipo] ?? foto.itemTipo})</p>
-                <p>Publicado por: {foto.rescatistaNombre}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <button onClick={() => handleAprobarFotoItem(foto.id)}>Aprobar</button>
-                  <input
-                    type="text"
-                    placeholder="Motivo de rechazo"
-                    value={motivoRechazarFotoItem[foto.id] || ''}
-                    onChange={e => setMotivoRechazarFotoItem(prev => ({ ...prev, [foto.id]: e.target.value }))}
-                    style={{ width: 250 }}
-                  />
-                  <button onClick={() => handleRechazarFotoItem(foto.id)}>Rechazar</button>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          <hr style={{ margin: '2rem 0' }} />
-
-          {/* Solicitudes de tienda */}
-          <h3>Solicitudes de tienda ({solicitudes.length})</h3>
-          {solicitudes.length === 0 && <p>No hay solicitudes de tienda.</p>}
+          {/* Solicitudes de verificación */}
+          <h3>Solicitudes de verificación ({solicitudes.length})</h3>
+          {solicitudes.length === 0 && <p>No hay solicitudes de verificación.</p>}
           {solicitudes.map(s => {
             const esMia = s.adminAsignadoId === Number(localStorage.getItem('id') ?? 0) || s.adminAsignadoId != null
             const puedoActuar = s.adminAsignadoId != null && s.adminAsignadoId === Number(localStorage.getItem('id') ?? -1)
             return (
               <div key={s.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
                 <p><strong>Estado:</strong> {ESTADO_SOLICITUD_LABEL[s.estado]}</p>
-                <p><strong>Rescatista:</strong> {s.rescatistaNombre} {s.rescatistaApellido} — {s.rescatistaEmail} — {s.rescatistaTel}</p>
+                <p><strong>Rescatista:</strong> {s.rescatistaNombre} {s.rescatistaApellido} · {s.rescatistaEmail} · {s.rescatistaTel}</p>
                 {s.rescatistaOrganizacion && <p><strong>Organización:</strong> {s.rescatistaOrganizacion}</p>}
                 <p><strong>Turno solicitado:</strong> {formatFecha(s.fechaPreferida)} a las {formatHora(s.horaPreferida)}</p>
                 {s.adminAsignadoNombre
@@ -731,7 +283,7 @@ function AdminPanel() {
                   return (
                     <div style={{ marginTop: 8 }}>
 
-                      {/* Editar link — siempre visible */}
+                      {/* Editar link, siempre visible */}
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8 }}>
                         <input
                           type="text"
@@ -837,7 +389,7 @@ function AdminPanel() {
                       {paso === 'si' && (
                         <div style={{ marginTop: 8 }}>
                           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                            <button onClick={() => handleAprobarSolicitud(s.id)}>Aprobar tienda</button>
+                            <button onClick={() => handleAprobarSolicitud(s.id)}>Aprobar verificación</button>
                             <input
                               type="text"
                               placeholder="Motivo de rechazo"
@@ -866,59 +418,44 @@ function AdminPanel() {
               </div>
             )
           })}
+
+          <hr style={{ margin: '2rem 0' }} />
+
+          {/* Rescatistas verificados */}
+          <h3>Rescatistas verificados ({tiendasActivas.length})</h3>
+          <p style={{ fontSize: 13, color: '#666' }}>
+            La verificación habilita al rescatista a vender en tienda y/o aceptar donaciones libremente, sin nueva aprobación.
+          </p>
+          {tiendasActivas.length === 0 && <p>No hay rescatistas verificados.</p>}
+          {tiendasActivas.map(t => (
+            <div key={t.usuarioId} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
+              <p><strong>{t.nombre} {t.apellido}</strong> · {t.email} · {t.tel}</p>
+              {t.organizacion && <p>Organización: {t.organizacion}</p>}
+              {t.provincia && <p>Ubicación: {t.ciudad}, {t.provincia}</p>}
+              <p style={{ fontSize: 13, color: t.aceptaDonaciones ? '#1a6e2e' : '#888' }}>
+                {t.aceptaDonaciones ? 'Acepta donaciones actualmente' : 'No tiene activadas las donaciones'}
+              </p>
+              <button
+                style={{ color: '#c00', marginTop: 8 }}
+                onClick={async () => {
+                  if (!confirm(`¿Revocar la verificación de ${t.nombre} ${t.apellido}? Esto le quita tanto la tienda como la posibilidad de aceptar donaciones.`)) return
+                  try {
+                    await revocarTienda(t.usuarioId)
+                    setTiendasActivas(prev => prev.filter(x => x.usuarioId !== t.usuarioId))
+                  } catch {
+                    alert('No se pudo revocar la verificación')
+                  }
+                }}
+              >
+                Revocar verificación
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
-      {tab === 'publicaciones' && (
-        <div>
-          {publicaciones.length === 0 && <p>No hay publicaciones activas.</p>}
-          {publicaciones.map(pub => {
-            const esReporte = pub.categoria === 'PERDIDO_ENCONTRADO'
-            return (
-              <div key={pub.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
-                <h4>
-                  {esReporte
-                    ? `${ETIQUETA_TIPO[pub.tipo]} (${ETIQUETA_ESTADO[pub.estado] || pub.estado})`
-                    : pub.nombre}
-                </h4>
-                <p>Publicado por: {pub.rescatistaNombre}</p>
-                {pub.provincia && <p>Ubicación: {pub.ciudad}, {pub.provincia}</p>}
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0.5rem 0' }}>
-                  {pub.fotos?.filter(f => f.estado === 'APROBADA').map(foto => (
-                    <div key={foto.id} style={{ textAlign: 'center' }}>
-                      <img src={foto.url} alt="foto" style={{ width: 100, height: 100, objectFit: 'cover', display: 'block' }} />
-                      <input
-                        type="text"
-                        placeholder="Motivo"
-                        value={motivoEliminarFoto[foto.id] || ''}
-                        onChange={e => setMotivoEliminarFoto(prev => ({ ...prev, [foto.id]: e.target.value }))}
-                        style={{ width: 95, fontSize: 11 }}
-                      />
-                      <button onClick={() => handleEliminarFotoAdmin(foto.id)} style={{ fontSize: 11, color: '#c00' }}>
-                        Eliminar foto
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: '0.5rem' }}>
-                  <input
-                    type="text"
-                    placeholder="Motivo de eliminación"
-                    value={motivoEliminar[pub.id] || ''}
-                    onChange={e => setMotivoEliminar(prev => ({ ...prev, [pub.id]: e.target.value }))}
-                    style={{ width: 280 }}
-                  />
-                  <button onClick={() => handleEliminarPublicacion(pub.id)} style={{ color: '#c00' }}>
-                    Eliminar publicación
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
 
-      {tab === 'usuarios' && (
+      {tab === 'usuarios' && esAdmin && (
         <div>
           {usuarios.length === 0 && <p>No hay usuarios registrados.</p>}
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
@@ -1027,7 +564,7 @@ function AdminPanel() {
         </div>
       )}
 
-      {tab === 'dashboard' && <AdminDashboard />}
+      {tab === 'dashboard' && esAdmin && <AdminDashboard />}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 package com.adoptar.entity;
 
+import com.adoptar.enums.PreferenciaRol;
 import com.adoptar.enums.UserProfile;
 import com.adoptar.enums.UserRole;
 import jakarta.persistence.*;
@@ -56,6 +57,12 @@ public class User implements UserDetails {
     @Column(nullable = false)
     @Builder.Default
     private UserRole role = UserRole.USER;
+
+    // qué rol(es) eligió el usuario: ADOPTANTE, RESCATISTA o AMBOS
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private PreferenciaRol preferencia = PreferenciaRol.ADOPTANTE;
 
     // solo aplica cuando role == USER
     @Enumerated(EnumType.STRING)

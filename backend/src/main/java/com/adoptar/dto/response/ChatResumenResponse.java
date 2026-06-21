@@ -14,4 +14,6 @@ public class ChatResumenResponse {
     private String ultimoMensaje;
     private LocalDateTime ultimoMensajeEn;
     private long noLeidos;
+    private String rolEnChat;      // "ADOPTANTE" o "RESCATISTA"
+    private boolean esChatReporte; // true si el chat involucra al menos un perdido/encontrado
 }

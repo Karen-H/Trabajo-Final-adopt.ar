@@ -28,7 +28,7 @@ const ESTADO_LABEL = {
 }
 
 const CONDICIONES = [
-  'La tienda será usada para sustentar el rescate de animales.',
+  'La venta en tienda y/o las donaciones serán usadas para sustentar el rescate de animales.',
   'No se aceptan negocios no vinculados al rescate.',
   'En la videollamada deberás mostrar evidencia de tu actividad de rescate.',
 ]
@@ -167,7 +167,7 @@ function SolicitarTienda() {
   }
 
   async function handleCancelar() {
-    if (!confirm('¿Cancelar la solicitud de tienda?')) return
+    if (!confirm('¿Cancelar la solicitud de verificación?')) return
     try {
       await cancelarSolicitud()
       setSolicitud(null)
@@ -178,27 +178,29 @@ function SolicitarTienda() {
 
   if (cargando) return <p>Cargando...</p>
 
-  // si ya tiene tienda aprobada
+  // si ya esta verificado
   if (user?.tieneTienda) {
     return (
       <div>
-        <h2>Mi tienda</h2>
-        <p>Tu tienda ya está habilitada.</p>
+        <h2>Verificación de rescatista</h2>
+        <p>Ya estás verificado. Podés vender en tu tienda y aceptar donaciones cuando quieras, sin necesidad de una nueva aprobación.</p>
       </div>
     )
   }
 
-  // si no tiene solicitud activa, mostrar botón para abrir
+  // si no tiene solicitud activa, mostrar botón para solicitar la verificación
   if (!solicitud) {
     return (
       <div>
-        <h2>Abrir tienda</h2>
+        <h2>Verificación de rescatista</h2>
         <p>
-          Podés solicitar la apertura de tu tienda para vender productos
-          relacionados con el rescate de animales.
+          Para vender productos en una tienda y/o aceptar donaciones dentro de la plataforma, necesitás una
+          verificación por videollamada con un administrador, donde se valida que tu organización se dedica
+          al rescate de animales. Una vez aprobada, vas a poder habilitar lo que quieras (tienda, donaciones,
+          o ambas) libremente desde tu perfil, sin pedir una nueva aprobación.
         </p>
         <button onClick={() => { setMostrarModal(true); setError('') }}>
-          Solicitar apertura de tienda
+          Solicitar verificación
         </button>
 
         {mostrarModal && (
@@ -247,7 +249,7 @@ function SolicitarTienda() {
   // tiene solicitud activa
   return (
     <div>
-      <h2>Solicitud de tienda</h2>
+      <h2>Solicitud de verificación</h2>
 
       <div style={{ border: '1px solid #ccc', padding: 16, marginBottom: 16 }}>
         <p><strong>Estado:</strong> {ESTADO_LABEL[solicitud.estado]}</p>

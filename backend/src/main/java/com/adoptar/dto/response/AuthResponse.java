@@ -1,5 +1,6 @@
 package com.adoptar.dto.response;
 
+import com.adoptar.enums.PreferenciaRol;
 import com.adoptar.enums.UserProfile;
 import com.adoptar.enums.UserRole;
 import lombok.AllArgsConstructor;
@@ -18,6 +19,7 @@ public class AuthResponse {
     private String email;
     private UserRole role;
     private UserProfile activeProfile;
+    private PreferenciaRol preferencia;
     private String provincia;
     private String ciudad;
     private boolean tieneTienda;

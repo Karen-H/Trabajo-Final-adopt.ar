@@ -7,6 +7,7 @@ import com.adoptar.dto.response.SolicitudTiendaResponse;
 import com.adoptar.entity.SolicitudTienda;
 import com.adoptar.entity.User;
 import com.adoptar.enums.EstadoSolicitudTienda;
+import com.adoptar.enums.TipoNotificacion;
 import com.adoptar.repository.SolicitudTiendaRepository;
 import com.adoptar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -28,6 +30,7 @@ public class SolicitudTiendaService {
     private final SolicitudTiendaRepository solicitudRepository;
     private final DisponibilidadAdminService disponibilidadService;
     private final UserRepository userRepository;
+    private final NotificacionService notificacionService;
 
     @Transactional
     public SolicitudTiendaResponse crear(SolicitudTiendaRequest request, User rescatista) {
@@ -64,6 +67,9 @@ public class SolicitudTiendaService {
                 .horaPreferida(request.getHoraPreferida())
                 .build();
         solicitudRepository.save(solicitud);
+        notificacionService.crear(adminAsignado, TipoNotificacion.NUEVA_SOLICITUD_TIENDA,
+                rescatista.getNombre() + " " + rescatista.getApellido() + " solicitó abrir una tienda",
+                "/admin");
         return toResponse(solicitud);
     }
 
@@ -125,10 +131,14 @@ public class SolicitudTiendaService {
         solicitud.setMotivoReprogramacion(null);
         solicitud.setLinkLlamada(null);
         solicitudRepository.save(solicitud);
+        notificacionService.limpiarRecordatoriosTienda(rescatista);
+        notificacionService.crear(nuevoAdmin, TipoNotificacion.SOLICITUD_RESCATISTA_REPROGRAMADA,
+                rescatista.getNombre() + " " + rescatista.getApellido() + " reprogramó la llamada para el " + request.getFechaPreferida() + " a las " + request.getHoraPreferida(),
+                "/admin");
         return toResponse(solicitud);
     }
 
-    // --- acciones del admin ---
+    // acciones del admin
 
     @Transactional
     public SolicitudTiendaResponse aceptar(Long id, AceptarSolicitudRequest request, User admin) {
@@ -139,6 +149,9 @@ public class SolicitudTiendaService {
         solicitud.setEstado(EstadoSolicitudTienda.ACEPTADA);
         solicitud.setLinkLlamada(request.getLinkLlamada());
         solicitudRepository.save(solicitud);
+        notificacionService.crear(solicitud.getRescatista(), TipoNotificacion.SOLICITUD_TIENDA_ACEPTADA,
+                "Tu llamada fue confirmada para el " + solicitud.getFechaPreferida() + " a las " + solicitud.getHoraPreferida(),
+                "/abrir-tienda");
         return toResponse(solicitud);
     }
 
@@ -165,6 +178,10 @@ public class SolicitudTiendaService {
         rescatista.setTieneTienda(true);
         userRepository.save(rescatista);
         solicitudRepository.save(solicitud);
+        notificacionService.limpiarRecordatoriosTienda(rescatista);
+        notificacionService.crear(rescatista, TipoNotificacion.TIENDA_APROBADA,
+                "¡Tu cuenta fue verificada! Ya podés vender en tu tienda y aceptar donaciones cuando quieras.",
+                "/mi-tienda");
         return toResponse(solicitud);
     }
 
@@ -178,6 +195,10 @@ public class SolicitudTiendaService {
         solicitud.setMotivoRechazo(motivo);
         solicitud.setBloqueadoHasta(LocalDate.now().plusMonths(1));
         solicitudRepository.save(solicitud);
+        notificacionService.limpiarRecordatoriosTienda(solicitud.getRescatista());
+        notificacionService.crear(solicitud.getRescatista(), TipoNotificacion.SOLICITUD_TIENDA_RECHAZADA,
+                "Tu solicitud de tienda fue rechazada: " + motivo,
+                "/abrir-tienda");
         return toResponse(solicitud);
     }
 
@@ -193,6 +214,10 @@ public class SolicitudTiendaService {
         solicitud.setAdminAsignado(null);
         solicitud.setLinkLlamada(null);
         solicitudRepository.save(solicitud);
+        notificacionService.limpiarRecordatoriosTienda(solicitud.getRescatista());
+        notificacionService.crear(solicitud.getRescatista(), TipoNotificacion.SOLICITUD_TIENDA_REPROGRAMADA,
+                "El administrador pidió reprogramar tu llamada: " + request.getMotivo() + ". Elegí un nuevo horario.",
+                "/abrir-tienda");
         return toResponse(solicitud);
     }
 
@@ -215,6 +240,28 @@ public class SolicitudTiendaService {
             throw new IllegalArgumentException("No tenés permiso para gestionar esta solicitud");
         }
         return solicitud;
+    }
+
+    // avisa a rescatista y admin cuando la llamada está en 7, 3 o 1 día
+    @Scheduled(cron = "0 0 9 * * *")
+    @Transactional
+    public void enviarRecordatoriosLlamada() {
+        LocalDate hoy = LocalDate.now();
+        List<LocalDate> fechasObjetivo = List.of(hoy.plusDays(7), hoy.plusDays(3), hoy.plusDays(1));
+        List<SolicitudTienda> proximas = solicitudRepository.findAceptadasConFechaEn(fechasObjetivo);
+        for (SolicitudTienda s : proximas) {
+            long dias = ChronoUnit.DAYS.between(hoy, s.getFechaPreferida());
+            TipoNotificacion tipo = dias == 7 ? TipoNotificacion.RECORDATORIO_LLAMADA_7
+                    : dias == 3 ? TipoNotificacion.RECORDATORIO_LLAMADA_3
+                    : TipoNotificacion.RECORDATORIO_LLAMADA_1;
+            String msgRescatista = "Tenés una llamada programada el " + s.getFechaPreferida() + " a las " + s.getHoraPreferida() + " (en " + dias + " días)";
+            notificacionService.crearSiNoExiste(s.getRescatista(), tipo, msgRescatista, "/abrir-tienda");
+            if (s.getAdminAsignado() != null) {
+                String msgAdmin = "Llamada con " + s.getRescatista().getNombre() + " " + s.getRescatista().getApellido()
+                        + " el " + s.getFechaPreferida() + " a las " + s.getHoraPreferida() + " (en " + dias + " días)";
+                notificacionService.crearSiNoExiste(s.getAdminAsignado(), tipo, msgAdmin, "/admin");
+            }
+        }
     }
 
     // expira automáticamente las solicitudes PENDIENTE cuyo horario ya pasó

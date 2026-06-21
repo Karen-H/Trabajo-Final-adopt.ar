@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,6 +24,7 @@ public class ReporteController {
     private final ReporteService reporteService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> crear(
             @AuthenticationPrincipal User user,
             @Valid @ModelAttribute ReporteRequest request,
@@ -45,11 +47,13 @@ public class ReporteController {
     }
 
     @GetMapping("/mis-reportes")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<AnimalResponse>> getMisReportes(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(reporteService.getMisReportes(user));
     }
 
     @PutMapping("/{id}/resolver")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> resolver(
             @AuthenticationPrincipal User user,
             @PathVariable Long id) {
