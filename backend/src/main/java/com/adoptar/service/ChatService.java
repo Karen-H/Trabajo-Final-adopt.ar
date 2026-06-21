@@ -91,6 +91,26 @@ public class ChatService {
         return Map.of("chatId", chatFinal.getId());
     }
 
+    // abre (o recupera) el chat entre comprador y rescatista y agrega un mensaje del sistema
+    // se usa para ventas de items de tienda, que no estan ligadas a un animal
+    @Transactional
+    public Long abrirChatConMensaje(User comprador, User rescatista, String mensajeSistema) {
+        Chat chat = chatRepository.findByAdoptanteAndRescatista(comprador, rescatista)
+                .orElseGet(() -> chatRepository.save(Chat.builder()
+                        .adoptante(comprador)
+                        .rescatista(rescatista)
+                        .build()));
+
+        mensajeRepository.save(Mensaje.builder()
+                .chat(chat)
+                .emisor(null)
+                .contenido(mensajeSistema)
+                .leido(false)
+                .build());
+
+        return chat.getId();
+    }
+
     // lista de chats del usuario con resumen
     @Transactional(readOnly = true)
     public List<ChatResumenResponse> getMisChats(User user) {

@@ -1,11 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { getAdopciones } from '../api/animal'
 import FiltroUbicacion from '../components/FiltroUbicacion'
 import Paginacion from '../components/Paginacion'
 import { getMisReservasAdoptante, aceptarReserva, rechazarReserva } from '../api/reserva'
-import { getFavoritos, agregarFavorito, quitarFavorito } from '../api/favorito'
-import ModalDenuncia from '../components/ModalDenuncia'
 import { useAuth } from '../context/AuthContext'
 
 const TIPOS = ['PERRO', 'GATO', 'OTRO']
@@ -48,7 +46,6 @@ function filtrar(animales, tipos, provincia, ciudad, edades, tipoAdopcion, amiga
 
 function Adopciones() {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const estaLogueado = !!localStorage.getItem('token')
   const [animales, setAnimales] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -61,9 +58,6 @@ function Adopciones() {
   const [organizacion, setOrganizacion] = useState('')
   const [misReservas, setMisReservas] = useState([])
   const [pagina, setPagina] = useState(1)
-  const [favoritos, setFavoritos] = useState(new Set())
-  const [denunciados, setDenunciados] = useState(new Set())
-  const [denunciaModal, setDenunciaModal] = useState(null)
 
   useEffect(() => {
     getAdopciones()
@@ -119,34 +113,10 @@ function Adopciones() {
     setAmigableCon(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])
   }
 
-  function toggleFavorito(id) {
-    if (!estaLogueado) {
-      localStorage.setItem('pendingFavorito', id)
-      navigate('/login')
-      return
-    }
-    if (favoritos.has(id)) {
-      quitarFavorito(id)
-        .then(() => setFavoritos(prev => { const n = new Set(prev); n.delete(id); return n }))
-        .catch(() => {})
-    } else {
-      agregarFavorito(id)
-        .then(() => setFavoritos(prev => new Set([...prev, id])))
-        .catch(() => {})
-    }
-  }
-
   const hayFiltros = tipos.length > 0 || provincia || ciudad || edades.length > 0 || tipoAdopcion || amigableCon.length > 0 || organizacion
   const visibles = filtrar(animales, tipos, provincia, ciudad, edades, tipoAdopcion, amigableCon, organizacion)
 
   useEffect(() => { setPagina(1) }, [tipos, provincia, ciudad, edades, tipoAdopcion, amigableCon, organizacion])
-
-  useEffect(() => {
-    if (!estaLogueado) return
-    getFavoritos()
-      .then(r => setFavoritos(new Set(r.data.map(f => f.animalId))))
-      .catch(() => {})
-  }, [estaLogueado])
 
   const POR_PAGINA = 10
   const paginados = visibles.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
@@ -165,7 +135,7 @@ function Adopciones() {
       {/* mis reservas (solo adoptante) */}
       {estaLogueado && user?.activeProfile === 'ADOPTANTE' && misReservas.length > 0 && (
         <div style={{ margin: '0 0 1.5rem' }}>
-          <h3 style={{ color: '#1a6e2e' }}>🔒 Mis animales con reserva</h3>
+          <h3 style={{ color: '#1a6e2e' }}>Mis animales con reserva</h3>
           {misReservas.map(r => {
             const activa = r.estado === 'ACTIVA'
             return (
@@ -182,7 +152,7 @@ function Adopciones() {
                     <p style={{ margin: '0 0 2px', fontSize: 13, color: '#666' }}>{r.ciudad}{r.ciudad && r.provincia ? ', ' : ''}{r.provincia}</p>
                   )}
                   <p style={{ margin: '4px 0 0', fontSize: 13, color: activa ? '#1a6e2e' : '#c47f00' }}>
-                    {activa ? '✅ Reserva confirmada' : '⏳ Reserva pendiente de tu confirmación'} · {r.rescatistaNombre}
+                    {activa ? 'Reserva confirmada' : 'Reserva pendiente de tu confirmación'} · {r.rescatistaNombre}
                   </p>
                   {!activa && (
                     <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
@@ -306,38 +276,10 @@ function Adopciones() {
                   <p style={{ margin: '2px 0', fontSize: 12, color: '#666' }}>{[a.ciudad, a.provincia].filter(Boolean).join(', ')}</p>
                 )}
               </Link>
-              <div style={{ padding: '0 12px 8px', display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button
-                  onClick={() => toggleFavorito(a.id)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 0 }}
-                  title={favoritos.has(a.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-                >
-                  {favoritos.has(a.id) ? '❤️' : '🤍'}
-                </button>
-                {estaLogueado && user?.id !== a.usuarioId && (
-                  <button
-                    onClick={() => denunciados.has(a.id) ? alert('Ya denunciaste esta publicación') : setDenunciaModal(a.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: '#999', padding: 0 }}
-                  >
-                    🚩 Reportar
-                  </button>
-                )}
-              </div>
             </div>
           ))}
           <Paginacion total={visibles.length} porPagina={POR_PAGINA} pagina={pagina} onChange={setPagina} />
         </>
-      )}
-      {denunciaModal !== null && (
-        <ModalDenuncia
-          animalId={denunciaModal}
-          onClose={() => setDenunciaModal(null)}
-          onSuccess={() => {
-            setDenunciados(prev => new Set([...prev, denunciaModal]))
-            setDenunciaModal(null)
-            alert('Denuncia enviada. El administrador la revisará.')
-          }}
-        />
       )}
     </div>
   )

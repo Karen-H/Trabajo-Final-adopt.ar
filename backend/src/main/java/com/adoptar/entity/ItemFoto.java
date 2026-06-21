@@ -27,7 +27,7 @@ public class ItemFoto {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private EstadoFoto estado = EstadoFoto.PENDIENTE;
+    private EstadoFoto estado = EstadoFoto.APROBADA;
 
     @Column(columnDefinition = "TEXT")
     private String motivoRechazo;

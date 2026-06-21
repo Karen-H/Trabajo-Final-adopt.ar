@@ -14,26 +14,13 @@ const ETIQUETA_EDAD = {
   SENIOR: 'Senior (7+ anios)',
 }
 
-const ETIQUETA_FOTO_ESTADO = {
-  PENDIENTE: 'Pendiente de revision',
-  RECHAZADA: 'Rechazada',
-}
-
-
-
 function StatsAnimal({ animal }) {
   if (animal.vistas == null) return null
   return (
     <p style={{ margin: '6px 0 0', fontSize: 12, color: '#666' }}>
-      👁 {animal.vistas} vistas · ❤️ {animal.cantidadFavoritos} favoritos · 💬 {animal.cantidadChats} chats
+      Vistas: {animal.vistas} · Favoritos: {animal.cantidadFavoritos} · Chats iniciados: {animal.cantidadChats}
     </p>
   )
-}
-
-function estadoRevision(item) {
-  if (item.rechazado) return { texto: 'Rechazado', color: '#c00' }
-  if (item.aprobado) return { texto: 'Aprobado', color: '#080' }
-  return { texto: 'En revision', color: '#888' }
 }
 
 function FotosList({ fotos, onEliminar }) {
@@ -53,22 +40,14 @@ function FotosList({ fotos, onEliminar }) {
               {foto.motivoRechazo ? `Eliminada por admin: ${foto.motivoRechazo}` : 'Eliminada'}
             </small>
           ) : (
-            <>
-              {ETIQUETA_FOTO_ESTADO[foto.estado] && (
-                <small style={{ color: foto.estado === 'RECHAZADA' ? '#c00' : '#888' }}>
-                  {ETIQUETA_FOTO_ESTADO[foto.estado]}
-                  {foto.estado === 'RECHAZADA' && foto.motivoRechazo && ': ' + foto.motivoRechazo}
-                </small>
-              )}
-              {onEliminar && fotosActivas > 1 && (
-                <button
-                  onClick={() => onEliminar(foto.id)}
-                  style={{ display: 'block', margin: '2px auto', fontSize: 11 }}
-                >
-                  Eliminar foto
-                </button>
-              )}
-            </>
+            onEliminar && fotosActivas > 1 && (
+              <button
+                onClick={() => onEliminar(foto.id)}
+                style={{ display: 'block', margin: '2px auto', fontSize: 11 }}
+              >
+                Eliminar foto
+              </button>
+            )
           )}
         </div>
       ))}
@@ -76,8 +55,8 @@ function FotosList({ fotos, onEliminar }) {
   )
 }
 
-function AgregarFotosBtn({ id, rechazado, fotosCount, fotosNuevas, setFotosNuevas, onAgregar }) {
-  if (rechazado || fotosCount >= 5) return null
+function AgregarFotosBtn({ id, fotosCount, fotosNuevas, setFotosNuevas, onAgregar }) {
+  if (fotosCount >= 5) return null
   return (
     <div style={{ margin: '0.5rem 0' }}>
       <input
@@ -103,7 +82,7 @@ function MisPublicaciones() {
   const activeProfile = localStorage.getItem('activeProfile')
   const esRescatista = activeProfile === 'RESCATISTA'
 
-  const [tab, setTab] = useState(esRescatista ? 'en_revision' : 'perdidos')
+  const [tab, setTab] = useState(esRescatista ? 'adopcion' : 'perdidos')
   const [animales, setAnimales] = useState([])
   const [reportes, setReportes] = useState([])
   const [reservas, setReservas] = useState([])
@@ -263,10 +242,9 @@ function MisPublicaciones() {
     }
   }
 
-  const enRevision = animales.filter(a => !a.eliminado && !a.aprobado && !a.rechazado)
-  const enAdopcion = animales.filter(a => !a.eliminado && a.aprobado && a.estado === 'EN_ADOPCION')
+  const enAdopcion = animales.filter(a => !a.eliminado && a.estado === 'EN_ADOPCION')
   const reservados = reservas
-  const adoptados = animales.filter(a => !a.eliminado && a.aprobado && a.estado === 'ADOPTADO')
+  const adoptados = animales.filter(a => !a.eliminado && a.estado === 'ADOPTADO')
 
   const perdidos = reportes.filter(r => !r.eliminado && r.estado === 'PERDIDO')
   const encontrados = reportes.filter(r => !r.eliminado && r.estado === 'ENCONTRADO')
@@ -286,9 +264,6 @@ function MisPublicaciones() {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '1rem' }}>
         {esRescatista && (
           <>
-            <button onClick={() => setTab('en_revision')} disabled={tab === 'en_revision'}>
-              En revision ({enRevision.length})
-            </button>
             <button onClick={() => setTab('adopcion')} disabled={tab === 'adopcion'}>
               En adopcion ({enAdopcion.length})
             </button>
@@ -314,48 +289,10 @@ function MisPublicaciones() {
         </button>
       </div>
 
-      {tab === 'en_revision' && esRescatista && (
+      {tab === 'adopcion' && esRescatista && (
         <div>
           <Link to="/agregar-animal">+ Publicar animal en adopcion</Link>
           <br /><br />
-          {enRevision.length === 0 ? (
-            <p>No tenes animales en revision.</p>
-          ) : (
-            enRevision.map(animal => (
-              <div key={animal.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
-                <h3>{animal.nombre} <span style={{ fontSize: '0.85rem', color: '#888' }}>[En revision]</span></h3>
-                <StatsAnimal animal={animal} />
-                <p>Tipo: {ETIQUETA_TIPO[animal.tipo]}</p>
-                {animal.sexo && <p>Sexo: {ETIQUETA_SEXO[animal.sexo]}</p>}
-                {animal.edad && <p>Edad: {ETIQUETA_EDAD[animal.edad]}</p>}
-                {animal.tipoAdopcion && <p>Tipo de adopción: {animal.tipoAdopcion === 'PERMANENTE' ? 'Permanente' : 'Tránsito'}</p>}
-                <p>Ubicación: {animal.ciudad}, {animal.provincia}</p>
-                {(animal.amigableConGatos || animal.amigableConPerros || animal.amigableConNinos) && (
-                  <p>Amigable con: {[animal.amigableConGatos && 'gatos', animal.amigableConPerros && 'perros', animal.amigableConNinos && 'niños'].filter(Boolean).join(', ')}</p>
-                )}
-                {animal.descripcion && <p>Descripción: {animal.descripcion}</p>}
-                <FotosList fotos={animal.fotos} onEliminar={(fotoId) => handleEliminarFoto(animal.id, fotoId)} />
-                <AgregarFotosBtn
-                  id={animal.id}
-                  rechazado={false}
-                  fotosCount={animal.fotos.length}
-                  fotosNuevas={fotosNuevas}
-                  setFotosNuevas={setFotosNuevas}
-                  onAgregar={handleAgregarFotosAnimal}
-                />
-                <div style={{ marginTop: '0.5rem' }}>
-                  <button onClick={() => setModalPausarEliminarId(animal.id)} style={{ color: '#c00' }}>
-                    Eliminar publicación
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {tab === 'adopcion' && esRescatista && (
-        <div>
           {enAdopcion.length === 0 ? (
             <p>No tenes animales en adopcion activos.</p>
           ) : (
@@ -375,7 +312,6 @@ function MisPublicaciones() {
                 <FotosList fotos={animal.fotos} onEliminar={(fotoId) => handleEliminarFoto(animal.id, fotoId)} />
                 <AgregarFotosBtn
                   id={animal.id}
-                  rechazado={false}
                   fotosCount={animal.fotos.length}
                   fotosNuevas={fotosNuevas}
                   setFotosNuevas={setFotosNuevas}
@@ -417,8 +353,8 @@ function MisPublicaciones() {
                   )}
                   <p style={{ margin: '8px 0', fontSize: 13, color: '#555' }}>
                     {activa
-                      ? <>✅ Reservado para: <strong>{r.adoptanteNombre}</strong></>
-                      : <>⏳ Propuesta enviada a <strong>{r.adoptanteNombre}</strong> — esperando confirmación</>}
+                      ? <>Reservado para: <strong>{r.adoptanteNombre}</strong></>
+                      : <>Propuesta enviada a <strong>{r.adoptanteNombre}</strong>, esperando confirmación</>}
                   </p>
                   {activa && (
                     <div style={{ display: 'flex', gap: 8 }}>
@@ -426,13 +362,13 @@ function MisPublicaciones() {
                         onClick={() => handleConcretar(r.reservaId)}
                         style={{ fontSize: 13, background: '#2e7d32', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer' }}
                       >
-                        ✅ Adopción concretada
+                        Adopción concretada
                       </button>
                       <button
                         onClick={() => handleCancelarReserva(r.reservaId)}
                         style={{ fontSize: 13, background: '#c62828', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer' }}
                       >
-                        ❌ Cancelar reserva
+                        Cancelar reserva
                       </button>
                     </div>
                   )}
@@ -480,35 +416,26 @@ function MisPublicaciones() {
             if (lista.length === 0) return <p>{etiquetaVacia}</p>
 
             return lista.map(reporte => {
-              const revision = estadoRevision(reporte)
               const resuelto = reporte.estado === 'RESUELTO'
               return (
                 <div key={reporte.id} style={{ border: '1px solid #ccc', margin: '1rem 0', padding: '1rem' }}>
-                  <h3>
-                    {ETIQUETA_TIPO[reporte.tipo]}
-                    {'  '}
-                    <span style={{ fontSize: '0.85rem', color: revision.color }}>
-                      [{revision.texto}]
-                    </span>
-                  </h3>
-                  {reporte.rechazado && reporte.motivoRechazo && (
-                    <p style={{ color: '#c00' }}>Motivo de rechazo: {reporte.motivoRechazo}</p>
-                  )}
+                  <h3>{ETIQUETA_TIPO[reporte.tipo]}</h3>
                   {reporte.direccion && <p>Visto en: {reporte.direccion}</p>}
                   {reporte.fechaAvistamiento && <p>Fecha: {reporte.fechaAvistamiento}</p>}
                   {reporte.estado === 'ENCONTRADO' && <p>En posesión del publicador: {reporte.enPosesionDelPublicador ? 'Sí' : 'No'}</p>}
                   {reporte.descripcion && <p>Descripción: {reporte.descripcion}</p>}
                   <FotosList fotos={reporte.fotos} onEliminar={!resuelto ? (fotoId) => handleEliminarFoto(reporte.id, fotoId) : undefined} />
-                  <AgregarFotosBtn
-                    id={reporte.id}
-                    rechazado={reporte.rechazado || resuelto}
-                    fotosCount={reporte.fotos.length}
-                    fotosNuevas={fotosNuevas}
-                    setFotosNuevas={setFotosNuevas}
-                    onAgregar={handleAgregarFotosReporte}
-                  />
+                  {!resuelto && (
+                    <AgregarFotosBtn
+                      id={reporte.id}
+                      fotosCount={reporte.fotos.length}
+                      fotosNuevas={fotosNuevas}
+                      setFotosNuevas={setFotosNuevas}
+                      onAgregar={handleAgregarFotosReporte}
+                    />
+                  )}
                   <div style={{ marginTop: '0.5rem', display: 'flex', gap: 8 }}>
-                    {reporte.aprobado && !resuelto && (
+                    {!resuelto && (
                       <button onClick={() => handleResolver(reporte.id)}>
                         Marcar como resuelto
                       </button>
@@ -573,26 +500,19 @@ function MisPublicaciones() {
       <Link to="/">Volver al inicio</Link>
 
       {modalPausarEliminarId && (() => {
-        const animalModal = animales.find(a => a.id === modalPausarEliminarId);
-        const enRevisionModal = animalModal && !animalModal.aprobado && !animalModal.rechazado;
         return (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <div style={{ background: '#fff', color: '#222', padding: '2rem', borderRadius: 8, width: 400, maxWidth: '90%' }}>
-              <h3 style={{ marginTop: 0 }}>{enRevisionModal ? '¿Eliminar publicación?' : '¿Deseas pausar o eliminar?'}</h3>
+              <h3 style={{ marginTop: 0 }}>¿Deseas pausar o eliminar?</h3>
               <p style={{ fontSize: 14, color: '#555', marginBottom: 16 }}>
-                {enRevisionModal
-                  ? 'Esta publicación está pendiente de revisión. Si la eliminás, no podrás recuperarla.'
-                  : <>Si planeás reactivar la publicación más adelante, elegí <strong>Pausar</strong>. Si elegís <strong>Eliminar</strong>, la publicación se borra de forma permanente y no podrás recuperarla.</>
-                }
+                Si planeás reactivar la publicación más adelante, elegí <strong>Pausar</strong>. Si elegís <strong>Eliminar</strong>, la publicación se borra de forma permanente y no podrás recuperarla.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {!enRevisionModal && (
-                  <button onClick={() => handlePausar(modalPausarEliminarId)}
-                    style={{ padding: '10px 14px', textAlign: 'left', background: '#fff3e0', border: '1px solid #f0a500', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
-                    <strong>Pausar publicación</strong>
-                    <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>Dejará de verse en la plataforma, pero podés reactivarla después.</div>
-                  </button>
-                )}
+                <button onClick={() => handlePausar(modalPausarEliminarId)}
+                  style={{ padding: '10px 14px', textAlign: 'left', background: '#fff3e0', border: '1px solid #f0a500', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
+                  <strong>Pausar publicación</strong>
+                  <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>Dejará de verse en la plataforma, pero podés reactivarla después.</div>
+                </button>
                 <button onClick={() => handleEliminarPermanente(modalPausarEliminarId)}
                   style={{ padding: '10px 14px', textAlign: 'left', background: '#ffebee', border: '1px solid #c62828', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
                   <strong>Eliminar permanentemente</strong>

@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { listarRescatistas, crearPreferencia, confirmarPorDonacion } from '../api/donacion'
 import { getProvincias } from '../api/georef'
+import { useAuth } from '../context/AuthContext'
+import { formatMonto } from '../utils/formatMonto'
 
 function Donar() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const [rescatistas, setRescatistas] = useState([])
   const [provincias, setProvincias] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -21,9 +26,13 @@ function Donar() {
   const [exitoDonacion, setExitoDonacion] = useState('')
 
   useEffect(() => {
+    if (user && (user.role !== 'USER' || user.activeProfile !== 'ADOPTANTE')) {
+      navigate('/')
+      return
+    }
     getProvincias().then(setProvincias).catch(() => [])
     cargar()
-  }, [])
+  }, [user, navigate])
 
   async function cargar(q, provincia) {
     setCargando(true)
@@ -188,7 +197,7 @@ function Donar() {
                         cursor: 'pointer'
                       }}
                     >
-                      ${m.toLocaleString('es-AR')}
+                      ${formatMonto(m)}
                     </button>
                   ))}
                   <button

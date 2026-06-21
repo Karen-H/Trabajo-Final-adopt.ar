@@ -18,13 +18,13 @@ public class DisponibilidadAdminController {
     private final DisponibilidadAdminService disponibilidadService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MODERADOR')")
     public ResponseEntity<?> listar(@AuthenticationPrincipal User admin) {
         return ResponseEntity.ok(disponibilidadService.listarPropias(admin));
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MODERADOR')")
     public ResponseEntity<?> agregar(
             @AuthenticationPrincipal User admin,
             @Valid @RequestBody DisponibilidadAdminRequest request) {
@@ -36,7 +36,7 @@ public class DisponibilidadAdminController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MODERADOR')")
     public ResponseEntity<?> eliminar(
             @AuthenticationPrincipal User admin,
             @PathVariable Long id) {

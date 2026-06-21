@@ -12,4 +12,6 @@ public interface DonacionRepository extends JpaRepository<Donacion, Long> {
     List<Donacion> findByRescatistaOrderByCreadoEnDesc(User rescatista);
 
     Optional<Donacion> findByMpPreferenceId(String mpPreferenceId);
+
+    Optional<Donacion> findByExternalRef(String externalRef);
 }

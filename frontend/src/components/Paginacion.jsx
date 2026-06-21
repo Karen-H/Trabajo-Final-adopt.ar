@@ -35,7 +35,7 @@ function Paginacion({ total, porPagina, pagina, onChange }) {
         disabled={pagina === 1}
         onClick={() => onChange(pagina - 1)}
       >
-        ←
+        Anterior
       </button>
 
       {paginas().map((p, i) =>
@@ -63,7 +63,7 @@ function Paginacion({ total, porPagina, pagina, onChange }) {
         disabled={pagina === totalPaginas}
         onClick={() => onChange(pagina + 1)}
       >
-        →
+        Siguiente
       </button>
     </div>
   )

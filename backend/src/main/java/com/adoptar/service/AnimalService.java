@@ -95,10 +95,6 @@ public class AnimalService {
 
         animalRepository.save(animal);
         guardarFotos(animal, fotos);
-        notificacionService.crearParaAdminsYMods(
-                TipoNotificacion.PUBLICACION_PENDIENTE,
-                publicador.getNombre() + " " + publicador.getApellido() + " publicó un animal en adopción pendiente de revisión",
-                "/admin");
         return toResponse(animal);
     }
 
@@ -153,9 +149,6 @@ public class AnimalService {
         if (!animal.getPublicador().getId().equals(publicador.getId())) {
             throw new IllegalArgumentException("No tenes permiso para modificar este animal");
         }
-        if (animal.isRechazado()) {
-            throw new IllegalArgumentException("No podes agregar fotos a un animal rechazado");
-        }
         if (fotosNuevas == null || fotosNuevas.isEmpty()) {
             throw new IllegalArgumentException("Debes subir al menos una foto");
         }
@@ -189,11 +182,6 @@ public class AnimalService {
             throw new IllegalArgumentException("Animal no encontrado");
         }
         return toPublicResponse(animal);
-    }
-
-    @Transactional(readOnly = true)
-    public List<Animal> getPendientesAdmin() {
-        return animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal.ADOPCION);
     }
 
     @Transactional

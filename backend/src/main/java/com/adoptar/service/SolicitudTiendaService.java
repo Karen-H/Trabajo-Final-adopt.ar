@@ -138,7 +138,7 @@ public class SolicitudTiendaService {
         return toResponse(solicitud);
     }
 
-    // --- acciones del admin ---
+    // acciones del admin
 
     @Transactional
     public SolicitudTiendaResponse aceptar(Long id, AceptarSolicitudRequest request, User admin) {
@@ -180,7 +180,7 @@ public class SolicitudTiendaService {
         solicitudRepository.save(solicitud);
         notificacionService.limpiarRecordatoriosTienda(rescatista);
         notificacionService.crear(rescatista, TipoNotificacion.TIENDA_APROBADA,
-                "¡Tu tienda fue aprobada! Ya podés empezar a publicar.",
+                "¡Tu cuenta fue verificada! Ya podés vender en tu tienda y aceptar donaciones cuando quieras.",
                 "/mi-tienda");
         return toResponse(solicitud);
     }

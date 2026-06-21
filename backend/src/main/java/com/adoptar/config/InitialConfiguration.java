@@ -2,9 +2,12 @@ package com.adoptar.config;
 
 import com.adoptar.entity.Animal;
 import com.adoptar.entity.AnimalFoto;
+import com.adoptar.entity.ItemFoto;
+import com.adoptar.entity.ItemTienda;
 import com.adoptar.entity.User;
 import com.adoptar.enums.*;
 import com.adoptar.repository.AnimalRepository;
+import com.adoptar.repository.ItemTiendaRepository;
 import com.adoptar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -27,6 +31,7 @@ public class InitialConfiguration implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final AnimalRepository animalRepository;
+    private final ItemTiendaRepository itemTiendaRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${uploads.path}")
@@ -42,6 +47,8 @@ public class InitialConfiguration implements CommandLineRunner {
             User karen = userRepository.findByEmail("karen@adoptar.com").orElseThrow();
             seedAnimales(ingrid, karen);
             seedAnimalesExtra();
+            seedTiendas(ingrid);
+            seedDonaciones(ingrid);
             log.info("Datos iniciales cargados correctamente");
         } else {
             log.info("BD ya inicializada");
@@ -76,7 +83,7 @@ public class InitialConfiguration implements CommandLineRunner {
 
         userRepository.save(User.builder()
                 .nombre("Ingrid")
-                .apellido("Usuario")
+                .apellido("Herrera")
                 .dni(1000002L)
                 .email("ingrid@adoptar.com")
                 .tel("1100000002")
@@ -91,7 +98,7 @@ public class InitialConfiguration implements CommandLineRunner {
 
         userRepository.save(User.builder()
                 .nombre("Karen")
-                .apellido("Usuario")
+                .apellido("Mendoza")
                 .dni(1000003L)
                 .email("karen@adoptar.com")
                 .tel("1100000003")
@@ -182,8 +189,6 @@ public class InitialConfiguration implements CommandLineRunner {
 
     private void seedAnimales(User ingrid, User karen) {
 
-        // --- Ingrid: en revisión (ADOPCION, aprobado=false) ---
-
         guardar(Animal.builder()
                 .categoria(CategoriaAnimal.ADOPCION)
                 .nombre("Max")
@@ -196,9 +201,9 @@ public class InitialConfiguration implements CommandLineRunner {
                 .amigableConPerros(true)
                 .amigableConNinos(true)
                 .descripcion("Perro tranquilo que busca un hogar para siempre. Está vacunado y desparasitado.")
-                .aprobado(false)
+                .aprobado(true)
                 .publicador(ingrid)
-                .build(), EstadoFoto.PENDIENTE);
+                .build(), EstadoFoto.APROBADA);
 
         guardar(Animal.builder()
                 .categoria(CategoriaAnimal.ADOPCION)
@@ -212,9 +217,9 @@ public class InitialConfiguration implements CommandLineRunner {
                 .amigableConPerros(false)
                 .amigableConNinos(true)
                 .descripcion("Gatita muy cariñosa y sociable. Ideal para tránsito con opción a adopción definitiva.")
-                .aprobado(false)
+                .aprobado(true)
                 .publicador(ingrid)
-                .build(), EstadoFoto.PENDIENTE);
+                .build(), EstadoFoto.APROBADA);
 
         guardar(Animal.builder()
                 .categoria(CategoriaAnimal.ADOPCION)
@@ -228,11 +233,11 @@ public class InitialConfiguration implements CommandLineRunner {
                 .amigableConPerros(true)
                 .amigableConNinos(true)
                 .descripcion("Cachorro juguetón lleno de energía. Necesita espacio para correr.")
-                .aprobado(false)
+                .aprobado(true)
                 .publicador(ingrid)
-                .build(), EstadoFoto.PENDIENTE);
+                .build(), EstadoFoto.APROBADA);
 
-        // --- Ingrid: en adopción (ADOPCION, aprobado=true, EN_ADOPCION) ---
+        // Ingrid: en adopción (ADOPCION, aprobado=true, EN_ADOPCION)
 
         guardar(Animal.builder()
                 .categoria(CategoriaAnimal.ADOPCION)
@@ -282,7 +287,7 @@ public class InitialConfiguration implements CommandLineRunner {
                 .publicador(ingrid)
                 .build(), EstadoFoto.APROBADA);
 
-        // --- Ingrid: adoptados (ADOPCION, aprobado=true, ADOPTADO) ---
+        // Ingrid: adoptados (ADOPCION, aprobado=true, ADOPTADO)
 
         guardar(Animal.builder()
                 .categoria(CategoriaAnimal.ADOPCION)
@@ -335,7 +340,7 @@ public class InitialConfiguration implements CommandLineRunner {
                 .publicador(ingrid)
                 .build(), EstadoFoto.APROBADA);
 
-        // --- Ingrid: perdidos (PERDIDO_ENCONTRADO, aprobado=true, PERDIDO) ---
+        // Ingrid: perdidos (PERDIDO_ENCONTRADO, aprobado=true, PERDIDO)
 
         guardar(Animal.builder()
                 .categoria(CategoriaAnimal.PERDIDO_ENCONTRADO)
@@ -394,7 +399,7 @@ public class InitialConfiguration implements CommandLineRunner {
                 .publicador(ingrid)
                 .build(), EstadoFoto.APROBADA);
 
-        // --- Ingrid: eliminados (ADOPCION, eliminado=true) ---
+        // Ingrid: eliminados (ADOPCION, eliminado=true)
 
         guardar(Animal.builder()
                 .categoria(CategoriaAnimal.ADOPCION)
@@ -433,12 +438,12 @@ public class InitialConfiguration implements CommandLineRunner {
                 .tipoAdopcion(TipoAdopcion.PERMANENTE)
                 .estado(EstadoAnimal.EN_ADOPCION)
                 .descripcion("Publicación eliminada.")
-                .aprobado(false)
+                .aprobado(true)
                 .eliminado(true)
                 .publicador(ingrid)
-                .build(), EstadoFoto.PENDIENTE);
+                .build(), EstadoFoto.APROBADA);
 
-        // --- Karen: perdidos (PERDIDO_ENCONTRADO, aprobado=true, PERDIDO) ---
+        // Karen: perdidos (PERDIDO_ENCONTRADO, aprobado=true, PERDIDO)
 
         guardar(Animal.builder()
                 .categoria(CategoriaAnimal.PERDIDO_ENCONTRADO)
@@ -497,7 +502,7 @@ public class InitialConfiguration implements CommandLineRunner {
                 .publicador(karen)
                 .build(), EstadoFoto.APROBADA);
 
-        // --- Karen: encontrados (PERDIDO_ENCONTRADO, aprobado=true, ENCONTRADO) ---
+        // Karen: encontrados (PERDIDO_ENCONTRADO, aprobado=true, ENCONTRADO)
 
         guardar(Animal.builder()
                 .categoria(CategoriaAnimal.PERDIDO_ENCONTRADO)
@@ -757,6 +762,102 @@ public class InitialConfiguration implements CommandLineRunner {
         }
 
         log.info("Animales extra seed: 10 perdidos + 10 encontrados + 280 en adopción (100 adoptados)");
+    }
+
+    private void seedTiendas(User ingrid) {
+        String[] emailsTienda = {
+            "silvana.molina@adoptar.com", "emiliano.romero@adoptar.com",
+            "paola.nunez@adoptar.com",    "pablo.blanco@adoptar.com",
+            "mariana.vega@adoptar.com"
+        };
+
+        String[] titulos = {
+            "Cucha para perro", "Collar ajustable", "Bolsa de alimento balanceado", "Pelota de goma",
+            "Shampoo antipulgas", "Cama acolchada", "Transportadora mediana", "Plato doble de acero",
+            "Arnés reflectante", "Rascador para gatos"
+        };
+        TipoItem[] tipos = {
+            TipoItem.CAMA, TipoItem.ACCESORIO, TipoItem.ALIMENTO, TipoItem.JUGUETE,
+            TipoItem.HIGIENE, TipoItem.CAMA, TipoItem.TRANSPORTE, TipoItem.ACCESORIO,
+            TipoItem.ACCESORIO, TipoItem.JUGUETE
+        };
+        String[] descripciones = {
+            "Cucha resistente al agua, ideal para interior o exterior.",
+            "Collar regulable de nylon, varios talles.",
+            "Alimento balanceado premium para perros y gatos adultos.",
+            "Pelota resistente para juego y reporte.",
+            "Shampoo antipulgas y garrapatas, apto cachorros.",
+            "Cama acolchada lavable, talle mediano.",
+            "Transportadora segura para viajes cortos.",
+            "Plato doble de acero inoxidable, antideslizante.",
+            "Arnés con tira reflectante para paseos nocturnos.",
+            "Rascador de sisal con base estable."
+        };
+        BigDecimal[] precios = {
+            new BigDecimal("18000"), new BigDecimal("5000"),  new BigDecimal("12000"), new BigDecimal("3500"),
+            new BigDecimal("7000"),  new BigDecimal("22000"), new BigDecimal("28000"), new BigDecimal("6500"),
+            new BigDecimal("9000"),  new BigDecimal("15000")
+        };
+        int[] stocks = { 8, 15, 20, 25, 12, 6, 4, 10, 9, 7 };
+
+        User[] rescatistas = new User[6];
+        rescatistas[0] = ingrid;
+        for (int i = 0; i < emailsTienda.length; i++) {
+            rescatistas[i + 1] = userRepository.findByEmail(emailsTienda[i]).orElseThrow();
+        }
+
+        for (User rescatista : rescatistas) {
+            rescatista.setTieneTienda(true);
+            userRepository.save(rescatista);
+
+            for (int i = 0; i < titulos.length; i++) {
+                ItemTienda item = ItemTienda.builder()
+                        .rescatista(rescatista)
+                        .titulo(titulos[i])
+                        .tipo(tipos[i])
+                        .descripcion(descripciones[i])
+                        .precio(precios[i])
+                        .stock(stocks[i])
+                        .build();
+                item.getFotos().add(ItemFoto.builder()
+                        .item(item)
+                        .nombreArchivo("seed_foto.jpg")
+                        .estado(EstadoFoto.APROBADA)
+                        .build());
+                itemTiendaRepository.save(item);
+            }
+        }
+
+        log.info("Tiendas seed: 6 rescatistas con tienda aprobada y 10 items cada uno");
+    }
+
+    private void seedDonaciones(User ingrid) {
+        String[] emailsDonaciones = {
+            "gonzalo.cabrera@adoptar.com", "cecilia.reyes@adoptar.com",
+            "alejandro.mendoza@adoptar.com", "vanesa.silva@adoptar.com",
+            "hernan.munoz@adoptar.com"
+        };
+
+        ingrid.setAceptaDonaciones(true);
+        ingrid.setDescripcionDonacion("Rescatamos perros y gatos en situación de calle en CABA y los mantenemos en tránsito hasta encontrarles familia. Las donaciones se usan para veterinario, vacunas y alimento.");
+        userRepository.save(ingrid);
+
+        String[] descripciones = {
+            "Trabajamos con animales abandonados en la zona. Las donaciones van directo a comida y atención veterinaria.",
+            "Refugio temporal para perros y gatos rescatados. Toda donación ayuda a cubrir gastos de castración y vacunación.",
+            "Rescate independiente de animales en situación de calle. Usamos las donaciones para alimento balanceado y curaciones.",
+            "Nos dedicamos al rescate y tránsito de animales hasta su adopción definitiva. Las donaciones cubren veterinaria y alimento.",
+            "Grupo de rescate barrial. Las donaciones se destinan a tratamientos veterinarios y alimento para los animales en tránsito."
+        };
+
+        for (int i = 0; i < emailsDonaciones.length; i++) {
+            User u = userRepository.findByEmail(emailsDonaciones[i]).orElseThrow();
+            u.setAceptaDonaciones(true);
+            u.setDescripcionDonacion(descripciones[i]);
+            userRepository.save(u);
+        }
+
+        log.info("Donaciones seed: 6 rescatistas aceptando donaciones por default");
     }
 
     private void crearUsuario(String nombre, String apellido, long dni, String email, String tel,

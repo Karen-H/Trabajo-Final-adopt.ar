@@ -3,6 +3,7 @@ package com.adoptar.service;
 import com.adoptar.dto.request.ItemTiendaRequest;
 import com.adoptar.dto.response.FotoResponse;
 import com.adoptar.dto.response.ItemTiendaResponse;
+import com.adoptar.dto.response.RescatistaTiendaResponse;
 import com.adoptar.entity.ItemFoto;
 import com.adoptar.entity.ItemTienda;
 import com.adoptar.entity.User;
@@ -10,6 +11,7 @@ import com.adoptar.enums.EstadoFoto;
 import com.adoptar.enums.EstadoItem;
 import com.adoptar.repository.ItemFotoRepository;
 import com.adoptar.repository.ItemTiendaRepository;
+import com.adoptar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,7 @@ public class ItemTiendaService {
 
     private final ItemTiendaRepository itemTiendaRepository;
     private final ItemFotoRepository itemFotoRepository;
+    private final UserRepository userRepository;
 
     @Value("${uploads.path}")
     private String uploadsPath;
@@ -49,6 +52,7 @@ public class ItemTiendaService {
                 .tipo(request.getTipo())
                 .descripcion(request.getDescripcion())
                 .precio(request.getPrecio())
+                .stock(request.getStock())
                 .build();
 
         itemTiendaRepository.save(item);
@@ -63,6 +67,7 @@ public class ItemTiendaService {
         item.setTipo(request.getTipo());
         item.setDescripcion(request.getDescripcion());
         item.setPrecio(request.getPrecio());
+        item.setStock(request.getStock());
         itemTiendaRepository.save(item);
         return toResponse(item);
     }
@@ -70,9 +75,6 @@ public class ItemTiendaService {
     @Transactional
     public ItemTiendaResponse agregarFotos(Long itemId, User rescatista, List<MultipartFile> fotosNuevas) {
         ItemTienda item = getItemDelRescatista(itemId, rescatista);
-        if (item.getEstado() != EstadoItem.APROBADO) {
-            throw new IllegalArgumentException("Solo podés agregar fotos a un ítem aprobado");
-        }
         if (fotosNuevas == null || fotosNuevas.isEmpty()) {
             throw new IllegalArgumentException("Debes subir al menos una foto");
         }
@@ -121,6 +123,47 @@ public class ItemTiendaService {
     public List<ItemTiendaResponse> getMisItems(User rescatista) {
         return itemTiendaRepository.findByRescatistaAndEliminadoFalse(rescatista)
                 .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    // catalogo publico: rescatistas con tienda habilitada
+
+    @Transactional(readOnly = true)
+    public List<RescatistaTiendaResponse> listarTiendas(String provincia, String q, User usuarioActual) {
+        return userRepository.findByTieneTiendaTrue().stream()
+                .filter(u -> usuarioActual == null || !u.getId().equals(usuarioActual.getId()))
+                .filter(u -> provincia == null || provincia.isBlank()
+                        || provincia.equalsIgnoreCase(u.getProvincia()))
+                .filter(u -> {
+                    if (q == null || q.isBlank()) return true;
+                    String busqueda = q.toLowerCase();
+                    boolean enOrg = u.getOrganizacion() != null
+                            && u.getOrganizacion().toLowerCase().contains(busqueda);
+                    boolean enNombre = (u.getNombre() + " " + u.getApellido())
+                            .toLowerCase().contains(busqueda);
+                    return enOrg || enNombre;
+                })
+                .map(u -> RescatistaTiendaResponse.builder()
+                        .id(u.getId())
+                        .nombre(u.getNombre())
+                        .apellido(u.getApellido())
+                        .organizacion(u.getOrganizacion())
+                        .provincia(u.getProvincia())
+                        .ciudad(u.getCiudad())
+                        .build())
+                .toList();
+    }
+
+    // catalogo publico: items aprobados de una tienda
+
+    @Transactional(readOnly = true)
+    public List<ItemTiendaResponse> listarItemsDeTienda(Long rescatistaId) {
+        User rescatista = userRepository.findById(rescatistaId)
+                .filter(User::isTieneTienda)
+                .orElseThrow(() -> new IllegalArgumentException("Tienda no encontrada"));
+        return itemTiendaRepository.findByRescatistaAndEliminadoFalse(rescatista).stream()
+                .filter(i -> i.getEstado() == EstadoItem.APROBADO)
                 .map(this::toResponse)
                 .toList();
     }
@@ -190,6 +233,7 @@ public class ItemTiendaService {
                 .tipo(item.getTipo())
                 .descripcion(item.getDescripcion())
                 .precio(item.getPrecio())
+                .stock(item.getStock())
                 .fotos(fotos)
                 .estado(item.getEstado())
                 .motivoRechazo(item.getMotivoRechazo())

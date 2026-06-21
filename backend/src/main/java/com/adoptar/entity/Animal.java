@@ -86,10 +86,10 @@ public class Animal {
     @Column
     private String ciudad;
 
-    // false hasta que el admin lo apruebe
+    // las publicaciones se publican directo, sin aprobacion previa; la moderacion es post-publicacion (denuncias)
     @Column(nullable = false)
     @Builder.Default
-    private boolean aprobado = false;
+    private boolean aprobado = true;
 
     // true si el admin lo rechazó
     @Column(nullable = false)

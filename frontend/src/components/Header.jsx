@@ -10,9 +10,9 @@ function Header() {
   const navigate = useNavigate()
   const [noLeidos, setNoLeidos] = useState(0)
 
-  // polling de mensajes no leídos cada 10 segundos
+  // polling de mensajes no leídos cada 10 segundos (admin/moderador no tienen chats)
   useEffect(() => {
-    if (!user) return
+    if (!user || user.role !== 'USER') return
     const cargar = () => getNoLeidos().then(r => setNoLeidos(r.data)).catch(() => {})
     cargar()
     const intervalo = setInterval(cargar, 10000)
@@ -40,17 +40,19 @@ function Header() {
       <Link to="/adopciones">Adopciones</Link>
       <Link to="/perdidos">Perdidos</Link>
       <Link to="/encontrados">Encontrados</Link>
-      <Link to="/donar">Donar</Link>
+      {(!user || (user.role === 'USER' && user.activeProfile === 'ADOPTANTE')) && (
+        <Link to="/donar">Donar</Link>
+      )}
+      {user && user.role === 'USER' && user.activeProfile === 'ADOPTANTE' && (
+        <Link to="/tiendas">Tiendas</Link>
+      )}
 
       {user ? (
         <>
-          {user.role === 'ADMIN' && (
-            <>
-              <Link to="/admin">Panel admin</Link>
-              <Link to="/mis-publicaciones">Mis publicaciones</Link>
-              <Link to="/agregar-reporte">Publicar perdido/encontrado</Link>
-            </>
+          {(user.role === 'ADMIN' || user.role === 'MODERADOR') && (
+            <Link to="/admin">Panel admin</Link>
           )}
+
           {user.role === 'USER' && user.activeProfile === 'RESCATISTA' && (
             <>
               <Link to="/mis-publicaciones">Mis publicaciones</Link>
@@ -58,8 +60,9 @@ function Header() {
               <Link to="/agregar-reporte">Publicar perdido/encontrado</Link>
               {user.tieneTienda
                 ? <Link to="/mi-tienda">Mi tienda</Link>
-                : <Link to="/abrir-tienda">Abrir tienda</Link>
+                : <Link to="/abrir-tienda">Solicitar verificación</Link>
               }
+              {user.tieneTienda && <Link to="/mis-ventas">Mis ventas</Link>}
             </>
           )}
           {user.role === 'USER' && user.activeProfile === 'ADOPTANTE' && (
@@ -69,19 +72,30 @@ function Header() {
             </>
           )}
 
-          <Link to="/favoritos">Favoritos</Link>
-          <Link to="/chats" style={{ position: 'relative' }}>
-            Chats
-            {noLeidos > 0 && (
-              <span style={{
-                position: 'absolute', top: -6, right: -10,
-                background: '#e53935', color: '#fff',
-                borderRadius: 10, fontSize: 10, padding: '1px 5px', lineHeight: 1.4
-              }}>
-                {noLeidos}
-              </span>
-            )}
-          </Link>
+          {user.role === 'USER' && user.activeProfile === 'ADOPTANTE' && (
+            <>
+              <Link to="/carrito">Carrito</Link>
+              <Link to="/mis-compras">Mis compras</Link>
+            </>
+          )}
+
+          {user.role === 'USER' && (
+            <>
+              <Link to="/favoritos">Favoritos</Link>
+              <Link to="/chats" style={{ position: 'relative' }}>
+                Chats
+                {noLeidos > 0 && (
+                  <span style={{
+                    position: 'absolute', top: -6, right: -10,
+                    background: '#e53935', color: '#fff',
+                    borderRadius: 10, fontSize: 10, padding: '1px 5px', lineHeight: 1.4
+                  }}>
+                    {noLeidos}
+                  </span>
+                )}
+              </Link>
+            </>
+          )}
 
           {user.role === 'USER' && user.preferencia === 'AMBOS' && (
             <span style={{ fontSize: 13, color: '#555' }}>

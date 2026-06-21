@@ -29,5 +29,9 @@ public enum TipoNotificacion {
     // para el receptor de un mensaje
     NUEVO_MENSAJE,
     // para rescatista (donaciones)
-    NUEVA_DONACION
+    NUEVA_DONACION,
+    // para rescatista (ventas de items de tienda)
+    NUEVA_VENTA,
+    // para el comprador, cuando el rescatista despacha la compra
+    VENTA_ENVIADA
 }

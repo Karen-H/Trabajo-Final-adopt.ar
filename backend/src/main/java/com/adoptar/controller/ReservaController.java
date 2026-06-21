@@ -4,14 +4,17 @@ import com.adoptar.entity.User;
 import com.adoptar.service.ReservaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+// reservas es uso normal de la plataforma: admin y moderador quedan afuera
 @RestController
 @RequestMapping("/api/reservas")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('USER')")
 public class ReservaController {
 
     private final ReservaService reservaService;

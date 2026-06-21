@@ -17,11 +17,18 @@ public class DenunciaController {
 
     private final DenunciaService denunciaService;
 
+    private boolean noEsModerador(User user) {
+        return user.getRole() != UserRole.ADMIN && user.getRole() != UserRole.MODERADOR;
+    }
+
     @PostMapping("/{animalId}")
     public ResponseEntity<?> denunciar(
             @AuthenticationPrincipal User user,
             @PathVariable Long animalId,
             @Valid @RequestBody DenunciaRequest request) {
+        if (!noEsModerador(user)) {
+            return ResponseEntity.status(403).build();
+        }
         try {
             denunciaService.denunciar(animalId, user, request);
             return ResponseEntity.ok().build();
@@ -32,7 +39,7 @@ public class DenunciaController {
 
     @GetMapping("/pendientes")
     public ResponseEntity<?> listarPendientes(@AuthenticationPrincipal User user) {
-        if (user.getRole() != UserRole.ADMIN) {
+        if (noEsModerador(user)) {
             return ResponseEntity.status(403).build();
         }
         return ResponseEntity.ok(denunciaService.listarPendientes());
@@ -42,7 +49,7 @@ public class DenunciaController {
     public ResponseEntity<?> desestimar(
             @AuthenticationPrincipal User user,
             @PathVariable Long id) {
-        if (user.getRole() != UserRole.ADMIN) {
+        if (noEsModerador(user)) {
             return ResponseEntity.status(403).build();
         }
         try {
@@ -57,7 +64,7 @@ public class DenunciaController {
     public ResponseEntity<?> eliminarPublicacion(
             @AuthenticationPrincipal User user,
             @PathVariable Long id) {
-        if (user.getRole() != UserRole.ADMIN) {
+        if (noEsModerador(user)) {
             return ResponseEntity.status(403).build();
         }
         try {

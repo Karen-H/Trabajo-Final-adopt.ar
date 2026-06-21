@@ -3,8 +3,10 @@ import { useNavigate, Link } from 'react-router-dom'
 import { getProfile, updateProfile } from '../api/user'
 import { getProvincias, getMunicipios } from '../api/georef'
 import { getDisponibilidadPropia, agregarDisponibilidad, eliminarDisponibilidad } from '../api/tienda'
+import { getDisponibilidadRescatistaPropia, agregarDisponibilidadRescatista, eliminarDisponibilidadRescatista } from '../api/disponibilidadRescatista'
 import { configurarDonaciones, getMisDonaciones } from '../api/donacion'
 import { useAuth } from '../context/AuthContext'
+import { formatMonto } from '../utils/formatMonto'
 
 const ETIQUETA_PREFERENCIA = {
   ADOPTANTE: 'Solo adoptar',
@@ -27,6 +29,11 @@ function Profile() {
   const [disponibilidad, setDisponibilidad] = useState([])
   const [nuevaDisponibilidad, setNuevaDisponibilidad] = useState({ diaSemana: '', horaInicio: '', horaFin: '' })
   const [errorDisp, setErrorDisp] = useState('')
+
+  // disponibilidad de retiro en domicilio (solo rescatista)
+  const [disponibilidadRetiro, setDisponibilidadRetiro] = useState([])
+  const [nuevaDisponibilidadRetiro, setNuevaDisponibilidadRetiro] = useState({ diaSemana: '', horaInicio: '', horaFin: '' })
+  const [errorDispRetiro, setErrorDispRetiro] = useState('')
 
   // preferencia de rol
   const [editandoPreferencia, setEditandoPreferencia] = useState(false)
@@ -77,6 +84,11 @@ function Profile() {
         if (res.data.role === 'ADMIN') {
           getDisponibilidadPropia()
             .then(r => setDisponibilidad(r.data))
+            .catch(() => {})
+        }
+        if (user?.activeProfile === 'RESCATISTA') {
+          getDisponibilidadRescatistaPropia()
+            .then(r => setDisponibilidadRetiro(r.data))
             .catch(() => {})
         }
         if (res.data.role === 'USER') {
@@ -169,6 +181,28 @@ function Profile() {
       setDisponibilidad(prev => prev.filter(d => d.id !== id))
     } catch {
       setErrorDisp('Error al eliminar la disponibilidad')
+    }
+  }
+
+  async function handleAgregarDisponibilidadRetiro() {
+    const { diaSemana, horaInicio, horaFin } = nuevaDisponibilidadRetiro
+    if (!diaSemana || !horaInicio || !horaFin) { setErrorDispRetiro('Completá todos los campos'); return }
+    setErrorDispRetiro('')
+    try {
+      const res = await agregarDisponibilidadRescatista({ diaSemana, horaInicio: horaInicio + ':00', horaFin: horaFin + ':00' })
+      setDisponibilidadRetiro(prev => [...prev.filter(d => d.diaSemana !== diaSemana), ...res.data])
+      setNuevaDisponibilidadRetiro({ diaSemana: '', horaInicio: '', horaFin: '' })
+    } catch (e) {
+      setErrorDispRetiro(e.response?.data || 'Error al agregar disponibilidad')
+    }
+  }
+
+  async function handleEliminarDisponibilidadRetiro(id) {
+    try {
+      await eliminarDisponibilidadRescatista(id)
+      setDisponibilidadRetiro(prev => prev.filter(d => d.id !== id))
+    } catch {
+      setErrorDispRetiro('Error al eliminar la disponibilidad')
     }
   }
 
@@ -301,7 +335,7 @@ function Profile() {
           {disponibilidad.length === 0 && <p>No tenés bloques de disponibilidad cargados.</p>}
           {disponibilidad.map(d => (
             <div key={d.id} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 6 }}>
-              <span>{DIA_LABEL[d.diaSemana]} — {d.horaInicio.substring(0, 5)}hs a {d.horaFin.substring(0, 5)}hs</span>
+              <span>{DIA_LABEL[d.diaSemana]} · {d.horaInicio.substring(0, 5)}hs a {d.horaFin.substring(0, 5)}hs</span>
               <button onClick={() => handleEliminarDisponibilidad(d.id)} style={{ color: '#c00' }}>Eliminar</button>
             </div>
           ))}
@@ -364,7 +398,7 @@ function Profile() {
 
               {tipoCambio(nuevaPreferencia) === 'rescatista' && (
                 <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 6, padding: 12, marginBottom: 8 }}>
-                  <p style={{ margin: '0 0 8px', fontWeight: 600 }}>⚠️ Atención: esta acción es irreversible</p>
+                  <p style={{ margin: '0 0 8px', fontWeight: 600 }}>Atención: esta acción es irreversible</p>
                   <p style={{ margin: '0 0 8px', fontSize: 14 }}>
                     Al cambiar a "Solo adoptar" se eliminarán permanentemente todos tus animales publicados en adopción,
                     se cancelarán sus reservas activas, y se eliminará tu tienda (si tenías una).
@@ -382,7 +416,7 @@ function Profile() {
 
               {tipoCambio(nuevaPreferencia) === 'adoptante' && (
                 <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 6, padding: 12, marginBottom: 8 }}>
-                  <p style={{ margin: '0 0 8px', fontWeight: 600 }}>⚠️ Atención</p>
+                  <p style={{ margin: '0 0 8px', fontWeight: 600 }}>Atención</p>
                   <p style={{ margin: '0 0 8px', fontSize: 14 }}>
                     Al cambiar a "Solo publicar" se cancelarán automáticamente tus reservas activas como adoptante
                     y no podrás iniciar nuevas adopciones.
@@ -420,35 +454,86 @@ function Profile() {
 
       {user?.activeProfile === 'RESCATISTA' && (
         <div style={{ marginTop: 32 }}>
+          <h3>Mi disponibilidad para retiro en domicilio</h3>
+          <p>Si vendés en tu tienda, estos bloques horarios son los que verán los compradores al elegir retirar un pedido en tu domicilio.</p>
+
+          {disponibilidadRetiro.length === 0 && <p>No tenés bloques de disponibilidad cargados.</p>}
+          {disponibilidadRetiro.map(d => (
+            <div key={d.id} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 6 }}>
+              <span>{DIA_LABEL[d.diaSemana]} · {d.horaInicio.substring(0, 5)}hs a {d.horaFin.substring(0, 5)}hs</span>
+              <button onClick={() => handleEliminarDisponibilidadRetiro(d.id)} style={{ color: '#c00' }}>Eliminar</button>
+            </div>
+          ))}
+
+          <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <select
+              value={nuevaDisponibilidadRetiro.diaSemana}
+              onChange={e => setNuevaDisponibilidadRetiro(prev => ({ ...prev, diaSemana: e.target.value }))}
+            >
+              <option value="">-- Día --</option>
+              {DIAS_SEMANA.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+            </select>
+            <select
+              value={nuevaDisponibilidadRetiro.horaInicio}
+              onChange={e => setNuevaDisponibilidadRetiro(prev => ({ ...prev, horaInicio: e.target.value, horaFin: '' }))}
+            >
+              <option value="">-- Inicio --</option>
+              {HORAS_DISPONIBLES.map(h => <option key={h} value={h}>{h}</option>)}
+            </select>
+            <span>a</span>
+            <select
+              value={nuevaDisponibilidadRetiro.horaFin}
+              onChange={e => setNuevaDisponibilidadRetiro(prev => ({ ...prev, horaFin: e.target.value }))}
+              disabled={!nuevaDisponibilidadRetiro.horaInicio}
+            >
+              <option value="">-- Fin --</option>
+              {HORAS_DISPONIBLES
+                .filter(h => h > nuevaDisponibilidadRetiro.horaInicio)
+                .map(h => <option key={h} value={h}>{h}</option>)}
+            </select>
+            <button onClick={handleAgregarDisponibilidadRetiro}>Agregar bloque</button>
+          </div>
+          {errorDispRetiro && <p style={{ color: 'red' }}>{errorDispRetiro}</p>}
+        </div>
+      )}
+
+      {user?.activeProfile === 'RESCATISTA' && (
+        <div style={{ marginTop: 32 }}>
           <h3>Donaciones</h3>
 
-          {/* Configuracion de donaciones */}
-          <form onSubmit={handleGuardarDonaciones}>
-            <div style={{ marginBottom: 8 }}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={donConfig.aceptaDonaciones}
-                  onChange={e => setDonConfig(prev => ({ ...prev, aceptaDonaciones: e.target.checked }))}
-                  style={{ marginRight: 6 }}
+          {!perfil.tieneTienda ? (
+            <p>
+              Para aceptar donaciones necesitás la misma verificación por videollamada que habilita la tienda.{' '}
+              <Link to="/abrir-tienda">Solicitar verificación</Link>
+            </p>
+          ) : (
+            <form onSubmit={handleGuardarDonaciones}>
+              <div style={{ marginBottom: 8 }}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={donConfig.aceptaDonaciones}
+                    onChange={e => setDonConfig(prev => ({ ...prev, aceptaDonaciones: e.target.checked }))}
+                    style={{ marginRight: 6 }}
+                  />
+                  Quiero aparecer en el listado de donaciones
+                </label>
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <label>Descripción (qué hacés con las donaciones)</label><br />
+                <textarea
+                  value={donConfig.descripcionDonacion}
+                  onChange={e => setDonConfig(prev => ({ ...prev, descripcionDonacion: e.target.value }))}
+                  rows={3}
+                  style={{ width: '100%', maxWidth: 500, boxSizing: 'border-box', marginTop: 4 }}
+                  placeholder="Ej: Rescato perros callejeros en Córdoba y pago sus veterinarios..."
                 />
-                Quiero aparecer en el listado de donaciones
-              </label>
-            </div>
-            <div style={{ marginBottom: 8 }}>
-              <label>Descripción (qué hacés con las donaciones)</label><br />
-              <textarea
-                value={donConfig.descripcionDonacion}
-                onChange={e => setDonConfig(prev => ({ ...prev, descripcionDonacion: e.target.value }))}
-                rows={3}
-                style={{ width: '100%', maxWidth: 500, boxSizing: 'border-box', marginTop: 4 }}
-                placeholder="Ej: Rescato perros callejeros en Córdoba y pago sus veterinarios..."
-              />
-            </div>
-            {errorDon && <p style={{ color: 'red' }}>{errorDon}</p>}
-            {exitoDon && <p>{exitoDon}</p>}
-            <button type="submit" disabled={cargandoDon}>Guardar configuración</button>
-          </form>
+              </div>
+              {errorDon && <p style={{ color: 'red' }}>{errorDon}</p>}
+              {exitoDon && <p>{exitoDon}</p>}
+              <button type="submit" disabled={cargandoDon}>Guardar configuración</button>
+            </form>
+          )}
 
           {/* Historial */}
           {misDonaciones.length > 0 && (
@@ -467,7 +552,7 @@ function Profile() {
                   {misDonaciones.map(d => (
                     <tr key={d.id}>
                       <td style={{ padding: '4px 8px' }}>{d.donanteNombre}</td>
-                      <td style={{ padding: '4px 8px' }}>${Number(d.monto).toLocaleString('es-AR')}</td>
+                      <td style={{ padding: '4px 8px' }}>${formatMonto(d.monto)}</td>
                       <td style={{ padding: '4px 8px' }}>{d.estado}</td>
                       <td style={{ padding: '4px 8px' }}>{new Date(d.creadoEn).toLocaleDateString('es-AR')}</td>
                     </tr>

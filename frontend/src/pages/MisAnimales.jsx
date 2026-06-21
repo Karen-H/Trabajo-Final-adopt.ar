@@ -118,7 +118,7 @@ function MisAnimales() {
       {/* sección de reservados */}
       {reservasActivas.length > 0 && (
         <div style={{ margin: '1.5rem 0' }}>
-          <h3 style={{ color: '#c47f00' }}>🔒 Animales con reserva</h3>
+          <h3 style={{ color: '#c47f00' }}>Animales con reserva</h3>
           {reservasActivas.map(r => {
             const activa = r.estado === 'ACTIVA'
             return (
@@ -126,8 +126,8 @@ function MisAnimales() {
                 <p style={{ margin: '0 0 4px', fontWeight: 600 }}>{r.animalNombre}</p>
                 <p style={{ margin: '0 0 8px', fontSize: 13, color: '#555' }}>
                   {activa
-                    ? <>✅ Reservado para: <strong>{r.adoptanteNombre}</strong></>
-                    : <>⏳ Propuesta enviada a <strong>{r.adoptanteNombre}</strong> — esperando confirmación</>}
+                    ? <>Reservado para: <strong>{r.adoptanteNombre}</strong></>
+                    : <>Propuesta enviada a <strong>{r.adoptanteNombre}</strong>, esperando confirmación</>}
                 </p>
                 {activa && (
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -135,13 +135,13 @@ function MisAnimales() {
                       onClick={() => handleConcretar(r.reservaId)}
                       style={{ fontSize: 13, background: '#2e7d32', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer' }}
                     >
-                      ✅ Adopción concretada
+                      Adopción concretada
                     </button>
                     <button
                       onClick={() => handleCancelar(r.reservaId)}
                       style={{ fontSize: 13, background: '#c62828', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: 4, cursor: 'pointer' }}
                     >
-                      ❌ Cancelar reserva
+                      Cancelar reserva
                     </button>
                   </div>
                 )}

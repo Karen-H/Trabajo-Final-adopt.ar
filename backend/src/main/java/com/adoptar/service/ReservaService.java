@@ -152,7 +152,7 @@ public class ReservaService {
             mensajeRepository.save(Mensaje.builder()
                     .chat(chat)
                     .emisor(null)
-                    .contenido("¡La adopción de " + reserva.getAnimal().getNombre() + " se concretó! Gracias por darle un hogar. 🎉")
+                    .contenido("La adopción de " + reserva.getAnimal().getNombre() + " se concretó. Gracias por darle un hogar.")
                     .leido(false)
                     .build());
         });

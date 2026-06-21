@@ -9,8 +9,6 @@ import com.adoptar.entity.User;
 import com.adoptar.enums.CategoriaAnimal;
 import com.adoptar.enums.EstadoAnimal;
 import com.adoptar.enums.EstadoFoto;
-import com.adoptar.enums.TipoNotificacion;
-import com.adoptar.enums.UserRole;
 import com.adoptar.repository.AnimalFotoRepository;
 import com.adoptar.repository.AnimalRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +30,6 @@ public class ReporteService {
 
     private final AnimalRepository animalRepository;
     private final AnimalFotoRepository animalFotoRepository;
-    private final NotificacionService notificacionService;
 
     @Value("${uploads.path}")
     private String uploadsPath;
@@ -59,8 +56,6 @@ public class ReporteService {
             }
         }
 
-        boolean esAdmin = publicador.getRole() == UserRole.ADMIN;
-
         Animal animal = Animal.builder()
                 .categoria(CategoriaAnimal.PERDIDO_ENCONTRADO)
                 .tipo(request.getTipo())
@@ -77,22 +72,8 @@ public class ReporteService {
                 .publicador(publicador)
                 .build();
 
-        if (esAdmin) {
-            animal.setAprobado(true);
-        }
-
         animalRepository.save(animal);
         guardarFotos(animal, fotos);
-
-        // si es admin, aprobar las fotos automaticamente
-        if (esAdmin) {
-            animal.getFotos().forEach(f -> f.setEstado(EstadoFoto.APROBADA));
-        } else {
-            notificacionService.crearParaAdminsYMods(
-                    TipoNotificacion.PUBLICACION_PENDIENTE,
-                    publicador.getNombre() + " " + publicador.getApellido() + " publicó un reporte pendiente de revisión",
-                    "/admin");
-        }
 
         return toResponse(animal);
     }
@@ -143,12 +124,6 @@ public class ReporteService {
         }
         animalRepository.save(animal);
         return toResponse(animal);
-    }
-
-    // fotos pendientes de aprobación (solo perdido/encontrado)
-    @Transactional(readOnly = true)
-    public List<Animal> getPendientesAdmin() {
-        return animalRepository.findByCategoriaAndAprobadoFalseAndRechazadoFalseAndEliminadoFalse(CategoriaAnimal.PERDIDO_ENCONTRADO);
     }
 
     @Transactional

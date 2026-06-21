@@ -47,10 +47,9 @@ function NotificacionBell() {
     <div ref={dropdownRef} style={{ position: 'relative' }}>
       <button
         onClick={() => setAbierto(prev => !prev)}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: '0 4px', position: 'relative' }}
-        title="Notificaciones"
+        style={{ position: 'relative' }}
       >
-        🔔
+        Notificaciones
         {noLeidas > 0 && (
           <span style={{
             position: 'absolute', top: -4, right: -4,
@@ -100,7 +99,7 @@ function NotificacionBell() {
                   }}
                   title="Eliminar notificación"
                 >
-                  ✕
+                  Eliminar
                 </button>
               </div>
             ))

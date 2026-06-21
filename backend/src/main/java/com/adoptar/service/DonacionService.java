@@ -29,8 +29,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -58,6 +61,9 @@ public class DonacionService {
             throw new IllegalArgumentException("Solo los usuarios pueden configurar donaciones");
         }
         if (request.isAceptaDonaciones()) {
+            if (!user.isTieneTienda()) {
+                throw new IllegalArgumentException("Necesitás estar verificado por un administrador para aceptar donaciones");
+            }
             if (user.getOrganizacion() == null || user.getOrganizacion().isBlank()) {
                 throw new IllegalArgumentException("Para aceptar donaciones necesitás tener una organización configurada en tu perfil");
             }
@@ -71,8 +77,9 @@ public class DonacionService {
     // Listado publico de rescatistas
 
     @Transactional(readOnly = true)
-    public List<RescatistaDonacionResponse> listarRescatistas(String provincia, String q) {
+    public List<RescatistaDonacionResponse> listarRescatistas(String provincia, String q, User usuarioActual) {
         return userRepository.findByAceptaDonacionesTrue().stream()
+                .filter(u -> usuarioActual == null || !u.getId().equals(usuarioActual.getId()))
                 .filter(u -> provincia == null || provincia.isBlank()
                         || provincia.equalsIgnoreCase(u.getProvincia()))
                 .filter(u -> {
@@ -100,11 +107,15 @@ public class DonacionService {
         if (!rescatista.isAceptaDonaciones()) {
             throw new IllegalArgumentException("Este rescatista no acepta donaciones");
         }
+        if (rescatista.getId().equals(donante.getId())) {
+            throw new IllegalArgumentException("No podés donarte a vos mismo");
+        }
 
         Donacion donacion = Donacion.builder()
                 .donante(donante)
                 .rescatista(rescatista)
                 .monto(request.getMonto())
+                .externalRef(UUID.randomUUID().toString())
                 .build();
         donacionRepository.save(donacion);
 
@@ -127,7 +138,7 @@ public class DonacionService {
         PreferenceRequest prefRequest = PreferenceRequest.builder()
                 .items(List.of(item))
                 .backUrls(backUrls)
-                .externalReference(String.valueOf(donacion.getId()))
+                .externalReference(donacion.getExternalRef())
                 .build();
 
         MercadoPagoConfig.setAccessToken(appAccessToken);
@@ -151,11 +162,14 @@ public class DonacionService {
 
     @Transactional
     public String confirmarPorDonacion(Long donacionId) {
+        Donacion donacion = donacionRepository.findById(donacionId).orElse(null);
+        if (donacion == null) return "PENDIENTE";
+
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "Bearer " + appAccessToken);
             ResponseEntity<Map> response = restTemplate.exchange(
-                    "https://api.mercadopago.com/v1/payments/search?external_reference=" + donacionId + "&sort=date_created&criteria=desc",
+                    "https://api.mercadopago.com/v1/payments/search?external_reference=" + donacion.getExternalRef() + "&sort=date_created&criteria=desc",
                     HttpMethod.GET,
                     new HttpEntity<>(headers),
                     Map.class
@@ -167,22 +181,7 @@ public class DonacionService {
                     Map<String, Object> payment = results.get(0);
                     String status = (String) payment.get("status");
                     String paymentId = String.valueOf(payment.get("id"));
-
-                    donacionRepository.findById(donacionId).ifPresent(donacion -> {
-                        if ("approved".equals(status)) {
-                            if (donacion.getEstado() != EstadoDonacion.COMPLETADA) {
-                                notificacionService.crear(donacion.getRescatista(),
-                                        TipoNotificacion.NUEVA_DONACION,
-                                        "Recibiste una donación de $" + donacion.getMonto(),
-                                        "/perfil");
-                            }
-                            donacion.setEstado(EstadoDonacion.COMPLETADA);
-                        } else if ("rejected".equals(status) || "cancelled".equals(status)) {
-                            donacion.setEstado(EstadoDonacion.FALLIDA);
-                        }
-                        donacion.setMpPaymentId(paymentId);
-                        donacionRepository.save(donacion);
-                    });
+                    aplicarEstadoPago(donacion.getExternalRef(), status, paymentId);
                 }
             }
         } catch (Exception e) {
@@ -205,22 +204,7 @@ public class DonacionService {
             String externalRef = payment.getExternalReference();
             if (externalRef == null) return;
 
-            donacionRepository.findById(Long.parseLong(externalRef)).ifPresent(donacion -> {
-                String status = payment.getStatus();
-                if ("approved".equals(status)) {
-                    if (donacion.getEstado() != EstadoDonacion.COMPLETADA) {
-                        notificacionService.crear(donacion.getRescatista(),
-                                TipoNotificacion.NUEVA_DONACION,
-                                "Recibiste una donación de $" + donacion.getMonto(),
-                                "/perfil");
-                    }
-                    donacion.setEstado(EstadoDonacion.COMPLETADA);
-                } else if ("rejected".equals(status) || "cancelled".equals(status)) {
-                    donacion.setEstado(EstadoDonacion.FALLIDA);
-                }
-                donacion.setMpPaymentId(paymentId);
-                donacionRepository.save(donacion);
-            });
+            aplicarEstadoPago(externalRef, payment.getStatus(), paymentId);
         } catch (Exception e) {
             // si falla la verificación el estado queda PENDIENTE
         }
@@ -246,25 +230,29 @@ public class DonacionService {
             String externalRef = payment.getExternalReference();
             if (externalRef == null) return;
 
-            donacionRepository.findById(Long.parseLong(externalRef)).ifPresent(donacion -> {
-                String status = payment.getStatus();
-                if ("approved".equals(status)) {
-                    if (donacion.getEstado() != EstadoDonacion.COMPLETADA) {
-                        notificacionService.crear(donacion.getRescatista(),
-                                TipoNotificacion.NUEVA_DONACION,
-                                "Recibiste una donación de $" + donacion.getMonto(),
-                                "/perfil");
-                    }
-                    donacion.setEstado(EstadoDonacion.COMPLETADA);
-                } else if ("rejected".equals(status) || "cancelled".equals(status)) {
-                    donacion.setEstado(EstadoDonacion.FALLIDA);
-                }
-                donacion.setMpPaymentId(paymentIdStr);
-                donacionRepository.save(donacion);
-            });
+            aplicarEstadoPago(externalRef, payment.getStatus(), paymentIdStr);
         } catch (Exception e) {
             // si falla el webhook no rompemos nada, solo ignoramos
         }
+    }
+
+    // aplica el estado del pago a la donacion y notifica al rescatista
+    private void aplicarEstadoPago(String externalRef, String status, String paymentId) {
+        donacionRepository.findByExternalRef(externalRef).ifPresent(donacion -> {
+            if ("approved".equals(status)) {
+                if (donacion.getEstado() != EstadoDonacion.COMPLETADA) {
+                    notificacionService.crear(donacion.getRescatista(),
+                            TipoNotificacion.NUEVA_DONACION,
+                            "Recibiste una donación de $" + formatMonto(donacion.getMonto()),
+                            "/perfil");
+                }
+                donacion.setEstado(EstadoDonacion.COMPLETADA);
+            } else if ("rejected".equals(status) || "cancelled".equals(status)) {
+                donacion.setEstado(EstadoDonacion.FALLIDA);
+            }
+            donacion.setMpPaymentId(paymentId);
+            donacionRepository.save(donacion);
+        });
     }
 
     // Historial del rescatista
@@ -283,6 +271,10 @@ public class DonacionService {
                         .creadoEn(d.getCreadoEn())
                         .build())
                 .toList();
+    }
+
+    private String formatMonto(BigDecimal monto) {
+        return monto.setScale(0, RoundingMode.HALF_UP).toPlainString();
     }
 
     private RescatistaDonacionResponse toRescatistaResponse(User u) {
