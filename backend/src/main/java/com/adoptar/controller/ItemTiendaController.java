@@ -41,6 +41,15 @@ public class ItemTiendaController {
         }
     }
 
+    // catalogo publico de items aprobados de todos los rescatistas juntos
+    @GetMapping("/todos")
+    public ResponseEntity<?> listarTodosLosItems(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String tipo,
+            @RequestParam(required = false) String provincia) {
+        return ResponseEntity.ok(itemTiendaService.listarTodosLosItems(q, tipo, provincia));
+    }
+
     @GetMapping("/mis-items")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<?> getMisItems(@AuthenticationPrincipal User user) {

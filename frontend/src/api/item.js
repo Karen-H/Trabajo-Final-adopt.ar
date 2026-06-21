@@ -7,6 +7,9 @@ export const getTiendas = (params) =>
 export const getItemsDeTienda = (rescatistaId) =>
   api.get(`/items/tiendas/${rescatistaId}`)
 
+export const getTodosLosItems = (params) =>
+  api.get('/items/todos', { params })
+
 export const getMisItems = () =>
   api.get('/items/mis-items')
 

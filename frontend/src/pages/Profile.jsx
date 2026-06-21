@@ -81,7 +81,7 @@ function Profile() {
           provincia: res.data.provincia || '',
           ciudad: res.data.ciudad || '',
         })
-        if (res.data.role === 'ADMIN') {
+        if (res.data.role === 'ADMIN' || res.data.role === 'MODERADOR') {
           getDisponibilidadPropia()
             .then(r => setDisponibilidad(r.data))
             .catch(() => {})
@@ -327,7 +327,7 @@ function Profile() {
         </form>
       )}
 
-      {perfil.role === 'ADMIN' && (
+      {(perfil.role === 'ADMIN' || perfil.role === 'MODERADOR') && (
         <div style={{ marginTop: 24 }}>
           <h3>Mi disponibilidad para videollamadas</h3>
           <p>Estos bloques horarios serán los que verán los rescatistas al solicitar una tienda.</p>

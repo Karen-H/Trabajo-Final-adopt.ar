@@ -168,6 +168,29 @@ public class ItemTiendaService {
                 .toList();
     }
 
+    // catalogo publico: items aprobados de todos los rescatistas juntos
+
+    @Transactional(readOnly = true)
+    public List<ItemTiendaResponse> listarTodosLosItems(String q, String tipo, String provincia) {
+        return itemTiendaRepository.findByEstadoAndEliminadoFalse(EstadoItem.APROBADO).stream()
+                .filter(i -> tipo == null || tipo.isBlank() || i.getTipo().name().equalsIgnoreCase(tipo))
+                .filter(i -> provincia == null || provincia.isBlank()
+                        || provincia.equalsIgnoreCase(i.getRescatista().getProvincia()))
+                .filter(i -> {
+                    if (q == null || q.isBlank()) return true;
+                    String busqueda = q.toLowerCase();
+                    boolean enTitulo = i.getTitulo().toLowerCase().contains(busqueda);
+                    boolean enRescatista = (i.getRescatista().getNombre() + " " + i.getRescatista().getApellido())
+                            .toLowerCase().contains(busqueda);
+                    boolean enOrg = i.getRescatista().getOrganizacion() != null
+                            && i.getRescatista().getOrganizacion().toLowerCase().contains(busqueda);
+                    return enTitulo || enRescatista || enOrg;
+                })
+                .sorted((a, b) -> b.getCreadoEn().compareTo(a.getCreadoEn()))
+                .map(this::toResponse)
+                .toList();
+    }
+
     private ItemTienda getItemDelRescatista(Long itemId, User rescatista) {
         ItemTienda item = itemTiendaRepository.findById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("Ítem no encontrado"));
@@ -238,6 +261,9 @@ public class ItemTiendaService {
                 .estado(item.getEstado())
                 .motivoRechazo(item.getMotivoRechazo())
                 .rescatistaNombre(item.getRescatista().getNombre() + " " + item.getRescatista().getApellido())
+                .rescatistaOrganizacion(item.getRescatista().getOrganizacion())
+                .rescatistaCiudad(item.getRescatista().getCiudad())
+                .rescatistaProvincia(item.getRescatista().getProvincia())
                 .creadoEn(item.getCreadoEn())
                 .build();
     }

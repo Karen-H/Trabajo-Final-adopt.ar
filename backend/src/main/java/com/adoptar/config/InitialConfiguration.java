@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Configuration
@@ -720,7 +721,9 @@ public class InitialConfiguration implements CommandLineRunner {
         // usuarios con animales en adopción → preferencia AMBOS, perfil activo RESCATISTA
         for (String email : emailsAdopcion) {
             User u = userRepository.findByEmail(email).orElseThrow();
-            u.setPreferencia(PreferenciaRol.AMBOS);
+            // gonzalo.cabrera queda exclusivamente como rescatista (sin tienda aprobada por admin)
+            boolean soloRescatista = email.equals("gonzalo.cabrera@adoptar.com");
+            u.setPreferencia(soloRescatista ? PreferenciaRol.RESCATISTA : PreferenciaRol.AMBOS);
             u.setActiveProfile(UserProfile.RESCATISTA);
             userRepository.save(u);
         }
@@ -764,6 +767,9 @@ public class InitialConfiguration implements CommandLineRunner {
         log.info("Animales extra seed: 10 perdidos + 10 encontrados + 280 en adopción (100 adoptados)");
     }
 
+    private record ItemSeed(String titulo, TipoItem tipo, String descripcion, BigDecimal precio, int stock) {
+    }
+
     private void seedTiendas(User ingrid) {
         String[] emailsTienda = {
             "silvana.molina@adoptar.com", "emiliano.romero@adoptar.com",
@@ -771,34 +777,89 @@ public class InitialConfiguration implements CommandLineRunner {
             "mariana.vega@adoptar.com"
         };
 
-        String[] titulos = {
-            "Cucha para perro", "Collar ajustable", "Bolsa de alimento balanceado", "Pelota de goma",
-            "Shampoo antipulgas", "Cama acolchada", "Transportadora mediana", "Plato doble de acero",
-            "Arnés reflectante", "Rascador para gatos"
-        };
-        TipoItem[] tipos = {
-            TipoItem.CAMA, TipoItem.ACCESORIO, TipoItem.ALIMENTO, TipoItem.JUGUETE,
-            TipoItem.HIGIENE, TipoItem.CAMA, TipoItem.TRANSPORTE, TipoItem.ACCESORIO,
-            TipoItem.ACCESORIO, TipoItem.JUGUETE
-        };
-        String[] descripciones = {
-            "Cucha resistente al agua, ideal para interior o exterior.",
-            "Collar regulable de nylon, varios talles.",
-            "Alimento balanceado premium para perros y gatos adultos.",
-            "Pelota resistente para juego y reporte.",
-            "Shampoo antipulgas y garrapatas, apto cachorros.",
-            "Cama acolchada lavable, talle mediano.",
-            "Transportadora segura para viajes cortos.",
-            "Plato doble de acero inoxidable, antideslizante.",
-            "Arnés con tira reflectante para paseos nocturnos.",
-            "Rascador de sisal con base estable."
-        };
-        BigDecimal[] precios = {
-            new BigDecimal("18000"), new BigDecimal("5000"),  new BigDecimal("12000"), new BigDecimal("3500"),
-            new BigDecimal("7000"),  new BigDecimal("22000"), new BigDecimal("28000"), new BigDecimal("6500"),
-            new BigDecimal("9000"),  new BigDecimal("15000")
-        };
-        int[] stocks = { 8, 15, 20, 25, 12, 6, 4, 10, 9, 7 };
+        // catalogo propio de Ingrid: artículos generales para perros y gatos
+        List<ItemSeed> catalogoIngrid = List.of(
+                new ItemSeed("Cucha para perro", TipoItem.CAMA, "Cucha resistente al agua, ideal para interior o exterior.", new BigDecimal("18000"), 8),
+                new ItemSeed("Collar ajustable", TipoItem.ACCESORIO, "Collar regulable de nylon, varios talles.", new BigDecimal("5000"), 15),
+                new ItemSeed("Bolsa de alimento balanceado", TipoItem.ALIMENTO, "Alimento balanceado premium para perros y gatos adultos.", new BigDecimal("12000"), 20),
+                new ItemSeed("Pelota de goma", TipoItem.JUGUETE, "Pelota resistente para juego y reporte.", new BigDecimal("3500"), 25),
+                new ItemSeed("Shampoo antipulgas", TipoItem.HIGIENE, "Shampoo antipulgas y garrapatas, apto cachorros.", new BigDecimal("7000"), 12),
+                new ItemSeed("Cama acolchada", TipoItem.CAMA, "Cama acolchada lavable, talle mediano.", new BigDecimal("22000"), 6),
+                new ItemSeed("Transportadora mediana", TipoItem.TRANSPORTE, "Transportadora segura para viajes cortos.", new BigDecimal("28000"), 4),
+                new ItemSeed("Plato doble de acero", TipoItem.ACCESORIO, "Plato doble de acero inoxidable, antideslizante.", new BigDecimal("6500"), 10),
+                new ItemSeed("Arnés reflectante", TipoItem.ACCESORIO, "Arnés con tira reflectante para paseos nocturnos.", new BigDecimal("9000"), 9),
+                new ItemSeed("Rascador para gatos", TipoItem.JUGUETE, "Rascador de sisal con base estable.", new BigDecimal("15000"), 7)
+        );
+
+        // catalogo de Silvana Molina: especializado en perros de razas grandes
+        List<ItemSeed> catalogoSilvana = List.of(
+                new ItemSeed("Cucha XXL para perro grande", TipoItem.CAMA, "Cucha reforzada para razas grandes, resistente a mordidas.", new BigDecimal("26000"), 5),
+                new ItemSeed("Collar de cuero robusto", TipoItem.ACCESORIO, "Collar de cuero genuino para perros grandes.", new BigDecimal("8500"), 10),
+                new ItemSeed("Alimento para razas grandes 20kg", TipoItem.ALIMENTO, "Fórmula especial para perros de más de 25kg.", new BigDecimal("19000"), 14),
+                new ItemSeed("Pelota de caucho extra resistente", TipoItem.JUGUETE, "Pelota indestructible para perros con mordida fuerte.", new BigDecimal("5200"), 18),
+                new ItemSeed("Shampoo desodorante para razas grandes", TipoItem.HIGIENE, "Shampoo con aroma duradero para razas grandes.", new BigDecimal("8000"), 11),
+                new ItemSeed("Cama ortopédica talle XL", TipoItem.CAMA, "Cama con espuma viscoelástica para perros senior.", new BigDecimal("34000"), 3),
+                new ItemSeed("Transportadora reforzada grande", TipoItem.TRANSPORTE, "Transportadora homologada para perros de gran tamaño.", new BigDecimal("42000"), 2),
+                new ItemSeed("Comedero elevado doble", TipoItem.ACCESORIO, "Comedero elevado, ideal para evitar problemas de columna.", new BigDecimal("11000"), 8),
+                new ItemSeed("Arnés de tracción para paseo", TipoItem.ACCESORIO, "Arnés acolchado para perros que tiran de la correa.", new BigDecimal("13500"), 6),
+                new ItemSeed("Correa retráctil 5m", TipoItem.ACCESORIO, "Correa retráctil resistente, frenado seguro.", new BigDecimal("9800"), 12)
+        );
+
+        // catalogo de Emiliano Romero: especializado en gatos
+        List<ItemSeed> catalogoEmiliano = List.of(
+                new ItemSeed("Casa de madera para gatos", TipoItem.CAMA, "Casita de madera con entrada acolchada.", new BigDecimal("21000"), 6),
+                new ItemSeed("Collar con cascabel para gatos", TipoItem.ACCESORIO, "Collar elástico de seguridad con cascabel.", new BigDecimal("3200"), 20),
+                new ItemSeed("Alimento húmedo gourmet x12", TipoItem.ALIMENTO, "Pack de 12 latas de alimento húmedo para gatos adultos.", new BigDecimal("14500"), 16),
+                new ItemSeed("Varita con plumas", TipoItem.JUGUETE, "Varita interactiva con plumas para estimular el juego.", new BigDecimal("2800"), 22),
+                new ItemSeed("Shampoo seco para gatos", TipoItem.HIGIENE, "Shampoo en espuma sin enjuague, ideal para gatos sensibles.", new BigDecimal("6200"), 13),
+                new ItemSeed("Cama tipo cueva para gatos", TipoItem.CAMA, "Cama cerrada que brinda sensación de refugio.", new BigDecimal("17500"), 9),
+                new ItemSeed("Transportadora plegable para gatos", TipoItem.TRANSPORTE, "Transportadora liviana y plegable, fácil de guardar.", new BigDecimal("19800"), 5),
+                new ItemSeed("Fuente de agua para gatos", TipoItem.ACCESORIO, "Fuente con filtro, mantiene el agua siempre fresca.", new BigDecimal("24000"), 7),
+                new ItemSeed("Rascador torre con plataformas", TipoItem.JUGUETE, "Torre rascadora de 3 niveles con pelota colgante.", new BigDecimal("32000"), 4),
+                new ItemSeed("Arenero cerrado con filtro de carbón", TipoItem.HIGIENE, "Arenero cerrado que reduce olores.", new BigDecimal("16000"), 8)
+        );
+
+        // catalogo de Paola Nuñez: especializado en cachorros y crías
+        List<ItemSeed> catalogoPaola = List.of(
+                new ItemSeed("Cucha pequeña para cachorro", TipoItem.CAMA, "Cucha suave ideal para cachorros recién adoptados.", new BigDecimal("12000"), 10),
+                new ItemSeed("Collar ajustable para cachorro", TipoItem.ACCESORIO, "Collar liviano que se adapta al crecimiento del cachorro.", new BigDecimal("3500"), 18),
+                new ItemSeed("Alimento iniciación para cachorros 3kg", TipoItem.ALIMENTO, "Fórmula especial para el destete y primeros meses.", new BigDecimal("9500"), 20),
+                new ItemSeed("Mordillo de goma para dentición", TipoItem.JUGUETE, "Mordillo blando ideal para el cambio de dientes.", new BigDecimal("2200"), 25),
+                new ItemSeed("Shampoo neutro para cachorros", TipoItem.HIGIENE, "Shampoo suave sin lágrimas, apto desde las 8 semanas.", new BigDecimal("5500"), 14),
+                new ItemSeed("Corralito plegable para cachorros", TipoItem.TRANSPORTE, "Corralito de tela plegable para contener cachorros chicos.", new BigDecimal("27000"), 4),
+                new ItemSeed("Manta térmica para crías", TipoItem.CAMA, "Manta autocalefactora para mantener la temperatura corporal.", new BigDecimal("15500"), 6),
+                new ItemSeed("Kit de biberones para crías", TipoItem.ACCESORIO, "Kit de biberones para alimentación de cachorros huérfanos.", new BigDecimal("6800"), 9),
+                new ItemSeed("Pañalero para mascotas pequeñas", TipoItem.HIGIENE, "Pañales descartables talle chico.", new BigDecimal("7200"), 11),
+                new ItemSeed("Juguete sonajero pequeño", TipoItem.JUGUETE, "Juguete liviano con sonido suave, ideal para crías.", new BigDecimal("2900"), 16)
+        );
+
+        // catalogo de Pablo Blanco: aves, roedores y otros animales
+        List<ItemSeed> catalogoPablo = List.of(
+                new ItemSeed("Jaula mediana para aves", TipoItem.TRANSPORTE, "Jaula con percha y comedero incluido.", new BigDecimal("23000"), 4),
+                new ItemSeed("Collar identificatorio para conejos", TipoItem.ACCESORIO, "Collar liviano con placa identificatoria para conejos.", new BigDecimal("2900"), 12),
+                new ItemSeed("Alimento para roedores 2kg", TipoItem.ALIMENTO, "Mix de semillas y pellets para roedores pequeños.", new BigDecimal("6700"), 15),
+                new ItemSeed("Rueda de ejercicio para hamsters", TipoItem.JUGUETE, "Rueda silenciosa para el ejercicio diario.", new BigDecimal("4800"), 10),
+                new ItemSeed("Shampoo seco para conejos", TipoItem.HIGIENE, "Shampoo en polvo, apto para animales sensibles al agua.", new BigDecimal("4200"), 9),
+                new ItemSeed("Heno premium para conejos 5kg", TipoItem.ALIMENTO, "Heno de pasto natural, fibra esencial para roedores.", new BigDecimal("8900"), 13),
+                new ItemSeed("Transportadora para aves", TipoItem.TRANSPORTE, "Transportadora ventilada para traslados cortos.", new BigDecimal("15800"), 5),
+                new ItemSeed("Bebedero automático para jaulas", TipoItem.ACCESORIO, "Bebedero antigoteo de fácil instalación.", new BigDecimal("3600"), 17),
+                new ItemSeed("Casa de madera para roedores", TipoItem.CAMA, "Refugio de madera natural para hamsters y cuises.", new BigDecimal("5400"), 11),
+                new ItemSeed("Juguete de cuerdas para loros", TipoItem.JUGUETE, "Juguete colgante de cuerdas de algodón natural.", new BigDecimal("4100"), 8)
+        );
+
+        // catalogo de Mariana Vega: artículos premium y de viaje
+        List<ItemSeed> catalogoMariana = List.of(
+                new ItemSeed("Cama premium ortopédica", TipoItem.CAMA, "Cama de espuma de alta densidad con funda desmontable.", new BigDecimal("38000"), 3),
+                new ItemSeed("Collar de cuero con grabado", TipoItem.ACCESORIO, "Collar de cuero con placa grabada a pedido.", new BigDecimal("11500"), 7),
+                new ItemSeed("Alimento gourmet premium 10kg", TipoItem.ALIMENTO, "Alimento sin granos con ingredientes premium.", new BigDecimal("24000"), 9),
+                new ItemSeed("Set de juguetes interactivos", TipoItem.JUGUETE, "Set de 3 juguetes que estimulan la inteligencia canina.", new BigDecimal("9800"), 10),
+                new ItemSeed("Colonia para mascotas", TipoItem.HIGIENE, "Colonia hipoalergénica de larga duración.", new BigDecimal("5600"), 14),
+                new ItemSeed("Mochila portadora para mascotas pequeñas", TipoItem.TRANSPORTE, "Mochila ventilada apta para viajes en auto y transporte público.", new BigDecimal("31000"), 4),
+                new ItemSeed("Comedero automático con temporizador", TipoItem.ACCESORIO, "Comedero programable para hasta 4 raciones diarias.", new BigDecimal("45000"), 3),
+                new ItemSeed("Chaleco salvavidas para perros", TipoItem.ACCESORIO, "Chaleco flotador para paseos en lancha o playa.", new BigDecimal("17800"), 6),
+                new ItemSeed("Cinturón de seguridad para auto", TipoItem.TRANSPORTE, "Arnés con cinturón homologado para viajes seguros en auto.", new BigDecimal("12300"), 8),
+                new ItemSeed("Kit de cuidado dental", TipoItem.HIGIENE, "Cepillo, pasta y enjuague bucal para mascotas.", new BigDecimal("6900"), 12)
+        );
 
         User[] rescatistas = new User[6];
         rescatistas[0] = ingrid;
@@ -806,18 +867,24 @@ public class InitialConfiguration implements CommandLineRunner {
             rescatistas[i + 1] = userRepository.findByEmail(emailsTienda[i]).orElseThrow();
         }
 
-        for (User rescatista : rescatistas) {
+        @SuppressWarnings("unchecked")
+        List<ItemSeed>[] catalogos = new List[] {
+            catalogoIngrid, catalogoSilvana, catalogoEmiliano, catalogoPaola, catalogoPablo, catalogoMariana
+        };
+
+        for (int r = 0; r < rescatistas.length; r++) {
+            User rescatista = rescatistas[r];
             rescatista.setTieneTienda(true);
             userRepository.save(rescatista);
 
-            for (int i = 0; i < titulos.length; i++) {
+            for (ItemSeed seed : catalogos[r]) {
                 ItemTienda item = ItemTienda.builder()
                         .rescatista(rescatista)
-                        .titulo(titulos[i])
-                        .tipo(tipos[i])
-                        .descripcion(descripciones[i])
-                        .precio(precios[i])
-                        .stock(stocks[i])
+                        .titulo(seed.titulo())
+                        .tipo(seed.tipo())
+                        .descripcion(seed.descripcion())
+                        .precio(seed.precio())
+                        .stock(seed.stock())
                         .build();
                 item.getFotos().add(ItemFoto.builder()
                         .item(item)
@@ -828,7 +895,7 @@ public class InitialConfiguration implements CommandLineRunner {
             }
         }
 
-        log.info("Tiendas seed: 6 rescatistas con tienda aprobada y 10 items cada uno");
+        log.info("Tiendas seed: 6 rescatistas con tienda aprobada, cada uno con un catálogo propio de 10 items");
     }
 
     private void seedDonaciones(User ingrid) {
