@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { getProfile, updateProfile } from '../api/user'
 import { getProvincias, getMunicipios } from '../api/georef'
+import { buscarNominatim } from '../api/reporte'
 import { getDisponibilidadPropia, agregarDisponibilidad, eliminarDisponibilidad } from '../api/tienda'
 import { getDisponibilidadRescatistaPropia, agregarDisponibilidadRescatista, eliminarDisponibilidadRescatista } from '../api/disponibilidadRescatista'
 import { configurarDonaciones, getMisDonaciones } from '../api/donacion'
@@ -130,7 +131,15 @@ function Profile() {
     setError('')
     setExito('')
     try {
-      const res = await updateProfile(form)
+      const datos = { ...form }
+      if (form.ciudad && form.provincia) {
+        const resultados = await buscarNominatim(`${form.ciudad}, ${form.provincia}, Argentina`).catch(() => [])
+        if (resultados.length > 0) {
+          datos.latitud = resultados[0].lat
+          datos.longitud = resultados[0].lon
+        }
+      }
+      const res = await updateProfile(datos)
       setPerfil(res.data)
       setForm({
         email: res.data.email || '',
