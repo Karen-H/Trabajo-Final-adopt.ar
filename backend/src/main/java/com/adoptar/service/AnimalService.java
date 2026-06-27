@@ -88,8 +88,6 @@ public class AnimalService {
                 .amigableConNinos(request.isAmigableConNinos())
                 .descripcion(request.getDescripcion())
                 .direccion(request.getDireccion())
-                .latitud(request.getLatitud())
-                .longitud(request.getLongitud())
                 .publicador(publicador)
                 .build();
 
@@ -323,8 +321,8 @@ public class AnimalService {
                 .amigableConNinos(animal.getAmigableConNinos())
                 .descripcion(animal.getDescripcion())
                 .direccion(animal.getDireccion())
-                .latitud(animal.getLatitud())
-                .longitud(animal.getLongitud())
+                .latitud(animal.getPublicador().getLatitud())
+                .longitud(animal.getPublicador().getLongitud())
                 .enPosesionDelPublicador(animal.getEnPosesionDelPublicador())
                 .provincia(animal.getPublicador().getProvincia())
                 .ciudad(animal.getPublicador().getCiudad())
@@ -372,6 +370,8 @@ public class AnimalService {
                 .amigableConPerros(animal.getAmigableConPerros())
                 .amigableConNinos(animal.getAmigableConNinos())
                 .descripcion(animal.getDescripcion())
+                .latitud(animal.getPublicador().getLatitud())
+                .longitud(animal.getPublicador().getLongitud())
                 .provincia(animal.getPublicador().getProvincia())
                 .ciudad(animal.getPublicador().getCiudad())
                 .rescatistaNombre(animal.getPublicador().getNombre() + " " + animal.getPublicador().getApellido())

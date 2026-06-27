@@ -20,5 +20,9 @@ public class UpdateProfileRequest {
 
     private String ciudad;
 
+    private Double latitud;
+
+    private Double longitud;
+
     private PreferenciaRol preferencia;
 }

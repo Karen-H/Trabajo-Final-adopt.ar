@@ -37,6 +37,10 @@ public class RegisterRequest {
 
     private String ciudad;
 
+    private Double latitud;
+
+    private Double longitud;
+
     @NotNull(message = "Debés indicar tu intención de uso")
     private PreferenciaRol preferencia;
 }

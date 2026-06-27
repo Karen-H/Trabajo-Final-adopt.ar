@@ -38,6 +38,87 @@ public class InitialConfiguration implements CommandLineRunner {
     @Value("${uploads.path}")
     private String uploadsPath;
 
+    // coordenadas aproximadas por provincia, fallback cuando la ciudad no está en COORDS_CIUDAD
+    private static final java.util.Map<String, double[]> COORDS_PROVINCIA = java.util.Map.ofEntries(
+            java.util.Map.entry("Ciudad Autónoma de Buenos Aires", new double[]{-34.6037, -58.3816}),
+            java.util.Map.entry("Buenos Aires", new double[]{-34.9215, -57.9545}),
+            java.util.Map.entry("Mendoza", new double[]{-32.8908, -68.8272}),
+            java.util.Map.entry("Entre Ríos", new double[]{-31.7333, -60.5238}),
+            java.util.Map.entry("Córdoba", new double[]{-31.4201, -64.1888}),
+            java.util.Map.entry("Misiones", new double[]{-27.3621, -55.9008}),
+            java.util.Map.entry("La Pampa", new double[]{-36.6167, -64.2833}),
+            java.util.Map.entry("Neuquén", new double[]{-38.9516, -68.0591}),
+            java.util.Map.entry("Chubut", new double[]{-43.3002, -65.1023}),
+            java.util.Map.entry("Salta", new double[]{-24.7821, -65.4232}),
+            java.util.Map.entry("Santa Fe", new double[]{-31.6107, -60.6973}),
+            java.util.Map.entry("Tucumán", new double[]{-26.8083, -65.2176}),
+            java.util.Map.entry("Corrientes", new double[]{-27.4806, -58.8341}),
+            java.util.Map.entry("San Luis", new double[]{-33.3017, -66.3378}),
+            java.util.Map.entry("Jujuy", new double[]{-24.1858, -65.2995}),
+            java.util.Map.entry("Río Negro", new double[]{-40.8135, -62.9967}),
+            java.util.Map.entry("Chaco", new double[]{-27.4514, -58.9867}),
+            java.util.Map.entry("Catamarca", new double[]{-28.4696, -65.7795})
+    );
+
+    // coordenadas por ciudad/barrio, más precisas que el centro de la provincia
+    private static final java.util.Map<String, double[]> COORDS_CIUDAD = java.util.Map.ofEntries(
+            java.util.Map.entry("Belgrano", new double[]{-34.5631, -58.4546}),
+            java.util.Map.entry("Retiro", new double[]{-34.5925, -58.3747}),
+            java.util.Map.entry("Palermo", new double[]{-34.5875, -58.4205}),
+            java.util.Map.entry("Recoleta", new double[]{-34.5875, -58.3974}),
+            java.util.Map.entry("Villa Urquiza", new double[]{-34.5733, -58.4877}),
+            java.util.Map.entry("Caballito", new double[]{-34.6187, -58.4407}),
+            java.util.Map.entry("Flores", new double[]{-34.6289, -58.4633}),
+            java.util.Map.entry("La Plata", new double[]{-34.9215, -57.9545}),
+            java.util.Map.entry("Rosario", new double[]{-32.9468, -60.6393}),
+            java.util.Map.entry("Córdoba", new double[]{-31.4201, -64.1888}),
+            java.util.Map.entry("Mendoza", new double[]{-32.8908, -68.8272}),
+            java.util.Map.entry("Salta", new double[]{-24.7821, -65.4232}),
+            java.util.Map.entry("Posadas", new double[]{-27.3621, -55.9008}),
+            java.util.Map.entry("Paraná", new double[]{-31.7333, -60.5238}),
+            java.util.Map.entry("San Miguel de Tucumán", new double[]{-26.8083, -65.2176}),
+            java.util.Map.entry("Neuquén", new double[]{-38.9516, -68.0591}),
+            java.util.Map.entry("Bariloche", new double[]{-41.1335, -71.3103}),
+            java.util.Map.entry("Comodoro Rivadavia", new double[]{-45.8647, -67.4960}),
+            java.util.Map.entry("Corrientes", new double[]{-27.4806, -58.8341}),
+            java.util.Map.entry("Resistencia", new double[]{-27.4514, -58.9867}),
+            java.util.Map.entry("Ushuaia", new double[]{-54.8019, -68.3030}),
+            java.util.Map.entry("San Juan", new double[]{-31.5375, -68.5364}),
+            java.util.Map.entry("La Rioja", new double[]{-29.4131, -66.8558}),
+            java.util.Map.entry("San Salvador de Jujuy", new double[]{-24.1858, -65.2995}),
+            java.util.Map.entry("Formosa", new double[]{-26.1849, -58.1731}),
+            java.util.Map.entry("Villa Carlos Paz", new double[]{-31.4241, -64.4978}),
+            java.util.Map.entry("Mar del Plata", new double[]{-38.0023, -57.5575}),
+            java.util.Map.entry("Godoy Cruz", new double[]{-32.9264, -68.8385}),
+            java.util.Map.entry("Quilmes", new double[]{-34.7206, -58.2540}),
+            java.util.Map.entry("Gualeguaychú", new double[]{-33.0094, -58.5172}),
+            java.util.Map.entry("Río Cuarto", new double[]{-33.1232, -64.3490}),
+            java.util.Map.entry("Bahía Blanca", new double[]{-38.7183, -62.2663}),
+            java.util.Map.entry("Oberá", new double[]{-27.4878, -55.1199}),
+            java.util.Map.entry("Santa Rosa", new double[]{-36.6167, -64.2833}),
+            java.util.Map.entry("San Martín de los Andes", new double[]{-40.1576, -71.3528}),
+            java.util.Map.entry("Puerto Madryn", new double[]{-42.7692, -65.0385}),
+            java.util.Map.entry("Orán", new double[]{-23.1372, -64.3258}),
+            java.util.Map.entry("Santa Fe", new double[]{-31.6107, -60.6973}),
+            java.util.Map.entry("Concordia", new double[]{-31.3930, -58.0209}),
+            java.util.Map.entry("Tafí Viejo", new double[]{-26.7333, -65.2667}),
+            java.util.Map.entry("Goya", new double[]{-29.1391, -59.2667}),
+            java.util.Map.entry("San Luis", new double[]{-33.3017, -66.3378}),
+            java.util.Map.entry("Palpalá", new double[]{-24.2522, -65.2122}),
+            java.util.Map.entry("Tandil", new double[]{-37.3217, -59.1332}),
+            java.util.Map.entry("Viedma", new double[]{-40.8135, -62.9967}),
+            java.util.Map.entry("Presidencia Roque Sáenz Peña", new double[]{-26.7852, -60.4388}),
+            java.util.Map.entry("San Rafael", new double[]{-34.6177, -68.3301}),
+            java.util.Map.entry("San Fernando del Valle de Catamarca", new double[]{-28.4696, -65.7795}),
+            java.util.Map.entry("Villa Mercedes", new double[]{-33.6791, -65.4598}),
+            java.util.Map.entry("Alta Gracia", new double[]{-31.6534, -64.4283})
+    );
+
+    private static double[] coordsDe(String ciudad, String provincia) {
+        double[] porCiudad = COORDS_CIUDAD.get(ciudad);
+        return porCiudad != null ? porCiudad : COORDS_PROVINCIA.get(provincia);
+    }
+
     @Override
     public void run(String... args) {
         if (userRepository.count() == 0) {
@@ -92,6 +173,8 @@ public class InitialConfiguration implements CommandLineRunner {
                 .role(UserRole.USER)
                 .provincia("Ciudad Aut\u00f3noma de Buenos Aires")
                 .ciudad("Belgrano")
+                .latitud(coordsDe("Belgrano", "Ciudad Aut\u00f3noma de Buenos Aires")[0])
+                .longitud(coordsDe("Belgrano", "Ciudad Aut\u00f3noma de Buenos Aires")[1])
                 .organizacion("Patitas Felices CABA")
                 .preferencia(PreferenciaRol.AMBOS)
                 .activeProfile(UserProfile.RESCATISTA)
@@ -107,6 +190,8 @@ public class InitialConfiguration implements CommandLineRunner {
                 .role(UserRole.USER)
                 .provincia("Ciudad Aut\u00f3noma de Buenos Aires")
                 .ciudad("Retiro")
+                .latitud(coordsDe("Retiro", "Ciudad Aut\u00f3noma de Buenos Aires")[0])
+                .longitud(coordsDe("Retiro", "Ciudad Aut\u00f3noma de Buenos Aires")[1])
                 .build());
 
         // 48 usuarios con ubicaciones y fechas diversas de toda Argentina
@@ -929,6 +1014,7 @@ public class InitialConfiguration implements CommandLineRunner {
 
     private void crearUsuario(String nombre, String apellido, long dni, String email, String tel,
                                String provincia, String ciudad, LocalDateTime createdAt) {
+        double[] coords = coordsDe(ciudad, provincia);
         userRepository.save(User.builder()
                 .nombre(nombre)
                 .apellido(apellido)
@@ -939,6 +1025,8 @@ public class InitialConfiguration implements CommandLineRunner {
                 .role(UserRole.USER)
                 .provincia(provincia)
                 .ciudad(ciudad)
+                .latitud(coords != null ? coords[0] : null)
+                .longitud(coords != null ? coords[1] : null)
                 .organizacion("Org. " + nombre + " " + apellido)
                 .createdAt(createdAt)
                 .build());
