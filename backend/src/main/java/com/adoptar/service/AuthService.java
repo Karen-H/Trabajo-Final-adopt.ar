@@ -49,6 +49,8 @@ public class AuthService {
                 .organizacion(request.getOrganizacion())
                 .provincia(request.getProvincia())
                 .ciudad(request.getCiudad())
+                .latitud(request.getLatitud())
+                .longitud(request.getLongitud())
                 .preferencia(request.getPreferencia())
                 .activeProfile(perfil)
                 .build();

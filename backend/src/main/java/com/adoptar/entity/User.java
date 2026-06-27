@@ -53,6 +53,12 @@ public class User implements UserDetails {
     @Column
     private String ciudad;
 
+    @Column
+    private Double latitud;
+
+    @Column
+    private Double longitud;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default

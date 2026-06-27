@@ -35,6 +35,4 @@ public class AnimalRequest {
     private String descripcion;
 
     private String direccion;
-    private Double latitud;
-    private Double longitud;
 }

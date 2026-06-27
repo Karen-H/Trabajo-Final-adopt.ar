@@ -5,6 +5,7 @@ import FiltroUbicacion from '../components/FiltroUbicacion'
 import Paginacion from '../components/Paginacion'
 import { getMisReservasAdoptante, aceptarReserva, rechazarReserva } from '../api/reserva'
 import { useAuth } from '../context/AuthContext'
+import LayoutConMapa from '../components/LayoutConMapa'
 
 const TIPOS = ['PERRO', 'GATO', 'OTRO']
 const ETIQUETA_TIPO = { PERRO: 'Perro', GATO: 'Gato', OTRO: 'Otro' }
@@ -118,7 +119,7 @@ function Adopciones() {
 
   useEffect(() => { setPagina(1) }, [tipos, provincia, ciudad, edades, tipoAdopcion, amigableCon, organizacion])
 
-  const POR_PAGINA = 10
+  const POR_PAGINA = 12
   const paginados = visibles.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
 
   const organizaciones = useMemo(() => {
@@ -127,6 +128,84 @@ function Adopciones() {
   }, [animales])
 
   if (cargando) return <p>Cargando...</p>
+
+  const filtros = (
+    <>
+      <div>
+        <strong>Tipo:</strong>
+        <div style={{ display: 'flex', flexDirection: 'column', marginTop: 4 }}>
+          {TIPOS.map(t => (
+            <label key={t}>
+              <input type="checkbox" checked={tipos.includes(t)} onChange={() => toggleTipo(t)} />
+              {' '}{ETIQUETA_TIPO[t]}
+            </label>
+          ))}
+        </div>
+      </div>
+      <FiltroUbicacion
+        animales={animales}
+        provincia={provincia}
+        ciudad={ciudad}
+        onProvinciaChange={setProvincia}
+        onCiudadChange={setCiudad}
+      />
+      <div>
+        <strong>Edad:</strong>
+        <div style={{ display: 'flex', flexDirection: 'column', marginTop: 4 }}>
+          {EDADES.map(e => (
+            <label key={e.value}>
+              <input type="checkbox" checked={edades.includes(e.value)} onChange={() => toggleEdad(e.value)} />
+              {' '}{e.label}
+            </label>
+          ))}
+        </div>
+      </div>
+      <div>
+        <strong>Tipo de adopción:</strong>
+        <div style={{ display: 'flex', flexDirection: 'column', marginTop: 4 }}>
+          {TIPOS_ADOPCION.map(t => (
+            <label key={t.value}>
+              <input
+                type="radio"
+                name="tipoAdopcion"
+                value={t.value}
+                checked={tipoAdopcion === t.value}
+                onChange={() => setTipoAdopcion(t.value)}
+              />
+              {' '}{t.label}
+            </label>
+          ))}
+        </div>
+      </div>
+      <div>
+        <strong>Amigable con:</strong>
+        <div style={{ display: 'flex', flexDirection: 'column', marginTop: 4 }}>
+          {AMIGABLE_CON.map(({ key, label }) => (
+            <label key={key}>
+              <input type="checkbox" checked={amigableCon.includes(key)} onChange={() => toggleAmigable(key)} />
+              {' '}{label}
+            </label>
+          ))}
+        </div>
+      </div>
+      {organizaciones.length > 0 && (
+        <div>
+          <strong>Organización:</strong>{' '}
+          <select value={organizacion} onChange={e => setOrganizacion(e.target.value)}>
+            <option value=''>Todas</option>
+            {organizaciones.map(o => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+        </div>
+      )}
+      {hayFiltros && (
+        <button onClick={() => { setTipos([]); setProvincia(''); setCiudad(''); setEdades([]); setTipoAdopcion(''); setAmigableCon([]); setOrganizacion('') }}>
+          Limpiar filtros
+        </button>
+      )}
+    </>
+  )
 
   return (
     <div>
@@ -177,110 +256,33 @@ function Adopciones() {
         </div>
       )}
 
-      <div style={{ marginBottom: '1rem', display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div>
-          <strong>Tipo:</strong>
-          {' '}
-          {TIPOS.map(t => (
-            <label key={t} style={{ marginRight: 12 }}>
-              <input
-                type="checkbox"
-                checked={tipos.includes(t)}
-                onChange={() => toggleTipo(t)}
-              />
-              {' '}{ETIQUETA_TIPO[t]}
-            </label>
-          ))}
-        </div>
-        <FiltroUbicacion
-          animales={animales}
-          provincia={provincia}
-          ciudad={ciudad}
-          onProvinciaChange={setProvincia}
-          onCiudadChange={setCiudad}
-        />
-        <div>
-          <strong>Edad:</strong>{' '}
-          {EDADES.map(e => (
-            <label key={e.value} style={{ marginRight: 12 }}>
-              <input
-                type="checkbox"
-                checked={edades.includes(e.value)}
-                onChange={() => toggleEdad(e.value)}
-              />
-              {' '}{e.label}
-            </label>
-          ))}
-        </div>
-        <div>
-          <strong>Tipo de adopción:</strong>{' '}
-          {TIPOS_ADOPCION.map(t => (
-            <label key={t.value} style={{ marginRight: 12 }}>
-              <input
-                type="radio"
-                name="tipoAdopcion"
-                value={t.value}
-                checked={tipoAdopcion === t.value}
-                onChange={() => setTipoAdopcion(t.value)}
-              />
-              {' '}{t.label}
-            </label>
-          ))}
-        </div>
-        <div>
-          <strong>Amigable con:</strong>{' '}
-          {AMIGABLE_CON.map(({ key, label }) => (
-            <label key={key} style={{ marginRight: 12 }}>
-              <input
-                type="checkbox"
-                checked={amigableCon.includes(key)}
-                onChange={() => toggleAmigable(key)}
-              />
-              {' '}{label}
-            </label>
-          ))}
-        </div>
-        {organizaciones.length > 0 && (
-          <div>
-            <strong>Organización:</strong>{' '}
-            <select value={organizacion} onChange={e => setOrganizacion(e.target.value)}>
-              <option value=''>Todas</option>
-              {organizaciones.map(o => (
-                <option key={o} value={o}>{o}</option>
+      <LayoutConMapa filtros={filtros} animales={visibles}>
+        {animales.length === 0 ? (
+          <p>No hay animales en adopcion en este momento.</p>
+        ) : visibles.length === 0 ? (
+          <p>No hay resultados para los filtros seleccionados.</p>
+        ) : (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {paginados.map(a => (
+                <div key={a.id} style={{ border: '1px solid #ccc', borderRadius: 4 }}>
+                  <Link to={`/animal/${a.id}`} style={{ display: 'block', padding: 12, color: 'inherit', textDecoration: 'none' }}>
+                    {a.fotos?.length > 0 && (
+                      <img src={a.fotos[0].url} alt={a.nombre} style={{ width: 120, height: 120, objectFit: 'cover', display: 'block', marginBottom: 8 }} />
+                    )}
+                    <p style={{ margin: '2px 0', fontWeight: 600 }}>{a.nombre}</p>
+                    <p style={{ margin: '2px 0', fontSize: 13 }}>{ETIQUETA_TIPO[a.tipo]}{a.sexo ? ' · ' + ETIQUETA_SEXO[a.sexo] : ''}{a.edad ? ' · ' + ETIQUETA_EDAD[a.edad] : ''}</p>
+                    {(a.ciudad || a.provincia) && (
+                      <p style={{ margin: '2px 0', fontSize: 12, color: '#666' }}>{[a.ciudad, a.provincia].filter(Boolean).join(', ')}</p>
+                    )}
+                  </Link>
+                </div>
               ))}
-            </select>
-          </div>
-        )}
-        {hayFiltros && (
-          <button onClick={() => { setTipos([]); setProvincia(''); setCiudad(''); setEdades([]); setTipoAdopcion(''); setAmigableCon([]); setOrganizacion('') }}>
-            Limpiar filtros
-          </button>
-        )}
-      </div>
-
-      {animales.length === 0 ? (
-        <p>No hay animales en adopcion en este momento.</p>
-      ) : visibles.length === 0 ? (
-        <p>No hay resultados para los filtros seleccionados.</p>
-      ) : (
-        <>
-          {paginados.map(a => (
-            <div key={a.id} style={{ border: '1px solid #ccc', marginBottom: 12 }}>
-              <Link to={`/animal/${a.id}`} style={{ display: 'block', padding: 12, color: 'inherit', textDecoration: 'none' }}>
-                {a.fotos?.length > 0 && (
-                  <img src={a.fotos[0].url} alt={a.nombre} style={{ width: 120, height: 120, objectFit: 'cover', display: 'block', marginBottom: 8 }} />
-                )}
-                <p style={{ margin: '2px 0', fontWeight: 600 }}>{a.nombre}</p>
-                <p style={{ margin: '2px 0', fontSize: 13 }}>{ETIQUETA_TIPO[a.tipo]}{a.sexo ? ' · ' + ETIQUETA_SEXO[a.sexo] : ''}{a.edad ? ' · ' + ETIQUETA_EDAD[a.edad] : ''}</p>
-                {(a.ciudad || a.provincia) && (
-                  <p style={{ margin: '2px 0', fontSize: 12, color: '#666' }}>{[a.ciudad, a.provincia].filter(Boolean).join(', ')}</p>
-                )}
-              </Link>
             </div>
-          ))}
-          <Paginacion total={visibles.length} porPagina={POR_PAGINA} pagina={pagina} onChange={setPagina} />
-        </>
-      )}
+            <Paginacion total={visibles.length} porPagina={POR_PAGINA} pagina={pagina} onChange={setPagina} />
+          </>
+        )}
+      </LayoutConMapa>
     </div>
   )
 }

@@ -28,6 +28,8 @@ function TiendaDetalle() {
   const [cantidades, setCantidades] = useState({})
   const [agregandoId, setAgregandoId] = useState(null)
   const [mensaje, setMensaje] = useState('')
+  const [filtroQ, setFiltroQ] = useState('')
+  const [filtroTipo, setFiltroTipo] = useState('')
 
   useEffect(() => {
     if (!localStorage.getItem('token')) {
@@ -64,18 +66,41 @@ function TiendaDetalle() {
 
   if (cargando) return <p>Cargando...</p>
 
+  const itemsFiltrados = items.filter(item => {
+    const matchQ = !filtroQ || item.titulo.toLowerCase().includes(filtroQ.toLowerCase())
+    const matchTipo = !filtroTipo || item.tipo === filtroTipo
+    return matchQ && matchTipo
+  })
+
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 16px' }}>
       <Link to="/tiendas">Volver a tiendas</Link>
       <h2>Items en venta</h2>
 
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
+        <input
+          type="text"
+          placeholder="Buscar por item..."
+          value={filtroQ}
+          onChange={e => setFiltroQ(e.target.value)}
+          style={{ flex: 1, minWidth: 200 }}
+        />
+        <select value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
+          <option value="">Todos los tipos</option>
+          {Object.entries(TIPOS_ITEM).map(([valor, etiqueta]) => (
+            <option key={valor} value={valor}>{etiqueta}</option>
+          ))}
+        </select>
+      </div>
+
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {mensaje && <p>{mensaje}</p>}
 
       {items.length === 0 && !error && <p>Esta tienda no tiene items disponibles.</p>}
+      {items.length > 0 && itemsFiltrados.length === 0 && <p>No hay items que coincidan con la búsqueda.</p>}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
-        {items.map(item => {
+        {itemsFiltrados.map(item => {
           const fotoUrl = item.fotos?.find(f => f.estado === 'APROBADA')?.url
           const sinStock = item.stock <= 0
           return (

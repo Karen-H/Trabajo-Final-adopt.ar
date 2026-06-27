@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { register } from '../api/auth'
 import { getProvincias, getMunicipios } from '../api/georef'
+import { buscarNominatim } from '../api/reporte'
 import { agregarFavorito } from '../api/favorito'
 import { useAuth } from '../context/AuthContext'
 
@@ -55,6 +56,13 @@ function Register() {
       if (!data.organizacion) delete data.organizacion
       if (!data.provincia) delete data.provincia
       if (!data.ciudad) delete data.ciudad
+      if (data.provincia && data.ciudad) {
+        const resultados = await buscarNominatim(`${data.ciudad}, ${data.provincia}, Argentina`).catch(() => [])
+        if (resultados.length > 0) {
+          data.latitud = resultados[0].lat
+          data.longitud = resultados[0].lon
+        }
+      }
       const res = await register(data)
       login(res.data)
       const pending = localStorage.getItem('pendingFavorito')

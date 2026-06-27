@@ -25,5 +25,8 @@ public class ItemTiendaResponse {
     private EstadoItem estado;
     private String motivoRechazo;
     private String rescatistaNombre;
+    private String rescatistaOrganizacion;
+    private String rescatistaCiudad;
+    private String rescatistaProvincia;
     private LocalDateTime creadoEn;
 }

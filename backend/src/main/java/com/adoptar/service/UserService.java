@@ -88,6 +88,14 @@ public class UserService {
             user.setCiudad(request.getCiudad().isBlank() ? null : request.getCiudad());
         }
 
+        if (request.getLatitud() != null) {
+            user.setLatitud(request.getLatitud());
+        }
+
+        if (request.getLongitud() != null) {
+            user.setLongitud(request.getLongitud());
+        }
+
         if (request.getPreferencia() != null && request.getPreferencia() != user.getPreferencia()) {
             aplicarCambioPreferencia(user, request.getPreferencia());
         }
